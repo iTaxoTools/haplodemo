@@ -18,8 +18,8 @@ class Label(QtWidgets.QGraphicsTextItem):
         self.adjustSize()
 
         self.setPos(
-            parent.radius / 2 - self.boundingRect().width() / 2,
-            parent.radius / 2 - self.boundingRect().height() / 2)
+            parent.radius - self.boundingRect().width() / 2,
+            parent.radius - self.boundingRect().height() / 2)
 
 
 class Edge(QtWidgets.QGraphicsLineItem):
@@ -52,7 +52,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
 class Node(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, r, text, color=QtCore.Qt.black, divisions=None):
-        super().__init__(0, 0, r, r)
+        super().__init__(0, 0, r * 2, r * 2)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setBrush(color)
@@ -119,21 +119,21 @@ class Node(QtWidgets.QGraphicsEllipseItem):
         edge = self.items[item]
 
         line = QtCore.QLineF(
-            self.radius / 2,
-            self.radius / 2,
-            item.pos().x() + item.radius / 2,
-            item.pos().y() + item.radius / 2)
+            self.radius,
+            self.radius,
+            item.pos().x() + item.radius,
+            item.pos().y() + item.radius)
         length = line.length()
 
-        if length < (self.radius / 2 + item.radius / 2):
+        if length < (self.radius + item.radius):
             edge.hide()
             return
         edge.show()
 
-        line.setLength(length - self.radius / 2 - item.radius / 2)
+        line.setLength(length - self.radius - item.radius)
 
         unit = line.unitVector()
-        unit.setLength(self.radius / 2)
+        unit.setLength(self.radius)
         unit.translate(-unit.x1(), -unit.y1())
 
         line.translate(unit.x2(), unit.y2())
@@ -149,19 +149,19 @@ class Scene(QtWidgets.QGraphicsScene):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.node1 = Node(85, 140, 70, 'A', divisions={'#20639b': 4, '#ed553b': 3, '#3caea3': 2})
+        self.node1 = Node(85, 140, 35, 'A', divisions={'#20639b': 4, '#ed553b': 3, '#3caea3': 2})
         self.addItem(self.node1)
 
-        self.node2 = Node(95, -30, 40, 'B', divisions={'#20639b': 4, '#3caea3': 2})
+        self.node2 = Node(95, -30, 20, 'B', divisions={'#20639b': 4, '#3caea3': 2})
         self.node1.addChild(self.node2, 2)
 
-        self.node3 = Node(115, 60, 50, 'C', divisions={'#ed553b': 6, '#3caea3': 2})
+        self.node3 = Node(115, 60, 25, 'C', divisions={'#ed553b': 6, '#3caea3': 2})
         self.node1.addChild(self.node3, 3)
 
-        self.node4 = Node(60, -30, 30, 'D', QtGui.QColor('#ed553b'))
+        self.node4 = Node(60, -30, 15, 'D', QtGui.QColor('#ed553b'))
         self.node3.addChild(self.node4, 1)
 
-        self.node5 = Node(60, 60, 30, 'E', QtGui.QColor('#3caea3'))
+        self.node5 = Node(60, 60, 15, 'E', QtGui.QColor('#3caea3'))
         self.node3.addChild(self.node5, 2)
 
 
