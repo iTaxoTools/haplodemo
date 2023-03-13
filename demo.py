@@ -10,6 +10,7 @@ class Label(QtWidgets.QGraphicsTextItem):
         super().__init__(text, parent)
         # self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
         self.setDefaultTextColor(QtCore.Qt.white)
+        self.setAcceptHoverEvents(False)
 
         font = QtGui.QFont()
         font.setPixelSize(16)
@@ -53,6 +54,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
 class Node(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, r, text, color=QtCore.Qt.black, divisions=None):
         super().__init__(0, 0, r * 2, r * 2)
+        self.setAcceptHoverEvents(True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setBrush(color)
@@ -60,6 +62,7 @@ class Node(QtWidgets.QGraphicsEllipseItem):
         self.setPos(x, y)
 
         self.radius = r
+        self.hovered = False
         self.divisions = dict()
         self.items = dict()
 
@@ -70,7 +73,7 @@ class Node(QtWidgets.QGraphicsEllipseItem):
 
     def paint(self, painter, options, widget = None):
         painter.save()
-        painter.setPen(self.pen())
+        painter.setPen(self.pen() if not self.hovered else QtGui.QPen(QtGui.QColor('#8aef52'), 4))
         painter.setBrush(self.brush())
         painter.drawEllipse(self.rect())
         if self.divisions:
@@ -91,7 +94,7 @@ class Node(QtWidgets.QGraphicsEllipseItem):
             starting_angle += span
 
         painter.setBrush(QtCore.Qt.NoBrush)
-        painter.setPen(self.pen())
+        painter.setPen(self.pen() if not self.hovered else QtGui.QPen(QtGui.QColor('#8aef52'), 4))
         painter.drawEllipse(self.rect())
 
     def addChild(self, item, segments=1):
@@ -137,9 +140,6 @@ class Node(QtWidgets.QGraphicsEllipseItem):
         unit.translate(-unit.x1(), -unit.y1())
 
         line.translate(unit.x2(), unit.y2())
-
-
-
         edge.setLine(line)
 
 
@@ -148,6 +148,7 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.hoveredItem = None
 
         self.node1 = Node(85, 140, 35, 'A', divisions={'#20639b': 4, '#ed553b': 3, '#3caea3': 2})
         self.addItem(self.node1)
@@ -163,6 +164,31 @@ class Scene(QtWidgets.QGraphicsScene):
 
         self.node5 = Node(60, 60, 15, 'E', QtGui.QColor('#3caea3'))
         self.node3.addChild(self.node5, 2)
+
+    def event(self, event):
+        if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
+            self.hoverEvent(event)
+        return super().event(event)
+
+    def hoverEvent(self, event):
+        # This is required, since the default hover implementation
+        # sends the event to the parent of the hovered item,
+        # which we don't want!
+        for item in self.items(event.scenePos()):
+            if item == self.hoveredItem:
+                return
+            if isinstance(item, Node):
+                self.setHoveredItem(item)
+                return
+        self.setHoveredItem(None)
+
+    def setHoveredItem(self, item):
+        if self.hoveredItem is not None:
+            self.hoveredItem.hovered = False
+        self.hoveredItem = item
+        if item is not None:
+            item.hovered = True
+            item.update()
 
 
 class Window(QtWidgets.QDialog):
