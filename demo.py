@@ -30,31 +30,58 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
 
 class Node(QtWidgets.QGraphicsEllipseItem):
-    def __init__(self, x, y, r, text, brush):
+    def __init__(self, x, y, r, text, color=QtCore.Qt.black, divisions=None):
         super().__init__(0, 0, r, r)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
-        self.setBrush(brush)
+        self.setBrush(color)
         self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
         self.setPos(x, y)
 
-        self.items = dict()
         self.radius = r
+        self.divisions = dict()
+        self.items = dict()
 
         self.textItem = Label(text, self)
+
+        if divisions:
+            self.setDivisions(divisions)
 
     def paint(self, painter, options, widget = None):
         painter.save()
         painter.setPen(self.pen())
         painter.setBrush(self.brush())
-        center = QtCore.QPointF(self.radius, self.radius)
         painter.drawEllipse(self.rect())
+        if self.divisions:
+            self.paintDivisions(painter)
         painter.restore()
+
+    def paintDivisions(self, painter):
+        painter.setPen(QtCore.Qt.NoPen)
+        total_weight = sum(weight for weight in self.divisions.values())
+        starting_angle = 16 * 90
+
+        items = iter(self.divisions.items())
+        next(items)
+        for color, weight in items:
+            span = int(5760 * weight / total_weight)
+            painter.setBrush(QtGui.QBrush(color))
+            painter.drawPie(self.rect(), starting_angle, span)
+            starting_angle += span
+
+        painter.setBrush(QtCore.Qt.NoBrush)
+        painter.setPen(self.pen())
+        painter.drawEllipse(self.rect())
 
     def addItem(self, item):
         self.items[item] = Edge(self)
         item.setParentItem(self)
         self.adjustItemEdge(item)
+
+    def setDivisions(self, divisions):
+        self.divisions = divisions
+        color = next(iter(divisions.keys()))
+        self.setBrush(QtGui.QBrush(color))
 
     def boundingRect(self):
         # Hack to prevent drag n draw glitch
@@ -82,16 +109,16 @@ class Scene(QtWidgets.QGraphicsScene):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.node1 = Node(85, 140, 70, 'A', QtGui.QColor('#20639b'))
+        self.node1 = Node(85, 140, 70, 'A', divisions={'#20639b': 4, '#ed553b': 3, '#3caea3': 2})
         self.addItem(self.node1)
 
-        self.node2 = Node(95, -30, 40, 'B', QtGui.QColor('#3caea3'))
+        self.node2 = Node(95, -30, 40, 'B', divisions={'#20639b': 4, '#3caea3': 2})
         self.node1.addItem(self.node2)
 
-        self.node3 = Node(115, 60, 50, 'C', QtGui.QColor('#ed553b'))
+        self.node3 = Node(115, 60, 50, 'C', divisions={'#ed553b': 6, '#3caea3': 2})
         self.node1.addItem(self.node3)
 
-        self.node4 = Node(60, -30, 30, 'D', QtGui.QColor('#3caea3'))
+        self.node4 = Node(60, -30, 30, 'D', QtGui.QColor('#ed553b'))
         self.node3.addItem(self.node4)
 
         self.node5 = Node(60, 60, 30, 'E', QtGui.QColor('#3caea3'))
