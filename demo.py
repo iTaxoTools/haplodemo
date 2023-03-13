@@ -5,28 +5,75 @@ from PySide6 import QtCore
 from PySide6 import QtSvg
 
 
-class EllipseItem(QtWidgets.QGraphicsEllipseItem):
+class Label(QtWidgets.QGraphicsTextItem):
+    def __init__(self, text, parent):
+        super().__init__(text, parent)
+        # self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
+        self.setDefaultTextColor(QtCore.Qt.white)
+
+        font = QtGui.QFont()
+        font.setPixelSize(16)
+        font.setFamily('Arial')
+        self.setFont(font)
+        self.adjustSize()
+
+        self.setPos(
+            parent.radius / 2 - self.boundingRect().width() / 2,
+            parent.radius / 2 - self.boundingRect().height() / 2)
+
+
+class Edge(QtWidgets.QGraphicsLineItem):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemStacksBehindParent, True)
+        self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
+
+
+class Node(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, r, text, brush):
         super().__init__(0, 0, r, r)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setBrush(brush)
+        self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
         self.setPos(x, y)
 
-        # Create a QtWidgets.QGraphicsTextItem and set its position to the center of the ellipse
-        self.textItem = QtWidgets.QGraphicsTextItem(text, self)
-        font = QtGui.QFont()
-        font.setPointSize(14)
-        self.textItem.setFont(font)
-        self.textItem.setDefaultTextColor(QtCore.Qt.white)
-        self.textItem.setPos(self.rect().width() / 2 - self.textItem.boundingRect().width() / 2, self.rect().height() / 2 - self.textItem.boundingRect().height() / 2)
+        self.items = dict()
+        self.radius = r
+
+        self.textItem = Label(text, self)
+
+    def paint(self, painter, options, widget = None):
+        painter.save()
+        painter.setPen(self.pen())
+        painter.setBrush(self.brush())
+        center = QtCore.QPointF(self.radius, self.radius)
+        painter.drawEllipse(self.rect())
+        painter.restore()
+
+    def addItem(self, item):
+        self.items[item] = Edge(self)
+        item.setParentItem(self)
+        self.adjustItemEdge(item)
+
+    def boundingRect(self):
+        # Hack to prevent drag n draw glitch
+        return self.rect().adjusted(-50, -50, 50, 50)
 
     def itemChange(self, change, value):
-        if self.scene() is not None:
+        parent = self.parentItem()
+        if isinstance(parent, Node):
             if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
-                # Emit a QtCore.Signal to notify that the item has been moved
-                self.scene().itemMoved.emit()
+                parent.adjustItemEdge(self)
         return super().itemChange(change, value)
+
+    def adjustItemEdge(self, item):
+        edge = self.items[item]
+        edge.setLine(
+            self.radius / 2,
+            self.radius / 2,
+            item.pos().x() + item.radius / 2,
+            item.pos().y() + item.radius / 2)
 
 
 class Scene(QtWidgets.QGraphicsScene):
@@ -34,42 +81,28 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.line1 = QtWidgets.QGraphicsLineItem()
-        self.line1.setPen(QtGui.QPen(QtCore.Qt.black, 2))
-        self.addItem(self.line1)
 
-        self.line2 = QtWidgets.QGraphicsLineItem()
-        self.line2.setPen(QtGui.QPen(QtCore.Qt.black, 2))
-        self.addItem(self.line2)
+        self.node1 = Node(85, 140, 70, 'A', QtGui.QColor('#20639b'))
+        self.addItem(self.node1)
 
-        self.ellipse1 = EllipseItem(85, 140, 50, 'A', QtGui.QColor('#20639b'))
-        self.addItem(self.ellipse1)
+        self.node2 = Node(95, -30, 40, 'B', QtGui.QColor('#3caea3'))
+        self.node1.addItem(self.node2)
 
-        self.ellipse2 = EllipseItem(200, 200, 50, 'B', QtGui.QColor('#ed553b'))
-        self.addItem(self.ellipse2)
+        self.node3 = Node(115, 60, 50, 'C', QtGui.QColor('#ed553b'))
+        self.node1.addItem(self.node3)
 
-        self.ellipse3 = EllipseItem(180, 110, 30, 'C', QtGui.QColor('#3caea3'))
-        self.addItem(self.ellipse3)
+        self.node4 = Node(60, -30, 30, 'D', QtGui.QColor('#3caea3'))
+        self.node3.addItem(self.node4)
 
-        # Connect the itemMoved QtCore.Signal to the updateLines slot
-        self.itemMoved.connect(self.updateLines)
-        self.updateLines()
-
-    def updateLines(self):
-        # Get the center points of the ellipses
-        center1 = self.ellipse1.scenePos() + QtCore.QPointF(self.ellipse1.rect().width() / 2, self.ellipse1.rect().height() / 2)
-        center2 = self.ellipse2.scenePos() + QtCore.QPointF(self.ellipse2.rect().width() / 2, self.ellipse2.rect().height() / 2)
-        center3 = self.ellipse3.scenePos() + QtCore.QPointF(self.ellipse3.rect().width() / 2, self.ellipse3.rect().height() / 2)
-
-        # Set the starting and ending points of the line
-        self.line1.setLine(center1.x(), center1.y(), center2.x(), center2.y())
-        self.line2.setLine(center1.x(), center1.y(), center3.x(), center3.y())
+        self.node5 = Node(60, 60, 30, 'E', QtGui.QColor('#3caea3'))
+        self.node3.addItem(self.node5)
 
 
 class Window(QtWidgets.QDialog):
     def __init__(self):
         super().__init__()
         self.resize(400, 400)
+        self.setWindowTitle('Haplodemo')
 
         view = QtWidgets.QGraphicsView()
         scene = Scene()
