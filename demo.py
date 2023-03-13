@@ -65,6 +65,7 @@ class Scene(QtWidgets.QGraphicsScene):
         self.line1.setLine(center1.x(), center1.y(), center2.x(), center2.y())
         self.line2.setLine(center1.x(), center1.y(), center3.x(), center3.y())
 
+
 class Window(QtWidgets.QDialog):
     def __init__(self):
         super().__init__()
@@ -75,26 +76,29 @@ class Window(QtWidgets.QDialog):
         view.setRenderHints(QtGui.QPainter.Antialiasing)
         view.setScene(scene)
 
-        button_svg = QtWidgets.QPushButton('Export SVG')
+        button_svg = QtWidgets.QPushButton('Export as SVG')
         button_svg.clicked.connect(self.export_svg)
 
-        button_pdf = QtWidgets.QPushButton('Export PDF')
+        button_pdf = QtWidgets.QPushButton('Export as PDF')
         button_pdf.clicked.connect(self.export_pdf)
 
-        button_pdf2 = QtWidgets.QPushButton('Print PDF')
-        button_pdf2.clicked.connect(self.print_pdf)
+        button_png = QtWidgets.QPushButton('Export as PNG')
+        button_png.clicked.connect(self.export_png)
+
+        buttons = QtWidgets.QHBoxLayout()
+        buttons.addWidget(button_svg)
+        buttons.addWidget(button_pdf)
+        buttons.addWidget(button_png)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(view)
-        layout.addWidget(button_svg)
-        layout.addWidget(button_pdf)
-        layout.addWidget(button_pdf2)
+        layout.addLayout(buttons)
         self.setLayout(layout)
 
         self.graph = view
 
     def export_svg(self):
-        file, _ = QFileDialog.getSaveFileName(
+        file, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, 'Export As...', 'graph.svg', 'SVG Files (*.svg)')
         if not file:
             return
@@ -111,7 +115,7 @@ class Window(QtWidgets.QDialog):
         painter.end()
 
     def export_pdf(self):
-        file, _ = QFileDialog.getSaveFileName(
+        file, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, 'Export As...', 'graph.pdf', 'PDF Files (*.pdf)')
         if not file:
             return
@@ -124,21 +128,24 @@ class Window(QtWidgets.QDialog):
         self.graph.render(painter)
         painter.end()
 
-    def print_pdf(self):
-        file, _ = QFileDialog.getSaveFileName(
-            self, 'Export As...', 'graph.pdf', 'PDF Files (*.pdf)')
+    def export_png(self):
+        file, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self, 'Export As...', 'graph.png', 'PNG Files (*.png)')
         if not file:
             return
-        print('PDF >', file)
+        print('PNG >', file)
 
-        printer = QPrinter(QPrinter.HighResolution)
-        printer.setOutputFormat(QPrinter.PdfFormat)
-        printer.setOutputFileName(file)
+        width, height = 400, 400
+        pixmap = QtGui.QPixmap(width, height)
+        pixmap.fill(QtCore.Qt.white)
 
         painter = QtGui.QPainter()
-        painter.begin(printer)
+        painter.begin(pixmap)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
         self.graph.render(painter)
         painter.end()
+
+        pixmap.save(file)
 
 
 if __name__ == '__main__':

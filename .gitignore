@@ -3,3 +3,6 @@ Pipfile.lock
 build/
 dist/
 *.spec
+*.svg
+*.pdf
+*.png
