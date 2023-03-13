@@ -1,7 +1,12 @@
+altgraph==0.17.3
+pefile==2023.2.7
 pip==23.0.1
+pyinstaller==5.2
+pyinstaller-hooks-contrib==2023.0
 PySide6==6.4.2
 PySide6-Addons==6.4.2
 PySide6-Essentials==6.4.2
+pywin32-ctypes==0.2.0
 setuptools==67.2.0
 shiboken6==6.4.2
 wheel==0.38.4
