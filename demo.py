@@ -23,10 +23,31 @@ class Label(QtWidgets.QGraphicsTextItem):
 
 
 class Edge(QtWidgets.QGraphicsLineItem):
-    def __init__(self, parent):
+    def __init__(self, parent, segments=2):
         super().__init__(parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemStacksBehindParent, True)
         self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
+        self.segments = segments
+
+    def paint(self, painter, options, widget = None):
+        super().paint(painter, options, widget)
+
+        if self.segments < 2:
+            return
+
+        painter.save()
+        painter.setPen(self.pen())
+        painter.setBrush(self.pen().color())
+
+        for dot in range(1, self.segments):
+            center = self.line().pointAt(dot/self.segments)
+            painter.drawEllipse(center, 2.5, 2.5)
+
+        painter.restore()
+
+    def boundingRect(self):
+        # Expand to account for segment dots
+        return super().boundingRect().adjusted(-50, -50, 50, 50)
 
 
 class Node(QtWidgets.QGraphicsEllipseItem):
@@ -73,8 +94,8 @@ class Node(QtWidgets.QGraphicsEllipseItem):
         painter.setPen(self.pen())
         painter.drawEllipse(self.rect())
 
-    def addItem(self, item):
-        self.items[item] = Edge(self)
+    def addChild(self, item, segments=1):
+        self.items[item] = Edge(self, segments)
         item.setParentItem(self)
         self.adjustItemEdge(item)
 
@@ -96,11 +117,30 @@ class Node(QtWidgets.QGraphicsEllipseItem):
 
     def adjustItemEdge(self, item):
         edge = self.items[item]
-        edge.setLine(
+
+        line = QtCore.QLineF(
             self.radius / 2,
             self.radius / 2,
             item.pos().x() + item.radius / 2,
             item.pos().y() + item.radius / 2)
+        length = line.length()
+
+        if length < (self.radius / 2 + item.radius / 2):
+            edge.hide()
+            return
+        edge.show()
+
+        line.setLength(length - self.radius / 2 - item.radius / 2)
+
+        unit = line.unitVector()
+        unit.setLength(self.radius / 2)
+        unit.translate(-unit.x1(), -unit.y1())
+
+        line.translate(unit.x2(), unit.y2())
+
+
+
+        edge.setLine(line)
 
 
 class Scene(QtWidgets.QGraphicsScene):
@@ -113,16 +153,16 @@ class Scene(QtWidgets.QGraphicsScene):
         self.addItem(self.node1)
 
         self.node2 = Node(95, -30, 40, 'B', divisions={'#20639b': 4, '#3caea3': 2})
-        self.node1.addItem(self.node2)
+        self.node1.addChild(self.node2, 2)
 
         self.node3 = Node(115, 60, 50, 'C', divisions={'#ed553b': 6, '#3caea3': 2})
-        self.node1.addItem(self.node3)
+        self.node1.addChild(self.node3, 3)
 
         self.node4 = Node(60, -30, 30, 'D', QtGui.QColor('#ed553b'))
-        self.node3.addItem(self.node4)
+        self.node3.addChild(self.node4, 1)
 
         self.node5 = Node(60, 60, 30, 'E', QtGui.QColor('#3caea3'))
-        self.node3.addItem(self.node5)
+        self.node3.addChild(self.node5, 2)
 
 
 class Window(QtWidgets.QDialog):
