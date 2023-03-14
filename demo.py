@@ -6,10 +6,37 @@ from PySide6 import QtGui
 from PySide6 import QtCore
 from PySide6 import QtSvg
 
+
 @dataclass
 class Division:
     name: str
     color: str
+
+    @classmethod
+    def colorize_list(cls, names: list[str], colors: list[str]):
+        return [cls(names[i], colors[i]) for i in range(len(names))]
+
+
+class PastelPalette(list):
+    colors = [
+        '#fbb4ae',
+        '#b3cde3',
+        '#ccebc5',
+        '#decbe4',
+        '#fed9a6',
+        '#ffffcc',
+        '#e5d8bd',
+        '#fddaec',
+    ]
+    default = '#f2f2f2'
+
+    def __init__(self):
+        super().__init__(self.colors)
+
+    def __getitem__(self, index):
+        if index < len(self):
+            return super().__getitem__(index)
+        return self.default
 
 
 class ColorDelegate(QtWidgets.QStyledItemDelegate):
@@ -226,8 +253,13 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.hoveredItem = None
+        self._division_model = None
+        self._hoveredItem = None
 
+    def setDivisionModel(self, model):
+        self._division_model = model
+
+    def addNodes(self):
         self.node1 = Node(85, 140, 35, 'A', divisions={'#20639b': 4, '#ed553b': 3, '#3caea3': 2})
         self.addItem(self.node1)
 
@@ -253,7 +285,7 @@ class Scene(QtWidgets.QGraphicsScene):
         # sends the event to the parent of the hovered item,
         # which we don't want!
         for item in self.items(event.scenePos()):
-            if item == self.hoveredItem:
+            if item == self._hoveredItem:
                 return
             if isinstance(item, Node):
                 self.setHoveredItem(item)
@@ -261,9 +293,9 @@ class Scene(QtWidgets.QGraphicsScene):
         self.setHoveredItem(None)
 
     def setHoveredItem(self, item):
-        if self.hoveredItem is not None:
-            self.hoveredItem.hovered = False
-        self.hoveredItem = item
+        if self._hoveredItem is not None:
+            self._hoveredItem.hovered = False
+        self._hoveredItem = item
         if item is not None:
             item.hovered = True
             item.update()
@@ -275,22 +307,23 @@ class Window(QtWidgets.QDialog):
         self.resize(400, 500)
         self.setWindowTitle('Haplodemo')
 
-        view = QtWidgets.QGraphicsView()
+        divisions = Division.colorize_list(
+            ['Alpha', 'Beta', 'Gamma'], PastelPalette()
+        )
+
+        division_model = DivisionListModel(divisions)
+
         scene = Scene()
-        view.setRenderHints(QtGui.QPainter.Antialiasing)
-        view.setScene(scene)
+        scene.setDivisionModel(division_model)
+        scene.addNodes()
 
-        divisions = [
-            Division('Red', '#FF0000'),
-            Division('Green', '#00FF00'),
-            Division('Blue', '#0000FF')
-        ]
+        scene_view = QtWidgets.QGraphicsView()
+        scene_view.setRenderHints(QtGui.QPainter.Antialiasing)
+        scene_view.setScene(scene)
 
-        color_model = DivisionListModel(divisions)
-        color_view = QtWidgets.QListView()
-        color_view.setModel(color_model)
-        color_delegate = ColorDelegate(self)
-        color_view.setItemDelegate(color_delegate)
+        division_view = QtWidgets.QListView()
+        division_view.setModel(division_model)
+        division_view.setItemDelegate(ColorDelegate(self))
 
         button_svg = QtWidgets.QPushButton('Export as SVG')
         button_svg.clicked.connect(self.export_svg)
@@ -307,12 +340,12 @@ class Window(QtWidgets.QDialog):
         buttons.addWidget(button_png)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(view, 10)
-        layout.addWidget(color_view, 1)
+        layout.addWidget(scene_view, 10)
+        layout.addWidget(division_view, 1)
         layout.addLayout(buttons)
         self.setLayout(layout)
 
-        self.graph = view
+        self.scene_view = scene_view
 
     def export_svg(self):
         file, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -328,7 +361,7 @@ class Window(QtWidgets.QDialog):
 
         painter = QtGui.QPainter()
         painter.begin(generator)
-        self.graph.render(painter)
+        self.scene_view.render(painter)
         painter.end()
 
     def export_pdf(self):
@@ -342,7 +375,7 @@ class Window(QtWidgets.QDialog):
 
         painter = QtGui.QPainter()
         painter.begin(writer)
-        self.graph.render(painter)
+        self.scene_view.render(painter)
         painter.end()
 
     def export_png(self):
@@ -359,7 +392,7 @@ class Window(QtWidgets.QDialog):
         painter = QtGui.QPainter()
         painter.begin(pixmap)
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        self.graph.render(painter)
+        self.scene_view.render(painter)
         painter.end()
 
         pixmap.save(file)
