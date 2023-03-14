@@ -1,8 +1,86 @@
 import sys
+from dataclasses import dataclass
+
 from PySide6 import QtWidgets
 from PySide6 import QtGui
 from PySide6 import QtCore
 from PySide6 import QtSvg
+
+@dataclass
+class Division:
+    name: str
+    color: str
+
+
+class ColorDelegate(QtWidgets.QStyledItemDelegate):
+    def createEditor(self, parent, option, index):
+        color_dialog = QtWidgets.QColorDialog(parent=self.parent())
+        color_dialog.setOption(QtWidgets.QColorDialog.DontUseNativeDialog, True)
+        for x in range(16):
+            color_dialog.setCustomColor(x, QtGui.QColor('red'))
+        return color_dialog
+
+    def setEditorData(self, editor, index):
+        color_value = index.model().data(index, QtCore.Qt.EditRole)
+        color_dialog = editor
+        color_dialog.setCurrentColor(QtGui.QColor(color_value))
+
+    def setModelData(self, editor, model, index):
+        color_dialog = editor
+        model.setData(index, color_dialog.currentColor().name(), QtCore.Qt.EditRole)
+
+    def updateEditorGeometry(self, editor, option, index):
+        # Override required for centering the dialog
+        pass
+
+
+class DivisionListModel(QtCore.QAbstractListModel):
+    def __init__(self, divisions, parent=None):
+        super().__init__(parent)
+        self._divisions = divisions
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return len(self._divisions)
+
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if not index.isValid() or not (0 <= index.row() < self.rowCount()):
+            return None
+
+        name = self._divisions[index.row()].name
+        color = self._divisions[index.row()].color
+
+        if role == QtCore.Qt.DisplayRole:
+            return name
+        elif role == QtCore.Qt.EditRole:
+            return color
+        elif role == QtCore.Qt.DecorationRole:
+            color = QtGui.QColor(color)
+            pixmap = QtGui.QPixmap(16, 16)
+            pixmap.fill(color)
+            return QtGui.QIcon(pixmap)
+
+        return None
+
+    def setData(self, index, value, role=QtCore.Qt.EditRole):
+        if not index.isValid() or not (0 <= index.row() < self.rowCount()):
+            return False
+
+        if role == QtCore.Qt.EditRole:
+            color = value.strip()
+            if not color.startswith('#'):
+                color = '#' + color
+
+            if not QtGui.QColor.isValidColor(color):
+                return False
+
+            self._divisions[index.row()].color = color
+            self.dataChanged.emit(index, index)
+            return True
+
+        return False
+
+    def flags(self, index):
+        return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
 
 class Label(QtWidgets.QGraphicsTextItem):
@@ -194,13 +272,25 @@ class Scene(QtWidgets.QGraphicsScene):
 class Window(QtWidgets.QDialog):
     def __init__(self):
         super().__init__()
-        self.resize(400, 400)
+        self.resize(400, 500)
         self.setWindowTitle('Haplodemo')
 
         view = QtWidgets.QGraphicsView()
         scene = Scene()
         view.setRenderHints(QtGui.QPainter.Antialiasing)
         view.setScene(scene)
+
+        divisions = [
+            Division('Red', '#FF0000'),
+            Division('Green', '#00FF00'),
+            Division('Blue', '#0000FF')
+        ]
+
+        color_model = DivisionListModel(divisions)
+        color_view = QtWidgets.QListView()
+        color_view.setModel(color_model)
+        color_delegate = ColorDelegate(self)
+        color_view.setItemDelegate(color_delegate)
 
         button_svg = QtWidgets.QPushButton('Export as SVG')
         button_svg.clicked.connect(self.export_svg)
@@ -217,7 +307,8 @@ class Window(QtWidgets.QDialog):
         buttons.addWidget(button_png)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(view)
+        layout.addWidget(view, 10)
+        layout.addWidget(color_view, 1)
         layout.addLayout(buttons)
         self.setLayout(layout)
 
