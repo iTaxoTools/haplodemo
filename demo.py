@@ -131,8 +131,8 @@ class Label(QtWidgets.QGraphicsTextItem):
         self.adjustSize()
 
         self.setPos(
-            parent.radius - self.boundingRect().width() / 2,
-            parent.radius - self.boundingRect().height() / 2)
+            - self.boundingRect().width() / 2,
+            - self.boundingRect().height() / 2)
 
 
 class Edge(QtWidgets.QGraphicsLineItem):
@@ -165,7 +165,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
 class Node(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, r, text, weights, divisions):
-        super().__init__(0, 0, r * 2, r * 2)
+        super().__init__(-r, -r, r * 2, r * 2)
         self.setAcceptHoverEvents(True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
@@ -173,13 +173,15 @@ class Node(QtWidgets.QGraphicsEllipseItem):
         self.setPos(x, y)
 
         self.radius = r
-        self.hovered = False
+        self.state_hovered = False
+        self.state_pressed = False
         self.divisions = divisions
         self.weights = weights
         self.items = dict()
         self.pies = dict()
 
         self.textItem = Label(text, self)
+        self.text = text
 
         self.updateColors()
 
@@ -199,7 +201,7 @@ class Node(QtWidgets.QGraphicsEllipseItem):
 
     def paint(self, painter, options, widget = None):
         painter.save()
-        painter.setPen(self.pen() if not self.hovered else QtGui.QPen(QtGui.QColor('#8aef52'), 4))
+        painter.setPen(self.getBorderPen())
         painter.setBrush(self.brush())
         painter.drawEllipse(self.rect())
         if self.pies:
@@ -216,8 +218,15 @@ class Node(QtWidgets.QGraphicsEllipseItem):
             starting_angle += span
 
         painter.setBrush(QtCore.Qt.NoBrush)
-        painter.setPen(self.pen() if not self.hovered else QtGui.QPen(QtGui.QColor('#8aef52'), 4))
+        painter.setPen(self.getBorderPen())
         painter.drawEllipse(self.rect())
+
+    def getBorderPen(self):
+        if self.state_pressed:
+            return QtGui.QPen(QtGui.QColor('#8aef52'), 4)
+        if self.state_hovered and self.scene().pressed_item is None:
+            return QtGui.QPen(QtGui.QColor('#8aef52'), 4)
+        return self.pen()
 
     def addChild(self, item, segments=1):
         self.items[item] = Edge(self, segments)
@@ -239,10 +248,10 @@ class Node(QtWidgets.QGraphicsEllipseItem):
         edge = self.items[item]
 
         line = QtCore.QLineF(
-            self.radius,
-            self.radius,
-            item.pos().x() + item.radius,
-            item.pos().y() + item.radius)
+            0,
+            0,
+            item.pos().x(),
+            item.pos().y())
         length = line.length()
 
         if length < (self.radius + item.radius):
@@ -259,6 +268,10 @@ class Node(QtWidgets.QGraphicsEllipseItem):
         line.translate(unit.x2(), unit.y2())
         edge.setLine(line)
 
+    def mouseMoveEvent(self, event):
+        super().mouseMoveEvent(event)
+        # print(self.text, self.pos())
+
 
 class Scene(QtWidgets.QGraphicsScene):
     itemMoved = QtCore.Signal()
@@ -266,29 +279,30 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self._division_model = None
-        self._hoveredItem = None
+        self.division_model = None
+        self.hovered_item = None
+        self.pressed_item = None
 
     def setDivisionModel(self, model):
-        if self._division_model is not None:
-            self._division_model.dataChanged.disconnect(self.divisionDataChanged)
+        if self.division_model is not None:
+            self.division_model.dataChanged.disconnect(self.divisionDataChanged)
         model.dataChanged.connect(self.divisionDataChanged)
-        self._division_model = model
+        self.division_model = model
 
     def addNodes(self):
-        self.node1 = Node(85, 140, 35, 'A', {'X': 4, 'Y': 3, 'Z': 2}, self._division_model)
+        self.node1 = Node(85, 140, 35, 'A', {'X': 4, 'Y': 3, 'Z': 2}, self.division_model)
         self.addItem(self.node1)
 
-        self.node2 = Node(95, -30, 20, 'B', {'X': 4, 'Z': 2}, self._division_model)
+        self.node2 = Node(95, -30, 20, 'B', {'X': 4, 'Z': 2}, self.division_model)
         self.node1.addChild(self.node2, 2)
 
-        self.node3 = Node(115, 60, 25, 'C', {'Y': 6, 'Z': 2}, self._division_model)
+        self.node3 = Node(115, 60, 25, 'C', {'Y': 6, 'Z': 2}, self.division_model)
         self.node1.addChild(self.node3, 3)
 
-        self.node4 = Node(60, -30, 15, 'D', {'Y': 1}, self._division_model)
+        self.node4 = Node(60, -30, 15, 'D', {'Y': 1}, self.division_model)
         self.node3.addChild(self.node4, 1)
 
-        self.node5 = Node(60, 60, 15, 'E', {'Z': 1}, self._division_model)
+        self.node5 = Node(60, 60, 15, 'E', {'Z': 1}, self.division_model)
         self.node3.addChild(self.node5, 2)
 
         self.divisionDataChanged.connect(self.node1.updateColors)
@@ -299,27 +313,49 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def event(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
-            self.hoverEvent(event)
+            self.customHoverEvent(event)
         return super().event(event)
 
-    def hoverEvent(self, event):
+    def customHoverEvent(self, event):
         # This is required, since the default hover implementation
         # sends the event to the parent of the hovered item,
         # which we don't want!
         for item in self.items(event.scenePos()):
-            if item == self._hoveredItem:
+            if item == self.hovered_item:
                 return
             if isinstance(item, Node):
                 self.setHoveredItem(item)
                 return
         self.setHoveredItem(None)
 
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        if event.button() != QtCore.Qt.LeftButton:
+            return
+        for item in self.items(event.scenePos()):
+            if isinstance(item, Node):
+                self.setPressedItem(item)
+                return
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        if event.button() == QtCore.Qt.LeftButton:
+            self.setPressedItem(None)
+
     def setHoveredItem(self, item):
-        if self._hoveredItem is not None:
-            self._hoveredItem.hovered = False
-        self._hoveredItem = item
+        if self.hovered_item is not None:
+            self.hovered_item.state_hovered = False
+        self.hovered_item = item
         if item is not None:
-            item.hovered = True
+            item.state_hovered = True
+            item.update()
+
+    def setPressedItem(self, item):
+        if self.pressed_item is not None:
+            self.pressed_item.state_pressed = False
+        self.pressed_item = item
+        if item is not None:
+            item.state_pressed = True
             item.update()
 
 
