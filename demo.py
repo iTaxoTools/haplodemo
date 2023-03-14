@@ -9,7 +9,7 @@ from PySide6 import QtSvg
 
 @dataclass
 class Division:
-    name: str
+    key: str
     color: str
 
     @classmethod
@@ -68,6 +68,11 @@ class DivisionListModel(QtCore.QAbstractListModel):
     def __init__(self, divisions, parent=None):
         super().__init__(parent)
         self._divisions = divisions
+        self._key_map = {division.key: index for index, division in enumerate(divisions)}
+
+    def getKeyColor(self, key):
+        index = self._key_map[key]
+        return self._divisions[index].color
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         return len(self._divisions)
@@ -76,11 +81,11 @@ class DivisionListModel(QtCore.QAbstractListModel):
         if not index.isValid() or not (0 <= index.row() < self.rowCount()):
             return None
 
-        name = self._divisions[index.row()].name
+        key = self._divisions[index.row()].key
         color = self._divisions[index.row()].color
 
         if role == QtCore.Qt.DisplayRole:
-            return name
+            return key
         elif role == QtCore.Qt.EditRole:
             return color
         elif role == QtCore.Qt.DecorationRole:
@@ -160,43 +165,53 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
 
 class Node(QtWidgets.QGraphicsEllipseItem):
-    def __init__(self, x, y, r, text, color=QtCore.Qt.black, divisions=None):
+    def __init__(self, x, y, r, text, weights, divisions):
         super().__init__(0, 0, r * 2, r * 2)
         self.setAcceptHoverEvents(True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
-        self.setBrush(color)
         self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
         self.setPos(x, y)
 
         self.radius = r
         self.hovered = False
-        self.divisions = dict()
+        self.divisions = divisions
+        self.weights = weights
         self.items = dict()
+        self.pies = dict()
 
         self.textItem = Label(text, self)
 
-        if divisions:
-            self.setDivisions(divisions)
+        self.updateColors()
+
+    def updateColors(self):
+        total_weight = sum(weight for weight in self.weights.values())
+
+        weight_keys = iter(self.weights.keys())
+        first_key = next(weight_keys)
+        first_color = self.divisions.getKeyColor(first_key)
+        self.setBrush(QtGui.QBrush(first_color))
+
+        self.pies = dict()
+        for key, weight in self.weights.items():
+            color = self.divisions.getKeyColor(key)
+            span = int(5760 * weight / total_weight)
+            self.pies[color] = span
 
     def paint(self, painter, options, widget = None):
         painter.save()
         painter.setPen(self.pen() if not self.hovered else QtGui.QPen(QtGui.QColor('#8aef52'), 4))
         painter.setBrush(self.brush())
         painter.drawEllipse(self.rect())
-        if self.divisions:
-            self.paintDivisions(painter)
+        if self.pies:
+            self.paintPies(painter)
         painter.restore()
 
-    def paintDivisions(self, painter):
+    def paintPies(self, painter):
         painter.setPen(QtCore.Qt.NoPen)
-        total_weight = sum(weight for weight in self.divisions.values())
         starting_angle = 16 * 90
 
-        items = iter(self.divisions.items())
-        next(items)
-        for color, weight in items:
-            span = int(5760 * weight / total_weight)
+        for color, span in self.pies.items():
             painter.setBrush(QtGui.QBrush(color))
             painter.drawPie(self.rect(), starting_angle, span)
             starting_angle += span
@@ -209,11 +224,6 @@ class Node(QtWidgets.QGraphicsEllipseItem):
         self.items[item] = Edge(self, segments)
         item.setParentItem(self)
         self.adjustItemEdge(item)
-
-    def setDivisions(self, divisions):
-        self.divisions = divisions
-        color = next(iter(divisions.keys()))
-        self.setBrush(QtGui.QBrush(color))
 
     def boundingRect(self):
         # Hack to prevent drag n draw glitch
@@ -253,6 +263,7 @@ class Node(QtWidgets.QGraphicsEllipseItem):
 
 class Scene(QtWidgets.QGraphicsScene):
     itemMoved = QtCore.Signal()
+    divisionDataChanged = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -260,23 +271,32 @@ class Scene(QtWidgets.QGraphicsScene):
         self._hoveredItem = None
 
     def setDivisionModel(self, model):
+        if self._division_model is not None:
+            self._division_model.dataChanged.disconnect(self.divisionDataChanged)
+        model.dataChanged.connect(self.divisionDataChanged)
         self._division_model = model
 
     def addNodes(self):
-        self.node1 = Node(85, 140, 35, 'A', divisions={'#20639b': 4, '#ed553b': 3, '#3caea3': 2})
+        self.node1 = Node(85, 140, 35, 'A', {'X': 4, 'Y': 3, 'Z': 2}, self._division_model)
         self.addItem(self.node1)
 
-        self.node2 = Node(95, -30, 20, 'B', divisions={'#20639b': 4, '#3caea3': 2})
+        self.node2 = Node(95, -30, 20, 'B', {'X': 4, 'Z': 2}, self._division_model)
         self.node1.addChild(self.node2, 2)
 
-        self.node3 = Node(115, 60, 25, 'C', divisions={'#ed553b': 6, '#3caea3': 2})
+        self.node3 = Node(115, 60, 25, 'C', {'Y': 6, 'Z': 2}, self._division_model)
         self.node1.addChild(self.node3, 3)
 
-        self.node4 = Node(60, -30, 15, 'D', QtGui.QColor('#ed553b'))
+        self.node4 = Node(60, -30, 15, 'D', {'Y': 1}, self._division_model)
         self.node3.addChild(self.node4, 1)
 
-        self.node5 = Node(60, 60, 15, 'E', QtGui.QColor('#3caea3'))
+        self.node5 = Node(60, 60, 15, 'E', {'Z': 1}, self._division_model)
         self.node3.addChild(self.node5, 2)
+
+        self.divisionDataChanged.connect(self.node1.updateColors)
+        self.divisionDataChanged.connect(self.node2.updateColors)
+        self.divisionDataChanged.connect(self.node3.updateColors)
+        self.divisionDataChanged.connect(self.node4.updateColors)
+        self.divisionDataChanged.connect(self.node5.updateColors)
 
     def event(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
@@ -312,7 +332,7 @@ class Window(QtWidgets.QDialog):
 
         palette = PastelPalette()
         divisions = Division.colorize_list(
-            ['Alpha', 'Beta', 'Gamma'], palette
+            ['X', 'Y', 'Z'], palette
         )
 
         division_model = DivisionListModel(divisions)
