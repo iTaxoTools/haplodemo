@@ -6,6 +6,8 @@ from PySide6 import QtGui
 from PySide6 import QtCore
 from PySide6 import QtSvg
 
+from palettes import Palette
+
 
 @dataclass
 class Division:
@@ -15,63 +17,6 @@ class Division:
     @classmethod
     def colorize_list(cls, names: list[str], colors: list[str]):
         return [cls(names[i], colors[i]) for i in range(len(names))]
-
-
-class Palette(list):
-    colors = []
-    default = 'black'
-
-    def __init__(self):
-        super().__init__(self.colors)
-
-    def __getitem__(self, index):
-        if index < len(self):
-            return super().__getitem__(index)
-        return self.default
-
-
-class PastelPalette(Palette):
-    colors = [
-        '#fbb4ae',
-        '#b3cde3',
-        '#ccebc5',
-        '#decbe4',
-        '#fed9a6',
-        '#ffffcc',
-        '#e5d8bd',
-        '#fddaec',
-    ]
-    default = '#f2f2f2'
-
-
-class Set1Palette(Palette):
-    colors = [
-        '#e41a1c',
-        '#377eb8',
-        '#4daf4a',
-        '#984ea3',
-        '#ff7f00',
-        '#ffff33',
-        '#a65628',
-        '#f781bf',
-    ]
-    default = '#999999'
-
-
-class Tab10Palette(Palette):
-    colors = [
-        '#1f77b4',
-        '#ff7f0e',
-        '#2ca02c',
-        '#d62728',
-        '#9467bd',
-        '#8c564b',
-        '#e377c2',
-        '#7f7f7f',
-        '#bcbd22',
-        '#17becf',
-    ]
-    default = '#c7c7c7'
 
 
 class ColorDelegate(QtWidgets.QStyledItemDelegate):
@@ -374,7 +319,7 @@ class Window(QtWidgets.QDialog):
         self.resize(400, 500)
         self.setWindowTitle('Haplodemo')
 
-        palette = Set1Palette()
+        palette = Palette.Spectrum()
         divisions = Division.colorize_list(
             ['X', 'Y', 'Z'], palette
         )
