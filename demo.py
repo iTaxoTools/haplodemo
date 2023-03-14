@@ -6,7 +6,13 @@ from PySide6 import QtGui
 from PySide6 import QtCore
 from PySide6 import QtSvg
 
+from itaxotools.common.bindings import PropertyObject, Property, Binder
+
 from palettes import Palette
+
+
+class Settings(PropertyObject):
+    palette = Property(Palette, Palette.Set1())
 
 
 @dataclass
@@ -15,18 +21,11 @@ class Division:
     color: str
 
     @classmethod
-    def colorize_list(cls, names: list[str], colors: list[str]):
+    def colorize_list(cls, names: list[str], colors: Palette):
         return [cls(names[i], colors[i]) for i in range(len(names))]
 
 
 class ColorDelegate(QtWidgets.QStyledItemDelegate):
-    def __init__(self, parent=None, palette=None):
-        super().__init__(parent)
-        if not palette:
-            return
-        for i in range(16):
-            QtWidgets.QColorDialog.setCustomColor(i, QtGui.QColor(palette[i]))
-
     def paint(self, painter, option, index):
         super().paint(painter, option, index)
 
@@ -52,26 +51,37 @@ class ColorDelegate(QtWidgets.QStyledItemDelegate):
         # Override required for centering the dialog
         pass
 
+    @staticmethod
+    def setCustomColors(palette):
+        for i in range(16):
+            QtWidgets.QColorDialog.setCustomColor(i, QtGui.QColor(palette[i]))
+
 
 class DivisionListModel(QtCore.QAbstractListModel):
-    def __init__(self, divisions, parent=None):
+    def __init__(self, names, palette, parent=None):
         super().__init__(parent)
-        self._divisions = divisions
-        self._key_map = {division.key: index for index, division in enumerate(divisions)}
+        self._colors = list()
+        self._names = names
+        self.colorize(palette)
+
+    def colorize(self, palette):
+        self._colors = Division.colorize_list(self._names, palette)
+        self._key_map = {division.key: index for index, division in enumerate(self._colors)}
+        self.dataChanged.emit(self.createIndex(0, 0), self.createIndex(len(self._colors), 0))
 
     def getKeyColor(self, key):
         index = self._key_map[key]
-        return self._divisions[index].color
+        return self._colors[index].color
 
     def rowCount(self, parent=QtCore.QModelIndex()):
-        return len(self._divisions)
+        return len(self._colors)
 
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if not index.isValid() or not (0 <= index.row() < self.rowCount()):
             return None
 
-        key = self._divisions[index.row()].key
-        color = self._divisions[index.row()].color
+        key = self._colors[index.row()].key
+        color = self._colors[index.row()].color
 
         if role == QtCore.Qt.DisplayRole:
             return key
@@ -97,7 +107,7 @@ class DivisionListModel(QtCore.QAbstractListModel):
             if not QtGui.QColor.isValidColor(color):
                 return False
 
-            self._divisions[index.row()].color = color
+            self._colors[index.row()].color = color
             self.dataChanged.emit(index, index)
             return True
 
@@ -313,18 +323,36 @@ class Scene(QtWidgets.QGraphicsScene):
             item.update()
 
 
+class PaletteSelector(QtWidgets.QComboBox):
+    currentValueChanged = QtCore.Signal(Palette)
+
+    def __init__(self, settings):
+        super().__init__()
+        self._palettes = []
+        for palette in Palette:
+            self._palettes.append(palette)
+            self.addItem(palette.label)
+        self.currentIndexChanged.connect(self.handleIndexChanged)
+
+    def handleIndexChanged(self, index):
+        self.currentValueChanged.emit(self._palettes[index]())
+
+    def setValue(self, value):
+        index = self._palettes.index(value.type)
+        self.setCurrentIndex(index)
+
+
 class Window(QtWidgets.QDialog):
     def __init__(self):
         super().__init__()
         self.resize(400, 500)
         self.setWindowTitle('Haplodemo')
 
-        palette = Palette.Spectrum()
-        divisions = Division.colorize_list(
-            ['X', 'Y', 'Z'], palette
-        )
+        settings = Settings()
+        palette = settings.palette
+        divisions = ['X', 'Y', 'Z']
 
-        division_model = DivisionListModel(divisions)
+        division_model = DivisionListModel(divisions, palette)
 
         scene = Scene()
         scene.setDivisionModel(division_model)
@@ -334,9 +362,11 @@ class Window(QtWidgets.QDialog):
         scene_view.setRenderHints(QtGui.QPainter.Antialiasing)
         scene_view.setScene(scene)
 
+        palette_selector = PaletteSelector(settings)
+
         division_view = QtWidgets.QListView()
         division_view.setModel(division_model)
-        division_view.setItemDelegate(ColorDelegate(self, palette))
+        division_view.setItemDelegate(ColorDelegate(self))
 
         button_svg = QtWidgets.QPushButton('Export as SVG')
         button_svg.clicked.connect(self.export_svg)
@@ -354,11 +384,18 @@ class Window(QtWidgets.QDialog):
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(scene_view, 10)
+        layout.addWidget(palette_selector)
         layout.addWidget(division_view, 1)
         layout.addLayout(buttons)
         self.setLayout(layout)
 
         self.scene_view = scene_view
+
+        self.binder = Binder()
+        self.binder.bind(palette_selector.currentValueChanged, settings.properties.palette)
+        self.binder.bind(settings.properties.palette, palette_selector.setValue)
+        self.binder.bind(settings.properties.palette, division_model.colorize)
+        self.binder.bind(settings.properties.palette, ColorDelegate.setCustomColors)
 
     def export_svg(self):
         file, _ = QtWidgets.QFileDialog.getSaveFileName(
