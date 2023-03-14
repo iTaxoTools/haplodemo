@@ -40,21 +40,24 @@ class PastelPalette(list):
 
 
 class ColorDelegate(QtWidgets.QStyledItemDelegate):
+    def __init__(self, parent=None, palette=None):
+        super().__init__(parent)
+        if not palette:
+            return
+        for i in range(16):
+            QtWidgets.QColorDialog.setCustomColor(i, QtGui.QColor(palette[i]))
+
     def createEditor(self, parent, option, index):
-        color_dialog = QtWidgets.QColorDialog(parent=self.parent())
-        color_dialog.setOption(QtWidgets.QColorDialog.DontUseNativeDialog, True)
-        for x in range(16):
-            color_dialog.setCustomColor(x, QtGui.QColor('red'))
-        return color_dialog
+        editor = QtWidgets.QColorDialog(parent=parent)
+        editor.setOption(QtWidgets.QColorDialog.DontUseNativeDialog, True)
+        return editor
 
     def setEditorData(self, editor, index):
-        color_value = index.model().data(index, QtCore.Qt.EditRole)
-        color_dialog = editor
-        color_dialog.setCurrentColor(QtGui.QColor(color_value))
+        color = index.model().data(index, QtCore.Qt.EditRole)
+        editor.setCurrentColor(QtGui.QColor(color))
 
     def setModelData(self, editor, model, index):
-        color_dialog = editor
-        model.setData(index, color_dialog.currentColor().name(), QtCore.Qt.EditRole)
+        model.setData(index, editor.currentColor().name(), QtCore.Qt.EditRole)
 
     def updateEditorGeometry(self, editor, option, index):
         # Override required for centering the dialog
@@ -307,8 +310,9 @@ class Window(QtWidgets.QDialog):
         self.resize(400, 500)
         self.setWindowTitle('Haplodemo')
 
+        palette = PastelPalette()
         divisions = Division.colorize_list(
-            ['Alpha', 'Beta', 'Gamma'], PastelPalette()
+            ['Alpha', 'Beta', 'Gamma'], palette
         )
 
         division_model = DivisionListModel(divisions)
@@ -323,7 +327,7 @@ class Window(QtWidgets.QDialog):
 
         division_view = QtWidgets.QListView()
         division_view.setModel(division_model)
-        division_view.setItemDelegate(ColorDelegate(self))
+        division_view.setItemDelegate(ColorDelegate(self, palette))
 
         button_svg = QtWidgets.QPushButton('Export as SVG')
         button_svg.clicked.connect(self.export_svg)
