@@ -17,7 +17,20 @@ class Division:
         return [cls(names[i], colors[i]) for i in range(len(names))]
 
 
-class PastelPalette(list):
+class Palette(list):
+    colors = []
+    default = 'black'
+
+    def __init__(self):
+        super().__init__(self.colors)
+
+    def __getitem__(self, index):
+        if index < len(self):
+            return super().__getitem__(index)
+        return self.default
+
+
+class PastelPalette(Palette):
     colors = [
         '#fbb4ae',
         '#b3cde3',
@@ -30,13 +43,35 @@ class PastelPalette(list):
     ]
     default = '#f2f2f2'
 
-    def __init__(self):
-        super().__init__(self.colors)
 
-    def __getitem__(self, index):
-        if index < len(self):
-            return super().__getitem__(index)
-        return self.default
+class Set1Palette(Palette):
+    colors = [
+        '#e41a1c',
+        '#377eb8',
+        '#4daf4a',
+        '#984ea3',
+        '#ff7f00',
+        '#ffff33',
+        '#a65628',
+        '#f781bf',
+    ]
+    default = '#999999'
+
+
+class Tab10Palette(Palette):
+    colors = [
+        '#1f77b4',
+        '#ff7f0e',
+        '#2ca02c',
+        '#d62728',
+        '#9467bd',
+        '#8c564b',
+        '#e377c2',
+        '#7f7f7f',
+        '#bcbd22',
+        '#17becf',
+    ]
+    default = '#c7c7c7'
 
 
 class ColorDelegate(QtWidgets.QStyledItemDelegate):
@@ -46,6 +81,15 @@ class ColorDelegate(QtWidgets.QStyledItemDelegate):
             return
         for i in range(16):
             QtWidgets.QColorDialog.setCustomColor(i, QtGui.QColor(palette[i]))
+
+    def paint(self, painter, option, index):
+        super().paint(painter, option, index)
+
+        # Draw the decoration icon on top of the background
+        decoration_rect = QtCore.QRect(option.rect.x() + 2, option.rect.y() + 2, 16, option.rect.height() - 4)
+        icon = index.data(QtCore.Qt.DecorationRole)
+        if icon and not icon.isNull():
+            icon.paint(painter, decoration_rect)
 
     def createEditor(self, parent, option, index):
         editor = QtWidgets.QColorDialog(parent=parent)
@@ -330,7 +374,7 @@ class Window(QtWidgets.QDialog):
         self.resize(400, 500)
         self.setWindowTitle('Haplodemo')
 
-        palette = PastelPalette()
+        palette = Set1Palette()
         divisions = Division.colorize_list(
             ['X', 'Y', 'Z'], palette
         )
