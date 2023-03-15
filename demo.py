@@ -1,5 +1,6 @@
 import sys
 from dataclasses import dataclass
+from math import degrees, atan2
 
 from PySide6 import QtWidgets
 from PySide6 import QtGui
@@ -12,7 +13,7 @@ from palettes import Palette
 
 
 class Settings(PropertyObject):
-    palette = Property(Palette, Palette.Set1())
+    palette = Property(Palette, Palette.Spring())
 
 
 @dataclass
@@ -115,24 +116,6 @@ class DivisionListModel(QtCore.QAbstractListModel):
 
     def flags(self, index):
         return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
-
-
-class Label(QtWidgets.QGraphicsTextItem):
-    def __init__(self, text, parent):
-        super().__init__(text, parent)
-        # self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
-        self.setDefaultTextColor(QtCore.Qt.white)
-        self.setAcceptHoverEvents(False)
-
-        font = QtGui.QFont()
-        font.setPixelSize(16)
-        font.setFamily('Arial')
-        self.setFont(font)
-        self.adjustSize()
-
-        self.setPos(
-            - self.boundingRect().width() / 2,
-            - self.boundingRect().height() / 2)
 
 
 class Edge(QtWidgets.QGraphicsLineItem):
@@ -287,43 +270,54 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.setRotation(self.locked_rotation + new_angle)
 
 
-
 class Node(Vertex):
     def __init__(self, x, y, r, text, weights, divisions):
         super().__init__(x, y, r)
         self.divisions = divisions
         self.weights = weights
         self.pies = dict()
-
-        self.textItem = Label(text, self)
         self.text = text
+
+        font = QtGui.QFont()
+        font.setPixelSize(16)
+        font.setFamily('Arial')
+        self.font = font
 
         self.updateColors()
 
     def updateColors(self):
         total_weight = sum(weight for weight in self.weights.values())
 
-        weight_keys = iter(self.weights.keys())
-        first_key = next(weight_keys)
+        weight_items = iter(self.weights.items())
+        first_key, _ = next(weight_items)
         first_color = self.divisions.getKeyColor(first_key)
         self.setBrush(QtGui.QBrush(first_color))
 
         self.pies = dict()
-        for key, weight in self.weights.items():
+        for key, weight in weight_items:
             color = self.divisions.getKeyColor(key)
             span = int(5760 * weight / total_weight)
             self.pies[color] = span
 
     def paint(self, painter, options, widget = None):
+        self.paintNode(painter)
+        self.paintPies(painter)
+        self.paintText(painter)
+
+    def paintNode(self, painter):
         painter.save()
-        painter.setPen(self.getBorderPen())
+        if self.pies:
+            painter.setPen(QtCore.Qt.NoPen)
+        else:
+            painter.setPen(self.getBorderPen())
         painter.setBrush(self.brush())
         painter.drawEllipse(self.rect())
-        if self.pies:
-            self.paintPies(painter)
         painter.restore()
 
     def paintPies(self, painter):
+        if not self.pies:
+            return
+        painter.save()
         painter.setPen(QtCore.Qt.NoPen)
         starting_angle = 16 * 90
 
@@ -335,6 +329,21 @@ class Node(Vertex):
         painter.setBrush(QtCore.Qt.NoBrush)
         painter.setPen(self.getBorderPen())
         painter.drawEllipse(self.rect())
+        painter.restore()
+
+    def paintText(self, painter):
+        painter.save()
+
+        t = self.sceneTransform()
+        angle = atan2(t.m12(), t.m11())
+        painter.rotate(-degrees(angle))
+
+        painter.setFont(self.font)
+
+        r = self.radius
+        rect = QtCore.QRect(-r, -r, 2 * r, 2 * r)
+        painter.drawText(rect, QtCore.Qt.AlignCenter, self.text)
+        painter.restore()
 
 
 class Block(QtWidgets.QGraphicsItem):
@@ -405,7 +414,7 @@ class Scene(QtWidgets.QGraphicsScene):
         self.vertex1 = Vertex(-60, 60)
         self.node3.addChild(self.vertex1, 2)
 
-        self.node5 = Node(-80, 40, 30, 'E', {'Y': 1}, self.division_model)
+        self.node5 = Node(-80, 40, 30, 'E', {'X': 1}, self.division_model)
         self.vertex1.addChild(self.node5, 4)
 
         self.block1 = Block(self.vertex1)
@@ -417,7 +426,7 @@ class Scene(QtWidgets.QGraphicsScene):
         self.block1.addNode(self.node7)
         self.block1.addEdge(self.node7, self.node6, 2)
 
-        self.node8 = Node(20, 80, 15, 'T', {'Z': 1}, self.division_model)
+        self.node8 = Node(20, 80, 15, 'T', {'Y': 1}, self.division_model)
         self.block1.addNode(self.node8)
         self.block1.addEdge(self.node8, self.node6)
         self.block1.addEdge(self.node8, self.node7)
