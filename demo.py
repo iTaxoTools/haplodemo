@@ -205,9 +205,14 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.setPos(x, y)
 
         self.radius = r
+        self.locked_distance = 0
+        self.locked_rotation = 0
+        self.locked_angle = 0
         self.state_hovered = False
         self.state_pressed = False
         self.items = dict()
+
+        self.lockTransform()
 
     def paint(self, painter, options, widget = None):
         painter.save()
@@ -254,9 +259,33 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         edge = self.items[item]
         edge.adjustPosition()
 
+    def lockTransform(self):
+        line = QtCore.QLineF(0, 0, self.pos().x(), self.pos().y())
+        self.locked_distance = line.length()
+        self.locked_angle = line.angle()
+        self.locked_rotation = self.rotation()
+
+    def isMovementRotational(self):
+        return isinstance(self.parentItem(), Vertex)
+
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self.lockTransform()
+        super().mousePressEvent(event)
+
     def mouseMoveEvent(self, event):
-        super().mouseMoveEvent(event)
-        # print(self.text, self.pos())
+        epos = self.mapToParent(event.pos())
+        if not self.isMovementRotational():
+            self.setPos(epos)
+            return
+
+        line = QtCore.QLineF(0, 0, epos.x(), epos.y())
+        line.setLength(self.locked_distance)
+        new_pos = line.p2()
+        new_angle = self.locked_angle - line.angle()
+        self.setPos(new_pos)
+        self.setRotation(self.locked_rotation + new_angle)
+
 
 
 class Node(Vertex):
@@ -393,6 +422,9 @@ class Scene(QtWidgets.QGraphicsScene):
         self.block1.addEdge(self.node8, self.node6)
         self.block1.addEdge(self.node8, self.node7)
 
+        self.node9 = Node(20, -40, 10, 'x', {'Z': 1}, self.division_model)
+        self.node7.addChild(self.node9)
+
         self.divisionDataChanged.connect(self.node1.updateColors)
         self.divisionDataChanged.connect(self.node2.updateColors)
         self.divisionDataChanged.connect(self.node3.updateColors)
@@ -401,6 +433,7 @@ class Scene(QtWidgets.QGraphicsScene):
         self.divisionDataChanged.connect(self.node6.updateColors)
         self.divisionDataChanged.connect(self.node7.updateColors)
         self.divisionDataChanged.connect(self.node8.updateColors)
+        self.divisionDataChanged.connect(self.node9.updateColors)
 
     def event(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
