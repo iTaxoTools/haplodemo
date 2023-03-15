@@ -405,7 +405,12 @@ class Scene(QtWidgets.QGraphicsScene):
     def event(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
             self.customHoverEvent(event)
+        if event.type() == QtCore.QEvent.GraphicsSceneLeave:
+            self.mouseLeaveEvent(event)
         return super().event(event)
+
+    def mouseLeaveEvent(self, event):
+        self.setHoveredItem(None)
 
     def customHoverEvent(self, event):
         # This is required, since the default hover implementation
