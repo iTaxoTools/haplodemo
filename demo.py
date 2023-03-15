@@ -194,21 +194,76 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.setLine(line)
 
 
-class Node(QtWidgets.QGraphicsEllipseItem):
-    def __init__(self, x, y, r, text, weights, divisions):
+class Vertex(QtWidgets.QGraphicsEllipseItem):
+    def __init__(self, x, y, r=2.5):
         super().__init__(-r, -r, r * 2, r * 2)
         self.setAcceptHoverEvents(True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
+        self.setBrush(self.pen().color())
         self.setPos(x, y)
 
         self.radius = r
         self.state_hovered = False
         self.state_pressed = False
+        self.items = dict()
+
+    def paint(self, painter, options, widget = None):
+        painter.save()
+        painter.setPen(self.getBorderPen())
+        painter.setBrush(self.brush())
+        rect = self.rect()
+        if self.isHighlighted():
+            r = self.radius
+            rect = rect.adjusted(-r, -r, r, r)
+        painter.drawEllipse(rect)
+        painter.restore()
+
+    def isHighlighted(self):
+        if self.state_pressed:
+            return True
+        if self.state_hovered and self.scene().pressed_item is None:
+            return True
+        return False
+
+    def getBorderPen(self):
+        if self.isHighlighted():
+            return QtGui.QPen(QtGui.QColor('#8aef52'), 4)
+        return self.pen()
+
+    def addChild(self, item, segments=1):
+        self.items[item] = Edge(self, self, item, segments)
+        item.setParentItem(self)
+        self.adjustItemEdge(item)
+
+    def boundingRect(self):
+        # Hack to prevent drag n draw glitch
+        return self.rect().adjusted(-50, -50, 50, 50)
+
+    def itemChange(self, change, value):
+        parent = self.parentItem()
+        if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
+            if isinstance(parent, Vertex):
+                parent.adjustItemEdge(self)
+            elif isinstance(parent, Block):
+                parent.adjustItemEdges(self)
+        return super().itemChange(change, value)
+
+    def adjustItemEdge(self, item):
+        edge = self.items[item]
+        edge.adjustPosition()
+
+    def mouseMoveEvent(self, event):
+        super().mouseMoveEvent(event)
+        # print(self.text, self.pos())
+
+
+class Node(Vertex):
+    def __init__(self, x, y, r, text, weights, divisions):
+        super().__init__(x, y, r)
         self.divisions = divisions
         self.weights = weights
-        self.items = dict()
         self.pies = dict()
 
         self.textItem = Label(text, self)
@@ -252,43 +307,11 @@ class Node(QtWidgets.QGraphicsEllipseItem):
         painter.setPen(self.getBorderPen())
         painter.drawEllipse(self.rect())
 
-    def getBorderPen(self):
-        if self.state_pressed:
-            return QtGui.QPen(QtGui.QColor('#8aef52'), 4)
-        if self.state_hovered and self.scene().pressed_item is None:
-            return QtGui.QPen(QtGui.QColor('#8aef52'), 4)
-        return self.pen()
-
-    def addChild(self, item, segments=1):
-        self.items[item] = Edge(self, self, item, segments)
-        item.setParentItem(self)
-        self.adjustItemEdge(item)
-
-    def boundingRect(self):
-        # Hack to prevent drag n draw glitch
-        return self.rect().adjusted(-50, -50, 50, 50)
-
-    def itemChange(self, change, value):
-        parent = self.parentItem()
-        if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
-            if isinstance(parent, Node):
-                parent.adjustItemEdge(self)
-            elif isinstance(parent, Block):
-                parent.adjustItemEdges(self)
-        return super().itemChange(change, value)
-
-    def adjustItemEdge(self, item):
-        edge = self.items[item]
-        edge.adjustPosition()
-
-    def mouseMoveEvent(self, event):
-        super().mouseMoveEvent(event)
-        # print(self.text, self.pos())
-
 
 class Block(QtWidgets.QGraphicsItem):
     def __init__(self, parent):
         super().__init__(parent)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemStacksBehindParent, True)
         self.parent_node = parent
         self.edges = dict()
         self.main = None
@@ -350,10 +373,13 @@ class Scene(QtWidgets.QGraphicsScene):
         self.node4 = Node(60, -30, 15, 'D', {'Y': 1}, self.division_model)
         self.node3.addChild(self.node4, 1)
 
-        self.node5 = Node(-60, 60, 15, 'E', {'Z': 1}, self.division_model)
-        self.node3.addChild(self.node5, 2)
+        self.vertex1 = Vertex(-60, 60)
+        self.node3.addChild(self.vertex1, 2)
 
-        self.block1 = Block(self.node5)
+        self.node5 = Node(-80, 40, 30, 'E', {'Y': 1}, self.division_model)
+        self.vertex1.addChild(self.node5, 4)
+
+        self.block1 = Block(self.vertex1)
 
         self.node6 = Node(60, 20, 15, 'R', {'Z': 1}, self.division_model)
         self.block1.setMainNode(self.node6)
@@ -388,7 +414,7 @@ class Scene(QtWidgets.QGraphicsScene):
         for item in self.items(event.scenePos()):
             if item == self.hovered_item:
                 return
-            if isinstance(item, Node):
+            if isinstance(item, Vertex):
                 self.setHoveredItem(item)
                 return
         self.setHoveredItem(None)
@@ -398,7 +424,7 @@ class Scene(QtWidgets.QGraphicsScene):
         if event.button() != QtCore.Qt.LeftButton:
             return
         for item in self.items(event.scenePos()):
-            if isinstance(item, Node):
+            if isinstance(item, Vertex):
                 self.setPressedItem(item)
                 return
 
