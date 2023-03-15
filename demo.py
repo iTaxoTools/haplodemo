@@ -136,11 +136,14 @@ class Label(QtWidgets.QGraphicsTextItem):
 
 
 class Edge(QtWidgets.QGraphicsLineItem):
-    def __init__(self, parent, segments=2):
+    def __init__(self, parent, node1, node2, segments=2):
         super().__init__(parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemStacksBehindParent, True)
         self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
+        self.setZValue(-1)
         self.segments = segments
+        self.node1 = node1
+        self.node2 = node2
 
     def paint(self, painter, options, widget = None):
         super().paint(painter, options, widget)
@@ -161,6 +164,34 @@ class Edge(QtWidgets.QGraphicsLineItem):
     def boundingRect(self):
         # Expand to account for segment dots
         return super().boundingRect().adjusted(-50, -50, 50, 50)
+
+    def adjustPosition(self):
+        transform, _ = self.parentItem().sceneTransform().inverted()
+        pos1 = transform.map(self.node1.scenePos())
+        pos2 = transform.map(self.node2.scenePos())
+        rad1 = self.node1.radius
+        rad2 = self.node2.radius
+
+        line = QtCore.QLineF(
+            pos1.x(),
+            pos1.y(),
+            pos2.x(),
+            pos2.y())
+        length = line.length()
+
+        if length < (rad1 + rad2):
+            self.hide()
+            return
+        self.show()
+
+        line.setLength(length - rad1 - rad2)
+
+        unit = line.unitVector()
+        unit.setLength(rad1)
+        unit.translate(-unit.x1(), -unit.y1())
+
+        line.translate(unit.x2(), unit.y2())
+        self.setLine(line)
 
 
 class Node(QtWidgets.QGraphicsEllipseItem):
@@ -229,7 +260,7 @@ class Node(QtWidgets.QGraphicsEllipseItem):
         return self.pen()
 
     def addChild(self, item, segments=1):
-        self.items[item] = Edge(self, segments)
+        self.items[item] = Edge(self, self, item, segments)
         item.setParentItem(self)
         self.adjustItemEdge(item)
 
@@ -239,38 +270,55 @@ class Node(QtWidgets.QGraphicsEllipseItem):
 
     def itemChange(self, change, value):
         parent = self.parentItem()
-        if isinstance(parent, Node):
-            if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
+        if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
+            if isinstance(parent, Node):
                 parent.adjustItemEdge(self)
+            elif isinstance(parent, Block):
+                parent.adjustItemEdges(self)
         return super().itemChange(change, value)
 
     def adjustItemEdge(self, item):
         edge = self.items[item]
-
-        line = QtCore.QLineF(
-            0,
-            0,
-            item.pos().x(),
-            item.pos().y())
-        length = line.length()
-
-        if length < (self.radius + item.radius):
-            edge.hide()
-            return
-        edge.show()
-
-        line.setLength(length - self.radius - item.radius)
-
-        unit = line.unitVector()
-        unit.setLength(self.radius)
-        unit.translate(-unit.x1(), -unit.y1())
-
-        line.translate(unit.x2(), unit.y2())
-        edge.setLine(line)
+        edge.adjustPosition()
 
     def mouseMoveEvent(self, event):
         super().mouseMoveEvent(event)
         # print(self.text, self.pos())
+
+
+class Block(QtWidgets.QGraphicsItem):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.parent_node = parent
+        self.edges = dict()
+        self.main = None
+
+    def setMainNode(self, node, segments=1):
+        self.main = node
+        edge = Edge(self, self.parent_node, node, segments)
+        self.edges[node] = [edge]
+        node.setParentItem(self)
+        self.adjustItemEdges(node)
+
+    def addNode(self, node, segments=1):
+        self.edges[node] = []
+        node.setParentItem(self)
+
+    def addEdge(self, node1, node2, segments=1):
+        edge = Edge(self, node1, node2, segments)
+        self.edges[node1].append(edge)
+        self.edges[node2].append(edge)
+        edge.adjustPosition()
+
+    def adjustItemEdges(self, node):
+        for edge in self.edges[node]:
+            edge.adjustPosition()
+
+    def boundingRect(self):
+        return QtCore.QRect(0, 0, 0, 0)
+
+    def paint(self, painter, options, widget = None):
+        pass
 
 
 class Scene(QtWidgets.QGraphicsScene):
@@ -302,14 +350,31 @@ class Scene(QtWidgets.QGraphicsScene):
         self.node4 = Node(60, -30, 15, 'D', {'Y': 1}, self.division_model)
         self.node3.addChild(self.node4, 1)
 
-        self.node5 = Node(60, 60, 15, 'E', {'Z': 1}, self.division_model)
+        self.node5 = Node(-60, 60, 15, 'E', {'Z': 1}, self.division_model)
         self.node3.addChild(self.node5, 2)
+
+        self.block1 = Block(self.node5)
+
+        self.node6 = Node(60, 20, 15, 'R', {'Z': 1}, self.division_model)
+        self.block1.setMainNode(self.node6)
+
+        self.node7 = Node(100, 80, 15, 'S', {'Z': 1}, self.division_model)
+        self.block1.addNode(self.node7)
+        self.block1.addEdge(self.node7, self.node6, 2)
+
+        self.node8 = Node(20, 80, 15, 'T', {'Z': 1}, self.division_model)
+        self.block1.addNode(self.node8)
+        self.block1.addEdge(self.node8, self.node6)
+        self.block1.addEdge(self.node8, self.node7)
 
         self.divisionDataChanged.connect(self.node1.updateColors)
         self.divisionDataChanged.connect(self.node2.updateColors)
         self.divisionDataChanged.connect(self.node3.updateColors)
         self.divisionDataChanged.connect(self.node4.updateColors)
         self.divisionDataChanged.connect(self.node5.updateColors)
+        self.divisionDataChanged.connect(self.node6.updateColors)
+        self.divisionDataChanged.connect(self.node7.updateColors)
+        self.divisionDataChanged.connect(self.node8.updateColors)
 
     def event(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
