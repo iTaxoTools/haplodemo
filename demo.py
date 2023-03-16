@@ -1,5 +1,6 @@
 import sys
 from dataclasses import dataclass
+from collections import defaultdict
 from math import degrees, atan2
 
 from PySide6 import QtWidgets
@@ -7,23 +8,16 @@ from PySide6 import QtGui
 from PySide6 import QtCore
 from PySide6 import QtSvg
 
-from itaxotools.common.bindings import PropertyObject, Property, Binder
+from itaxotools.common.bindings import PropertyObject, Property, Binder, Instance
+# from itaxotools.common.utility import override
 
 from palettes import Palette
-
-
-class Settings(PropertyObject):
-    palette = Property(Palette, Palette.Spring())
 
 
 @dataclass
 class Division:
     key: str
     color: str
-
-    @classmethod
-    def colorize_list(cls, names: list[str], colors: Palette):
-        return [cls(names[i], colors[i]) for i in range(len(names))]
 
 
 class ColorDelegate(QtWidgets.QStyledItemDelegate):
@@ -59,35 +53,48 @@ class ColorDelegate(QtWidgets.QStyledItemDelegate):
 
 
 class DivisionListModel(QtCore.QAbstractListModel):
-    def __init__(self, names, palette, parent=None):
+    colorMapChanged = QtCore.Signal(object)
+
+    def __init__(self, names=[], palette=Palette.Spring(), parent=None):
         super().__init__(parent)
-        self._default = 'green'
-        self._colors = list()
-        self._names = names
-        self.colorize(palette)
+        self._palette = palette
+        self._default_color = palette.default
+        self._divisions = list()
+        self.set_divisions_from_keys(names)
+        self.set_palette(palette)
 
-    def colorize(self, palette):
-        self._default = palette.default
-        self._colors = Division.colorize_list(self._names, palette)
-        self._key_map = {division.key: index for index, division in enumerate(self._colors)}
-        self.dataChanged.emit(self.createIndex(0, 0), self.createIndex(len(self._colors), 0))
+        self.dataChanged.connect(self.handle_data_changed)
+        self.modelReset.connect(self.handle_data_changed)
 
-    def getKeyColor(self, key):
-        try:
-            index = self._key_map[key]
-        except KeyError:
-            return self._default
-        return self._colors[index].color
+    def set_divisions_from_keys(self, keys):
+        self.beginResetModel()
+        palette = self._palette
+        self._divisions = [Division(keys[i], palette[i]) for i in range(len(keys))]
+        self.endResetModel()
+
+    def set_palette(self, palette):
+        self.beginResetModel()
+        self._default_color = palette.default
+        for index, division in enumerate(self._divisions):
+            division.color = palette[index]
+        self.endResetModel()
+
+    def get_color_map(self):
+        map = {d.key: d.color for d in self._divisions}
+        return defaultdict(lambda: self._default_color, map)
+
+    def handle_data_changed(self, *args, **kwargs):
+        self.colorMapChanged.emit(self.get_color_map())
 
     def rowCount(self, parent=QtCore.QModelIndex()):
-        return len(self._colors)
+        return len(self._divisions)
 
     def data(self, index, role=QtCore.Qt.DisplayRole):
         if not index.isValid() or not (0 <= index.row() < self.rowCount()):
             return None
 
-        key = self._colors[index.row()].key
-        color = self._colors[index.row()].color
+        key = self._divisions[index.row()].key
+        color = self._divisions[index.row()].color
 
         if role == QtCore.Qt.DisplayRole:
             return key
@@ -113,7 +120,7 @@ class DivisionListModel(QtCore.QAbstractListModel):
             if not QtGui.QColor.isValidColor(color):
                 return False
 
-            self._colors[index.row()].color = color
+            self._divisions[index.row()].color = color
             self.dataChanged.emit(index, index)
             return True
 
@@ -121,6 +128,16 @@ class DivisionListModel(QtCore.QAbstractListModel):
 
     def flags(self, index):
         return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
+
+
+class Settings(PropertyObject):
+    palette = Property(Palette, Palette.Spring())
+    divisions = Property(DivisionListModel, Instance)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.binder = Binder()
+        self.binder.bind(self.properties.palette, self.divisions.set_palette)
 
 
 class Label(QtWidgets.QGraphicsItem):
@@ -174,20 +191,20 @@ class Label(QtWidgets.QGraphicsItem):
         pos -= self.rect.center()
         painter.translate(-pos)
 
-        self.paintOutline(painter)
-        self.paintText(painter)
+        self.paint_outline(painter)
+        self.paint_text(painter)
 
         painter.restore()
 
-    def paintOutline(self, painter):
+    def paint_outline(self, painter):
         color = QtGui.QColor('#8aef52')
         pen = QtGui.QPen(color, 3, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin)
         painter.setPen(pen)
         painter.setBrush(QtGui.QBrush(color))
         painter.drawPath(self.outline)
 
-    def paintText(self, painter):
-        pen = QtGui.QPen(QtGui.QColor('black'), 2)
+    def paint_text(self, painter):
+        pen = QtGui.QPen(QtGui.QColor('black'))
         painter.setPen(pen)
         painter.setBrush(QtCore.Qt.NoBrush)
         painter.setFont(self.font)
@@ -382,26 +399,26 @@ class Node(Vertex):
 
         self.label = Label(text, self)
 
-    def updateColors(self, divisions):
+    def update_colors(self, color_map):
         total_weight = sum(weight for weight in self.weights.values())
 
         weight_items = iter(self.weights.items())
         first_key, _ = next(weight_items)
-        first_color = divisions.getKeyColor(first_key)
+        first_color = color_map[first_key]
         self.setBrush(QtGui.QBrush(first_color))
 
         self.pies = dict()
         for key, weight in weight_items:
-            color = divisions.getKeyColor(key)
+            color = color_map[key]
             span = int(5760 * weight / total_weight)
             self.pies[color] = span
 
     def paint(self, painter, options, widget = None):
-        self.paintNode(painter)
-        self.paintPies(painter)
-        # self.paintText(painter)
+        self.paint_node(painter)
+        self.paint_pies(painter)
+        # self.paint_text(painter)
 
-    def paintNode(self, painter):
+    def paint_node(self, painter):
         painter.save()
         if self.pies:
             painter.setPen(QtCore.Qt.NoPen)
@@ -411,7 +428,7 @@ class Node(Vertex):
         painter.drawEllipse(self.rect())
         painter.restore()
 
-    def paintPies(self, painter):
+    def paint_pies(self, painter):
         if not self.pies:
             return
         painter.save()
@@ -433,7 +450,8 @@ class Node(Vertex):
         painter.drawEllipse(self.rect())
         painter.restore()
 
-    def paintText(self, painter):
+    def paint_text(self, painter):
+        #deprecated, to be removed
         painter.save()
 
         t = self.sceneTransform()
@@ -489,25 +507,12 @@ class Block(QtWidgets.QGraphicsItem):
 
 
 class Scene(QtWidgets.QGraphicsScene):
-    itemMoved = QtCore.Signal()
-    divisionDataChanged = QtCore.Signal(object)
-
     def __init__(self, settings, parent=None):
         super().__init__(parent)
         self.settings = settings
-        self.division_model = None
         self.hovered_item = None
         self.pressed_item = None
         self.binder = Binder()
-
-    def setDivisionModel(self, model):
-        if self.division_model is not None:
-            self.division_model.dataChanged.disconnect(self.divisionDataChanged)
-        model.dataChanged.connect(self.handleDivisionDataChanged)
-        self.division_model = model
-
-    def handleDivisionDataChanged(self):
-        self.divisionDataChanged.emit(self.division_model)
 
     def addNodes(self):
         self.node1 = self.create_node(85, 140, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
@@ -558,8 +563,7 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def create_node(self, *args, **kwargs):
         node = Node(*args, **kwargs)
-        node.updateColors(self.division_model)
-        self.binder.bind(self.divisionDataChanged, node.updateColors, lambda x: self.division_model)
+        self.binder.bind(self.settings.divisions.colorMapChanged, node.update_colors)
         return node
 
     def create_vertex(self, *args, **kwargs):
@@ -624,7 +628,7 @@ class Scene(QtWidgets.QGraphicsScene):
 class PaletteSelector(QtWidgets.QComboBox):
     currentValueChanged = QtCore.Signal(Palette)
 
-    def __init__(self, settings):
+    def __init__(self):
         super().__init__()
         self._palettes = []
         for palette in Palette:
@@ -647,24 +651,22 @@ class Window(QtWidgets.QDialog):
         self.setWindowTitle('Haplodemo')
 
         settings = Settings()
-        palette = settings.palette
-        divisions = ['X', 'Y', 'Z']
-
-        division_model = DivisionListModel(divisions, palette)
+        settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
 
         scene = Scene(settings)
-        scene.setDivisionModel(division_model)
-        scene.addNodes()
         # scene.addManyNodes(10, 10)
+        scene.addNodes()
 
         scene_view = QtWidgets.QGraphicsView()
-        scene_view.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.TextAntialiasing)
+        scene_view.setRenderHints(QtGui.QPainter.Antialiasing)
+        # This just makes things worse when moving text around:
+        # scene_view.setRenderHints( QtGui.QPainter.TextAntialiasing)
         scene_view.setScene(scene)
 
-        palette_selector = PaletteSelector(settings)
+        palette_selector = PaletteSelector()
 
         division_view = QtWidgets.QListView()
-        division_view.setModel(division_model)
+        division_view.setModel(settings.divisions)
         division_view.setItemDelegate(ColorDelegate(self))
 
         button_svg = QtWidgets.QPushButton('Export as SVG')
@@ -693,7 +695,6 @@ class Window(QtWidgets.QDialog):
         self.binder = Binder()
         self.binder.bind(palette_selector.currentValueChanged, settings.properties.palette)
         self.binder.bind(settings.properties.palette, palette_selector.setValue)
-        self.binder.bind(settings.properties.palette, division_model.colorize)
         self.binder.bind(settings.properties.palette, ColorDelegate.setCustomColors)
 
     def export_svg(self):
