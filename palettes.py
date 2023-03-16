@@ -37,6 +37,7 @@ class Set1(Palette):
 
 class Spring(Palette):
     label = 'Spring'
+    default = '#aaaaaa'
     colors = [
         '#fd7f6f',
         '#7eb0d5',
@@ -112,4 +113,16 @@ class Spectrum(Palette):
         '#cb5d00',
         '#008f5d',
         '#bce931',
+    ]
+
+
+class Grayscale(Palette):
+    label = 'Grayscale'
+    default = '#070707'
+    colors = [
+        '#252525',
+        '#cccccc',
+        '#636363',
+        '#f7f7f7',
+        '#969696',
     ]
