@@ -322,14 +322,13 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.setPos(x, y)
 
         self.radius = r
-        self.locked_distance = 0
-        self.locked_rotation = 0
-        self.locked_angle = 0
+        self.locked_distance = None
+        self.locked_rotation = None
+        self.locked_angle = None
+        self.locked_transform = None
         self.state_hovered = False
         self.state_pressed = False
         self.items = dict()
-
-        self.lockTransform()
 
     def paint(self, painter, options, widget = None):
         painter.save()
@@ -376,18 +375,24 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         edge = self.items[item]
         edge.adjustPosition()
 
-    def lockTransform(self):
+    def lockTransform(self, event):
         line = QtCore.QLineF(0, 0, self.pos().x(), self.pos().y())
         self.locked_distance = line.length()
-        self.locked_angle = line.angle()
         self.locked_rotation = self.rotation()
+        self.locked_angle = line.angle()
+
+        clicked_pos = self.mapToParent(event.pos())
+        eline = QtCore.QLineF(0, 0, clicked_pos.x(), clicked_pos.y())
+        transform = QtGui.QTransform()
+        transform.rotate(eline.angle() - line.angle())
+        self.locked_transform = transform
 
     def isMovementRotational(self):
         return isinstance(self.parentItem(), Vertex)
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
-            self.lockTransform()
+            self.lockTransform(event)
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):
@@ -398,6 +403,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
         line = QtCore.QLineF(0, 0, epos.x(), epos.y())
         line.setLength(self.locked_distance)
+        line = self.locked_transform.map(line)
         new_pos = line.p2()
         new_angle = self.locked_angle - line.angle()
         self.setPos(new_pos)
@@ -662,8 +668,6 @@ class Scene(QtWidgets.QGraphicsScene):
             item.label.update()
         item.state_pressed = state
         item.update()
-
-
 
 
 class PaletteSelector(QtWidgets.QComboBox):
