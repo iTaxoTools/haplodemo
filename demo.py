@@ -144,6 +144,7 @@ class Label(QtWidgets.QGraphicsItem):
     def __init__(self, text, parent):
         super().__init__(parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
 
         # This one option would be very convenient, but bugs out PDF export...
         # self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
@@ -158,13 +159,23 @@ class Label(QtWidgets.QGraphicsItem):
         self.rect = self.getCenteredRect()
         self.outline = self.getTextOutline()
 
+        self.state_hovered = False
+        self.state_pressed = False
+
         self.locked_rect = self.rect
         self.locked_pos = QtCore.QPointF(0, 0)
+
+    def isHighlighted(self):
+        if self.state_pressed:
+            return True
+        if self.state_hovered and self.scene().pressed_item is None:
+            return True
+        return False
 
     def getCenteredRect(self):
         rect = QtGui.QFontMetrics(self.font).boundingRect(self.text)
         rect = rect.translated(-rect.center())
-        rect = rect.adjusted(-3, -3, 3, 3)
+        rect = rect.adjusted(-1, -1, 1, 1)
         return rect
 
     def getTextOutline(self):
@@ -180,8 +191,15 @@ class Label(QtWidgets.QGraphicsItem):
         t2.rotate(-degrees(angle))
         return t2.mapRect(self.rect)
 
+    def shape(self):
+        path = QtGui.QPainterPath()
+        path.addRect(self.boundingRect())
+        return path
+
     def paint(self, painter, options, widget = None):
         painter.save()
+
+        # painter.drawRect(self.boundingRect())
 
         t = self.sceneTransform()
         angle = atan2(t.m12(), t.m11())
@@ -197,6 +215,8 @@ class Label(QtWidgets.QGraphicsItem):
         painter.restore()
 
     def paint_outline(self, painter):
+        if not self.isHighlighted():
+            return
         color = QtGui.QColor('#8aef52')
         pen = QtGui.QPen(color, 3, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin)
         painter.setPen(pen)
@@ -209,11 +229,6 @@ class Label(QtWidgets.QGraphicsItem):
         painter.setBrush(QtCore.Qt.NoBrush)
         painter.setFont(self.font)
         painter.drawText(0, 0, self.text)
-
-    def shape(self):
-        path = QtGui.QPainterPath()
-        path.addRect(self.boundingRect())
-        return path
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
@@ -580,7 +595,7 @@ class Scene(QtWidgets.QGraphicsScene):
         return super().event(event)
 
     def mouseLeaveEvent(self, event):
-        self.setHoveredItem(None)
+        self.set_hovered_item(None)
 
     def customHoverEvent(self, event):
         # This is required, since the default hover implementation
@@ -589,40 +604,62 @@ class Scene(QtWidgets.QGraphicsScene):
         for item in self.items(event.scenePos()):
             if item == self.hovered_item:
                 return
-            if isinstance(item, Vertex):
-                self.setHoveredItem(item)
+            if isinstance(item, Vertex) or isinstance(item, Label):
+                self.set_hovered_item(item)
                 return
-        self.setHoveredItem(None)
+        self.set_hovered_item(None)
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
         if event.button() != QtCore.Qt.LeftButton:
             return
         for item in self.items(event.scenePos()):
-            if isinstance(item, Vertex):
-                self.setPressedItem(item)
+            if isinstance(item, Vertex) or isinstance(item, Label):
+                self.set_pressed_item(item)
                 return
 
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
         if event.button() == QtCore.Qt.LeftButton:
-            self.setPressedItem(None)
+            self.set_pressed_item(None)
 
-    def setHoveredItem(self, item):
+    def set_hovered_item(self, item):
         if self.hovered_item is not None:
-            self.hovered_item.state_hovered = False
+            self._set_hovered_item_state(False)
         self.hovered_item = item
         if item is not None:
-            item.state_hovered = True
-            item.update()
+            self._set_hovered_item_state(True)
 
-    def setPressedItem(self, item):
+    def _set_hovered_item_state(self, state: bool):
+        item = self.hovered_item
+        if isinstance(item, Label):
+            item.parentItem().state_hovered = state
+            item.parentItem().update()
+        if isinstance(item, Node):
+            item.label.state_hovered = state
+            item.label.update()
+        item.state_hovered = state
+        item.update()
+
+    def set_pressed_item(self, item):
         if self.pressed_item is not None:
-            self.pressed_item.state_pressed = False
+            self._set_pressed_item_state(False)
         self.pressed_item = item
         if item is not None:
-            item.state_pressed = True
-            item.update()
+            self._set_pressed_item_state(True)
+
+    def _set_pressed_item_state(self, state: bool):
+        item = self.pressed_item
+        if isinstance(item, Label):
+            item.parentItem().state_pressed = state
+            item.parentItem().update()
+        if isinstance(item, Node):
+            item.label.state_pressed = state
+            item.label.update()
+        item.state_pressed = state
+        item.update()
+
+
 
 
 class PaletteSelector(QtWidgets.QComboBox):
