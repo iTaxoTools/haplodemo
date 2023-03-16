@@ -173,9 +173,9 @@ class Label(QtWidgets.QGraphicsItem):
         return False
 
     def getCenteredRect(self):
-        rect = QtGui.QFontMetrics(self.font).boundingRect(self.text)
+        rect = QtGui.QFontMetrics(self.font).tightBoundingRect(self.text)
         rect = rect.translated(-rect.center())
-        rect = rect.adjusted(-1, -1, 1, 1)
+        rect = rect.adjusted(-3, -3, 3, 3)
         return rect
 
     def getTextOutline(self):
@@ -192,14 +192,18 @@ class Label(QtWidgets.QGraphicsItem):
         return t2.mapRect(self.rect)
 
     def shape(self):
+        t = self.sceneTransform()
+        angle = atan2(t.m12(), t.m11())
+        t2 = QtGui.QTransform()
+        t2.rotate(-degrees(angle))
+        polygon = t2.mapToPolygon(self.rect)
+
         path = QtGui.QPainterPath()
-        path.addRect(self.boundingRect())
+        path.addPolygon(polygon)
         return path
 
     def paint(self, painter, options, widget = None):
         painter.save()
-
-        # painter.drawRect(self.boundingRect())
 
         t = self.sceneTransform()
         angle = atan2(t.m12(), t.m11())
@@ -684,6 +688,7 @@ class PaletteSelector(QtWidgets.QComboBox):
 class Window(QtWidgets.QDialog):
     def __init__(self):
         super().__init__()
+        self.setWindowFlags(QtCore.Qt.Window)
         self.resize(400, 500)
         self.setWindowTitle('Haplodemo')
 
@@ -691,7 +696,7 @@ class Window(QtWidgets.QDialog):
         settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
 
         scene = Scene(settings)
-        # scene.addManyNodes(10, 10)
+        # scene.addManyNodes(8, 32)
         scene.addNodes()
 
         scene_view = QtWidgets.QGraphicsView()
