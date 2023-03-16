@@ -369,6 +369,11 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         # Hack to prevent drag n draw glitch
         return self.rect().adjusted(-50, -50, 50, 50)
 
+    def shape(self):
+        path = QtGui.QPainterPath()
+        path.addEllipse(self.rect().adjusted(-3, -3, 3, 3))
+        return path
+
     def itemChange(self, change, value):
         parent = self.parentItem()
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
