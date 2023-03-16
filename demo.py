@@ -61,17 +61,22 @@ class ColorDelegate(QtWidgets.QStyledItemDelegate):
 class DivisionListModel(QtCore.QAbstractListModel):
     def __init__(self, names, palette, parent=None):
         super().__init__(parent)
+        self._default = 'green'
         self._colors = list()
         self._names = names
         self.colorize(palette)
 
     def colorize(self, palette):
+        self._default = palette.default
         self._colors = Division.colorize_list(self._names, palette)
         self._key_map = {division.key: index for index, division in enumerate(self._colors)}
         self.dataChanged.emit(self.createIndex(0, 0), self.createIndex(len(self._colors), 0))
 
     def getKeyColor(self, key):
-        index = self._key_map[key]
+        try:
+            index = self._key_map[key]
+        except KeyError:
+            return self._default
         return self._colors[index].color
 
     def rowCount(self, parent=QtCore.QModelIndex()):
@@ -490,7 +495,7 @@ class Scene(QtWidgets.QGraphicsScene):
         self.vertex1 = Vertex(-60, 60)
         self.node3.addChild(self.vertex1, 2)
 
-        self.node5 = Node(-80, 40, 30, 'E', {'X': 1}, self.division_model)
+        self.node5 = Node(-80, 40, 30, 'Error', {'?': 1}, self.division_model)
         self.vertex1.addChild(self.node5, 4)
 
         self.block1 = Block(self.vertex1)
