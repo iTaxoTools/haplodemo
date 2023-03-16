@@ -132,12 +132,16 @@ class Label(QtWidgets.QGraphicsItem):
         self.font = font
 
         self.text = text
-        rect = QtGui.QFontMetrics(font).boundingRect(text)
-        rect = rect.translated(-rect.center())
-        self.rect = rect.adjusted(-2, -2, 2, 2)
+        self.rect = self.getCenteredRect()
 
         self.locked_rect = self.rect
         self.locked_pos = QtCore.QPointF(0, 0)
+
+    def getCenteredRect(self):
+        rect = QtGui.QFontMetrics(self.font).boundingRect(self.text)
+        rect = rect.translated(-rect.center())
+        rect = rect.adjusted(-2, -2, 2, 2)
+        return rect
 
     def boundingRect(self):
         t = self.sceneTransform()
@@ -176,6 +180,11 @@ class Label(QtWidgets.QGraphicsItem):
 
         self.prepareGeometryChange()
         self.rect = self.locked_rect.translated(diff)
+
+    def mouseDoubleClickEvent(self, event):
+        self.prepareGeometryChange()
+        self.rect = self.getCenteredRect()
+
 
 
 class Edge(QtWidgets.QGraphicsLineItem):
