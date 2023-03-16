@@ -118,6 +118,66 @@ class DivisionListModel(QtCore.QAbstractListModel):
         return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
 
+class Label(QtWidgets.QGraphicsItem):
+    def __init__(self, text, parent):
+        super().__init__(parent)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+
+        # This one option would be very convenient, but bugs out PDF export...
+        # self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
+
+        font = QtGui.QFont()
+        font.setPixelSize(16)
+        font.setFamily('Arial')
+        self.font = font
+
+        self.text = text
+        rect = QtGui.QFontMetrics(font).boundingRect(text)
+        rect = rect.translated(-rect.center())
+        self.rect = rect.adjusted(-2, -2, 2, 2)
+
+        self.locked_rect = self.rect
+        self.locked_pos = QtCore.QPointF(0, 0)
+
+    def boundingRect(self):
+        t = self.sceneTransform()
+        angle = atan2(t.m12(), t.m11())
+        t2 = QtGui.QTransform()
+        t2.rotate(-degrees(angle))
+        return t2.mapRect(self.rect)
+
+    def paint(self, painter, options, widget = None):
+        painter.save()
+
+        t = self.sceneTransform()
+        angle = atan2(t.m12(), t.m11())
+        painter.rotate(-degrees(angle))
+
+        painter.setFont(self.font)
+        painter.drawText(self.rect, QtCore.Qt.AlignCenter, self.text)
+        # painter.drawRect(self.rect)
+
+        painter.restore()
+
+    def shape(self):
+        path = QtGui.QPainterPath()
+        path.addRect(self.boundingRect())
+        return path
+
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self.locked_rect = self.rect
+            self.locked_pos = event.scenePos()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        epos = event.scenePos()
+        diff = (epos - self.locked_pos).toPoint()
+
+        self.prepareGeometryChange()
+        self.rect = self.locked_rect.translated(diff)
+
+
 class Edge(QtWidgets.QGraphicsLineItem):
     def __init__(self, parent, node1, node2, segments=2):
         super().__init__(parent)
@@ -283,6 +343,8 @@ class Node(Vertex):
         font.setFamily('Arial')
         self.font = font
 
+        self.label = Label(text, self)
+
         self.updateColors()
 
     def updateColors(self):
@@ -302,7 +364,7 @@ class Node(Vertex):
     def paint(self, painter, options, widget = None):
         self.paintNode(painter)
         self.paintPies(painter)
-        self.paintText(painter)
+        # self.paintText(painter)
 
     def paintNode(self, painter):
         painter.save()
@@ -399,10 +461,10 @@ class Scene(QtWidgets.QGraphicsScene):
         self.division_model = model
 
     def addNodes(self):
-        self.node1 = Node(85, 140, 35, 'A', {'X': 4, 'Y': 3, 'Z': 2}, self.division_model)
+        self.node1 = Node(85, 140, 35, 'Alpha', {'X': 4, 'Y': 3, 'Z': 2}, self.division_model)
         self.addItem(self.node1)
 
-        self.node2 = Node(95, -30, 20, 'B', {'X': 4, 'Z': 2}, self.division_model)
+        self.node2 = Node(95, -30, 20, 'Beta', {'X': 4, 'Z': 2}, self.division_model)
         self.node1.addChild(self.node2, 2)
 
         self.node3 = Node(115, 60, 25, 'C', {'Y': 6, 'Z': 2}, self.division_model)
