@@ -134,10 +134,12 @@ class Label(QtWidgets.QGraphicsItem):
         font = QtGui.QFont()
         font.setPixelSize(16)
         font.setFamily('Arial')
+        font.setHintingPreference(QtGui.QFont.PreferNoHinting)
         self.font = font
 
         self.text = text
         self.rect = self.getCenteredRect()
+        self.outline = self.getTextOutline()
 
         self.locked_rect = self.rect
         self.locked_pos = QtCore.QPointF(0, 0)
@@ -145,8 +147,14 @@ class Label(QtWidgets.QGraphicsItem):
     def getCenteredRect(self):
         rect = QtGui.QFontMetrics(self.font).boundingRect(self.text)
         rect = rect.translated(-rect.center())
-        rect = rect.adjusted(-2, -2, 2, 2)
+        rect = rect.adjusted(-3, -3, 3, 3)
         return rect
+
+    def getTextOutline(self):
+        path = QtGui.QPainterPath()
+        path.setFillRule(QtCore.Qt.WindingFill)
+        path.addText(0, 0, self.font, self.text)
+        return path
 
     def boundingRect(self):
         t = self.sceneTransform()
@@ -162,11 +170,28 @@ class Label(QtWidgets.QGraphicsItem):
         angle = atan2(t.m12(), t.m11())
         painter.rotate(-degrees(angle))
 
-        painter.setFont(self.font)
-        painter.drawText(self.rect, QtCore.Qt.AlignCenter, self.text)
-        # painter.drawRect(self.rect)
+        pos = QtGui.QFontMetrics(self.font).boundingRect(self.text).center()
+        pos -= self.rect.center()
+        painter.translate(-pos)
+
+        self.paintOutline(painter)
+        self.paintText(painter)
 
         painter.restore()
+
+    def paintOutline(self, painter):
+        color = QtGui.QColor('#8aef52')
+        pen = QtGui.QPen(color, 3, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin)
+        painter.setPen(pen)
+        painter.setBrush(QtGui.QBrush(color))
+        painter.drawPath(self.outline)
+
+    def paintText(self, painter):
+        pen = QtGui.QPen(QtGui.QColor('black'), 2)
+        painter.setPen(pen)
+        painter.setBrush(QtCore.Qt.NoBrush)
+        painter.setFont(self.font)
+        painter.drawText(0, 0, self.text)
 
     def shape(self):
         path = QtGui.QPainterPath()
@@ -483,7 +508,7 @@ class Scene(QtWidgets.QGraphicsScene):
         self.division_model = model
 
     def addNodes(self):
-        self.node1 = Node(85, 140, 35, 'Alpha', {'X': 4, 'Y': 3, 'Z': 2}, self.division_model)
+        self.node1 = Node(85, 140, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2}, self.division_model)
         self.addItem(self.node1)
 
         self.node2 = Node(95, -30, 20, 'Beta', {'X': 4, 'Z': 2}, self.division_model)
@@ -527,6 +552,17 @@ class Scene(QtWidgets.QGraphicsScene):
         self.divisionDataChanged.connect(self.node7.updateColors)
         self.divisionDataChanged.connect(self.node8.updateColors)
         self.divisionDataChanged.connect(self.node9.updateColors)
+
+        if True:
+            return
+
+        for x in range(10):
+            nodex = Node(20, 40 * x, 15, 'x', {'X': 1}, self.division_model)
+            self.node1.addChild(nodex)
+
+            for y in range(10):
+                nodey = Node(40 * y, 20, 15, 'y', {'Y': 1}, self.division_model)
+                nodex.addChild(nodey)
 
     def event(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
@@ -617,7 +653,7 @@ class Window(QtWidgets.QDialog):
         scene.addNodes()
 
         scene_view = QtWidgets.QGraphicsView()
-        scene_view.setRenderHints(QtGui.QPainter.Antialiasing)
+        scene_view.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.TextAntialiasing)
         scene_view.setScene(scene)
 
         palette_selector = PaletteSelector(settings)
