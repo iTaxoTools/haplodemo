@@ -133,6 +133,7 @@ class DivisionListModel(QtCore.QAbstractListModel):
 class Settings(PropertyObject):
     palette = Property(Palette, Palette.Spring())
     divisions = Property(DivisionListModel, Instance)
+    rotational = Property(bool, True)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -321,6 +322,8 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.setBrush(self.pen().color())
         self.setPos(x, y)
 
+        self._rotational_setting = None
+
         self.radius = r
         self.locked_distance = None
         self.locked_rotation = None
@@ -387,7 +390,12 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         transform.rotate(eline.angle() - line.angle())
         self.locked_transform = transform
 
+    def set_rotational_setting(self, value):
+        self._rotational_setting = value
+
     def isMovementRotational(self):
+        if not self._rotational_setting:
+            return False
         return isinstance(self.parentItem(), Vertex)
 
     def mousePressEvent(self, event):
@@ -587,12 +595,15 @@ class Scene(QtWidgets.QGraphicsScene):
                 nodex.addChild(nodey)
 
     def create_node(self, *args, **kwargs):
-        node = Node(*args, **kwargs)
-        self.binder.bind(self.settings.divisions.colorMapChanged, node.update_colors)
-        return node
+        item = Node(*args, **kwargs)
+        self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
+        self.binder.bind(self.settings.properties.rotational, item.set_rotational_setting)
+        return item
 
     def create_vertex(self, *args, **kwargs):
-        return Vertex(*args, **kwargs)
+        item = Vertex(*args, **kwargs)
+        self.binder.bind(self.settings.properties.rotational, item.set_rotational_setting)
+        return item
 
     def create_block(self, *args, **kwargs):
         return Block(*args, **kwargs)
@@ -769,9 +780,13 @@ class Window(QtWidgets.QWidget):
         self.scene_view = scene_view
 
         self.binder = Binder()
+
         self.binder.bind(palette_selector.currentValueChanged, settings.properties.palette)
         self.binder.bind(settings.properties.palette, palette_selector.setValue)
         self.binder.bind(settings.properties.palette, ColorDelegate.setCustomColors)
+
+        self.binder.bind(settings.properties.rotational, toggle_rotation.setChecked)
+        self.binder.bind(toggle_rotation.toggled, settings.properties.rotational)
 
     def export_svg(self):
         file, _ = QtWidgets.QFileDialog.getSaveFileName(
