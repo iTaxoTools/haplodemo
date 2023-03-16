@@ -191,7 +191,6 @@ class Label(QtWidgets.QGraphicsItem):
         self.rect = self.getCenteredRect()
 
 
-
 class Edge(QtWidgets.QGraphicsLineItem):
     def __init__(self, parent, node1, node2, segments=2):
         super().__init__(parent)
@@ -425,6 +424,10 @@ class Node(Vertex):
         rect = QtCore.QRect(-r, -r, 2 * r, 2 * r)
         painter.drawText(rect, QtCore.Qt.AlignCenter, self.text)
         painter.restore()
+
+    def mouseDoubleClickEvent(self, event):
+        super().mouseDoubleClickEvent(event)
+        self.label.mouseDoubleClickEvent(event)
 
 
 class Block(QtWidgets.QGraphicsItem):
