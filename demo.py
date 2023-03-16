@@ -689,7 +689,34 @@ class PaletteSelector(QtWidgets.QComboBox):
         self.setCurrentIndex(index)
 
 
-class Window(QtWidgets.QDialog):
+class ToggleButton(QtWidgets.QPushButton):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setCheckable(True)
+        self.checkmark = QtGui.QPolygon([
+            QtCore.QPoint(-3, 0),
+            QtCore.QPoint(-2, 3),
+            QtCore.QPoint(5, -5)])
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if not self.isChecked():
+            return
+
+        m = QtGui.QFontMetrics(self.font())
+        w = self.width() - m.boundingRect(self.text()).width()
+        w = w / 2 - 10
+        h = self.height() / 2 + 1
+
+        painter = QtGui.QPainter(self)
+        painter.translate(w, h)
+        painter.setPen(QtGui.QPen(QtGui.QColor('#333'), 1.5))
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.drawPolyline(self.checkmark)
+        painter.end()
+
+
+class Window(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowFlags(QtCore.Qt.Window)
@@ -710,6 +737,8 @@ class Window(QtWidgets.QDialog):
         scene_view.setScene(scene)
 
         palette_selector = PaletteSelector()
+
+        toggle_rotation = ToggleButton('Prefer rotational movement')
 
         division_view = QtWidgets.QListView()
         division_view.setModel(settings.divisions)
@@ -733,6 +762,7 @@ class Window(QtWidgets.QDialog):
         layout.addWidget(scene_view, 10)
         layout.addWidget(palette_selector)
         layout.addWidget(division_view, 1)
+        layout.addWidget(toggle_rotation)
         layout.addLayout(buttons)
         self.setLayout(layout)
 
