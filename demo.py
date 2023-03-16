@@ -380,6 +380,11 @@ class Node(Vertex):
         if not self.pies:
             return
         painter.save()
+
+        t = self.sceneTransform()
+        angle = atan2(t.m12(), t.m11())
+        painter.rotate(-degrees(angle))
+
         painter.setPen(QtCore.Qt.NoPen)
         starting_angle = 16 * 90
 
