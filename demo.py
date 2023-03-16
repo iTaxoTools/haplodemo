@@ -133,7 +133,8 @@ class DivisionListModel(QtCore.QAbstractListModel):
 class Settings(PropertyObject):
     palette = Property(Palette, Palette.Spring())
     divisions = Property(DivisionListModel, Instance)
-    rotational = Property(bool, True)
+    rotational_movement = Property(bool, True)
+    label_movement = Property(bool, False)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -165,6 +166,9 @@ class Label(QtWidgets.QGraphicsItem):
 
         self.locked_rect = self.rect
         self.locked_pos = QtCore.QPointF(0, 0)
+
+    def set_locked(self, value):
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, not value)
 
     def isHighlighted(self):
         if self.state_pressed:
@@ -597,12 +601,13 @@ class Scene(QtWidgets.QGraphicsScene):
     def create_node(self, *args, **kwargs):
         item = Node(*args, **kwargs)
         self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
-        self.binder.bind(self.settings.properties.rotational, item.set_rotational_setting)
+        self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
+        self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
         return item
 
     def create_vertex(self, *args, **kwargs):
         item = Vertex(*args, **kwargs)
-        self.binder.bind(self.settings.properties.rotational, item.set_rotational_setting)
+        self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
         return item
 
     def create_block(self, *args, **kwargs):
@@ -716,7 +721,7 @@ class ToggleButton(QtWidgets.QPushButton):
 
         m = QtGui.QFontMetrics(self.font())
         w = self.width() - m.boundingRect(self.text()).width()
-        w = w / 2 - 10
+        w = w / 2 - 14
         h = self.height() / 2 + 1
 
         painter = QtGui.QPainter(self)
@@ -749,7 +754,8 @@ class Window(QtWidgets.QWidget):
 
         palette_selector = PaletteSelector()
 
-        toggle_rotation = ToggleButton('Prefer rotational movement')
+        toggle_rotation = ToggleButton('Rotate nodes')
+        toggle_labels = ToggleButton('Unlock labels')
 
         division_view = QtWidgets.QListView()
         division_view.setModel(settings.divisions)
@@ -764,6 +770,10 @@ class Window(QtWidgets.QWidget):
         button_png = QtWidgets.QPushButton('Export as PNG')
         button_png.clicked.connect(self.export_png)
 
+        options = QtWidgets.QHBoxLayout()
+        options.addWidget(toggle_rotation)
+        options.addWidget(toggle_labels)
+
         buttons = QtWidgets.QHBoxLayout()
         buttons.addWidget(button_svg)
         buttons.addWidget(button_pdf)
@@ -773,7 +783,7 @@ class Window(QtWidgets.QWidget):
         layout.addWidget(scene_view, 10)
         layout.addWidget(palette_selector)
         layout.addWidget(division_view, 1)
-        layout.addWidget(toggle_rotation)
+        layout.addLayout(options)
         layout.addLayout(buttons)
         self.setLayout(layout)
 
@@ -785,8 +795,11 @@ class Window(QtWidgets.QWidget):
         self.binder.bind(settings.properties.palette, palette_selector.setValue)
         self.binder.bind(settings.properties.palette, ColorDelegate.setCustomColors)
 
-        self.binder.bind(settings.properties.rotational, toggle_rotation.setChecked)
-        self.binder.bind(toggle_rotation.toggled, settings.properties.rotational)
+        self.binder.bind(settings.properties.rotational_movement, toggle_rotation.setChecked)
+        self.binder.bind(toggle_rotation.toggled, settings.properties.rotational_movement)
+
+        self.binder.bind(settings.properties.label_movement, toggle_labels.setChecked)
+        self.binder.bind(toggle_labels.toggled, settings.properties.label_movement)
 
     def export_svg(self):
         file, _ = QtWidgets.QFileDialog.getSaveFileName(
