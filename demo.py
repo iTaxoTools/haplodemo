@@ -369,9 +369,8 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
 
 class Node(Vertex):
-    def __init__(self, x, y, r, text, weights, divisions):
+    def __init__(self, x, y, r, text, weights):
         super().__init__(x, y, r)
-        self.divisions = divisions
         self.weights = weights
         self.pies = dict()
         self.text = text
@@ -383,19 +382,17 @@ class Node(Vertex):
 
         self.label = Label(text, self)
 
-        self.updateColors()
-
-    def updateColors(self):
+    def updateColors(self, divisions):
         total_weight = sum(weight for weight in self.weights.values())
 
         weight_items = iter(self.weights.items())
         first_key, _ = next(weight_items)
-        first_color = self.divisions.getKeyColor(first_key)
+        first_color = divisions.getKeyColor(first_key)
         self.setBrush(QtGui.QBrush(first_color))
 
         self.pies = dict()
         for key, weight in weight_items:
-            color = self.divisions.getKeyColor(key)
+            color = divisions.getKeyColor(key)
             span = int(5760 * weight / total_weight)
             self.pies[color] = span
 
@@ -493,76 +490,83 @@ class Block(QtWidgets.QGraphicsItem):
 
 class Scene(QtWidgets.QGraphicsScene):
     itemMoved = QtCore.Signal()
-    divisionDataChanged = QtCore.Signal()
+    divisionDataChanged = QtCore.Signal(object)
 
-    def __init__(self, parent=None):
+    def __init__(self, settings, parent=None):
         super().__init__(parent)
+        self.settings = settings
         self.division_model = None
         self.hovered_item = None
         self.pressed_item = None
+        self.binder = Binder()
 
     def setDivisionModel(self, model):
         if self.division_model is not None:
             self.division_model.dataChanged.disconnect(self.divisionDataChanged)
-        model.dataChanged.connect(self.divisionDataChanged)
+        model.dataChanged.connect(self.handleDivisionDataChanged)
         self.division_model = model
 
+    def handleDivisionDataChanged(self):
+        self.divisionDataChanged.emit(self.division_model)
+
     def addNodes(self):
-        self.node1 = Node(85, 140, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2}, self.division_model)
+        self.node1 = self.create_node(85, 140, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
         self.addItem(self.node1)
 
-        self.node2 = Node(95, -30, 20, 'Beta', {'X': 4, 'Z': 2}, self.division_model)
+        self.node2 = self.create_node(95, -30, 20, 'Beta', {'X': 4, 'Z': 2})
         self.node1.addChild(self.node2, 2)
 
-        self.node3 = Node(115, 60, 25, 'C', {'Y': 6, 'Z': 2}, self.division_model)
+        self.node3 = self.create_node(115, 60, 25, 'C', {'Y': 6, 'Z': 2})
         self.node1.addChild(self.node3, 3)
 
-        self.node4 = Node(60, -30, 15, 'D', {'Y': 1}, self.division_model)
+        self.node4 = self.create_node(60, -30, 15, 'D', {'Y': 1})
         self.node3.addChild(self.node4, 1)
 
-        self.vertex1 = Vertex(-60, 60)
+        self.vertex1 = self.create_vertex(-60, 60)
         self.node3.addChild(self.vertex1, 2)
 
-        self.node5 = Node(-80, 40, 30, 'Error', {'?': 1}, self.division_model)
+        self.node5 = self.create_node(-80, 40, 30, 'Error', {'?': 1})
         self.vertex1.addChild(self.node5, 4)
 
-        self.block1 = Block(self.vertex1)
+        self.block1 = self.create_block(self.vertex1)
 
-        self.node6 = Node(60, 20, 15, 'R', {'Z': 1}, self.division_model)
+        self.node6 = self.create_node(60, 20, 15, 'R', {'Z': 1})
         self.block1.setMainNode(self.node6)
 
-        self.node7 = Node(100, 80, 15, 'S', {'Z': 1}, self.division_model)
+        self.node7 = self.create_node(100, 80, 15, 'S', {'Z': 1})
         self.block1.addNode(self.node7)
         self.block1.addEdge(self.node7, self.node6, 2)
 
-        self.node8 = Node(20, 80, 15, 'T', {'Y': 1}, self.division_model)
+        self.node8 = self.create_node(20, 80, 15, 'T', {'Y': 1})
         self.block1.addNode(self.node8)
         self.block1.addEdge(self.node8, self.node6)
         self.block1.addEdge(self.node8, self.node7)
 
-        self.node9 = Node(20, -40, 10, 'x', {'Z': 1}, self.division_model)
+        self.node9 = self.create_node(20, -40, 10, 'x', {'Z': 1})
         self.node7.addChild(self.node9)
 
-        self.divisionDataChanged.connect(self.node1.updateColors)
-        self.divisionDataChanged.connect(self.node2.updateColors)
-        self.divisionDataChanged.connect(self.node3.updateColors)
-        self.divisionDataChanged.connect(self.node4.updateColors)
-        self.divisionDataChanged.connect(self.node5.updateColors)
-        self.divisionDataChanged.connect(self.node6.updateColors)
-        self.divisionDataChanged.connect(self.node7.updateColors)
-        self.divisionDataChanged.connect(self.node8.updateColors)
-        self.divisionDataChanged.connect(self.node9.updateColors)
+    def addManyNodes(self, dx, dy):
+        block = Block(None)
+        self.addItem(block)
+        for x in range(dx):
+            nodex = self.create_node(20, 80 * x, 15, f'x{x}', {'X': 1})
+            block.addNode(nodex)
 
-        if True:
-            return
-
-        for x in range(10):
-            nodex = Node(20, 40 * x, 15, 'x', {'X': 1}, self.division_model)
-            self.node1.addChild(nodex)
-
-            for y in range(10):
-                nodey = Node(40 * y, 20, 15, 'y', {'Y': 1}, self.division_model)
+            for y in range(dy):
+                nodey = self.create_node(80 + 40 * y, 40, 15, f'y{y}', {'Y': 1})
                 nodex.addChild(nodey)
+
+    def create_node(self, *args, **kwargs):
+        node = Node(*args, **kwargs)
+        node.updateColors(self.division_model)
+        self.binder.bind(self.divisionDataChanged, node.updateColors, lambda x: self.division_model)
+        return node
+
+    def create_vertex(self, *args, **kwargs):
+        return Vertex(*args, **kwargs)
+
+    def create_block(self, *args, **kwargs):
+        return Block(*args, **kwargs)
 
     def event(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
@@ -648,9 +652,10 @@ class Window(QtWidgets.QDialog):
 
         division_model = DivisionListModel(divisions, palette)
 
-        scene = Scene()
+        scene = Scene(settings)
         scene.setDivisionModel(division_model)
         scene.addNodes()
+        # scene.addManyNodes(10, 10)
 
         scene_view = QtWidgets.QGraphicsView()
         scene_view.setRenderHints(QtGui.QPainter.Antialiasing | QtGui.QPainter.TextAntialiasing)
