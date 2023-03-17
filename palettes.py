@@ -5,6 +5,7 @@ from itaxotools.common.types import Type
 class Palette(list, Type):
     label = 'Palette'
     default = 'gray'
+    highlight = '#8aef52'
     colors = []
 
     def __init__(self):
@@ -23,6 +24,7 @@ class Palette(list, Type):
 class Set1(Palette):
     label = 'Set1'
     default = '#999999'
+    highlight = '#94f335'
     colors = [
         '#e41a1c',
         '#377eb8',
@@ -37,7 +39,8 @@ class Set1(Palette):
 
 class Spring(Palette):
     label = 'Spring'
-    default = '#aaaaaa'
+    default = '#bbbbbb'
+    highlight = '#d3f789'
     colors = [
         '#fd7f6f',
         '#7eb0d5',
@@ -53,7 +56,8 @@ class Spring(Palette):
 
 class Pastel(Palette):
     label = 'Pastel'
-    default = '#f2f2f2'
+    default = '#e2e2e2'
+    highlight = '#cefbc1'
     colors = [
         '#fbb4ae',
         '#b3cde3',
@@ -69,6 +73,7 @@ class Pastel(Palette):
 class Tab10(Palette):
     label = 'Tab10'
     default = '#c7c7c7'
+    highlight = '#6bcf58'
     colors = [
         '#1f77b4',
         '#ff7f0e',
@@ -85,6 +90,8 @@ class Tab10(Palette):
 
 class RetroMetro(Palette):
     label = 'RetroMetro'
+    default = '#979797'
+    highlight = '#a5d657'
     colors = [
         '#ea5545',
         '#f46a9b',
@@ -100,6 +107,8 @@ class RetroMetro(Palette):
 
 class Spectrum(Palette):
     label = 'Spectrum'
+    default = '#858585'
+    highlight = '#bce931'
     colors = [
         '#0fb5ae',
         '#4046ca',
@@ -119,6 +128,7 @@ class Spectrum(Palette):
 class Grayscale(Palette):
     label = 'Grayscale'
     default = '#070707'
+    highlight = '#ececec'
     colors = [
         '#252525',
         '#cccccc',

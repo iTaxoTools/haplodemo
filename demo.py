@@ -133,6 +133,7 @@ class DivisionListModel(QtCore.QAbstractListModel):
 class Settings(PropertyObject):
     palette = Property(Palette, Palette.Spring())
     divisions = Property(DivisionListModel, Instance)
+    highlight_color = Property(QtGui.QColor, QtCore.Qt.magenta)
     rotational_movement = Property(bool, True)
     label_movement = Property(bool, False)
 
@@ -140,6 +141,7 @@ class Settings(PropertyObject):
         super().__init__(*args, **kwargs)
         self.binder = Binder()
         self.binder.bind(self.properties.palette, self.divisions.set_palette)
+        self.binder.bind(self.properties.palette, self.properties.highlight_color, lambda x: x.highlight)
 
 
 class Label(QtWidgets.QGraphicsItem):
@@ -150,6 +152,8 @@ class Label(QtWidgets.QGraphicsItem):
 
         # This one option would be very convenient, but bugs out PDF export...
         # self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
+
+        self._highlight_color = QtCore.Qt.magenta
 
         font = QtGui.QFont()
         font.setPixelSize(16)
@@ -169,6 +173,9 @@ class Label(QtWidgets.QGraphicsItem):
 
     def set_locked(self, value):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, not value)
+
+    def set_highlight_color(self, value):
+        self._highlight_color = value
 
     def isHighlighted(self):
         if self.state_pressed:
@@ -226,8 +233,8 @@ class Label(QtWidgets.QGraphicsItem):
     def paint_outline(self, painter):
         if not self.isHighlighted():
             return
-        color = QtGui.QColor('#8aef52')
-        pen = QtGui.QPen(color, 3, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin)
+        color = self._highlight_color
+        pen = QtGui.QPen(color, 4, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin)
         painter.setPen(pen)
         painter.setBrush(QtGui.QBrush(color))
         painter.drawPath(self.outline)
@@ -327,6 +334,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.setPos(x, y)
 
         self._rotational_setting = None
+        self._highlight_color = QtCore.Qt.magenta
 
         self.radius = r
         self.locked_distance = None
@@ -357,7 +365,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
     def getBorderPen(self):
         if self.isHighlighted():
-            return QtGui.QPen(QtGui.QColor('#8aef52'), 4)
+            return QtGui.QPen(self._highlight_color, 4)
         return self.pen()
 
     def addChild(self, item, segments=1):
@@ -401,6 +409,9 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
     def set_rotational_setting(self, value):
         self._rotational_setting = value
+
+    def set_highlight_color(self, value):
+        self._highlight_color = value
 
     def isMovementRotational(self):
         if not self._rotational_setting:
@@ -608,11 +619,14 @@ class Scene(QtWidgets.QGraphicsScene):
         self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
         self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
         self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
+        self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
+        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
         return item
 
     def create_vertex(self, *args, **kwargs):
         item = Vertex(*args, **kwargs)
         self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
+        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
         return item
 
     def create_block(self, *args, **kwargs):
@@ -748,7 +762,7 @@ class Window(QtWidgets.QWidget):
         settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
 
         scene = Scene(settings)
-        # scene.addManyNodes(8, 32)
+        # scene.addManyNodes(8, 32)ho
         scene.addNodes()
 
         scene_view = QtWidgets.QGraphicsView()
@@ -806,9 +820,21 @@ class Window(QtWidgets.QWidget):
         self.binder.bind(settings.properties.label_movement, toggle_labels.setChecked)
         self.binder.bind(toggle_labels.toggled, settings.properties.label_movement)
 
-    def export_svg(self):
-        file, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, 'Export As...', 'graph.svg', 'SVG Files (*.svg)')
+        action = QtGui.QAction()
+        action.setShortcut(QtGui.QKeySequence.Save)
+        action.triggered.connect(self.quick_save)
+        self.quick_save_action = action
+        self.addAction(action)
+
+    def quick_save(self):
+        self.export_svg('graph.svg')
+        self.export_pdf('graph.pdf')
+        self.export_png('graph.png')
+
+    def export_svg(self, file=None):
+        if file is None:
+            file, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self, 'Export As...', 'graph.svg', 'SVG Files (*.svg)')
         if not file:
             return
         print('SVG >', file)
@@ -823,9 +849,10 @@ class Window(QtWidgets.QWidget):
         self.scene_view.render(painter)
         painter.end()
 
-    def export_pdf(self):
-        file, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, 'Export As...', 'graph.pdf', 'PDF Files (*.pdf)')
+    def export_pdf(self, file=None):
+        if file is None:
+            file, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self, 'Export As...', 'graph.pdf', 'PDF Files (*.pdf)')
         if not file:
             return
         print('PDF >', file)
@@ -837,9 +864,10 @@ class Window(QtWidgets.QWidget):
         self.scene_view.render(painter)
         painter.end()
 
-    def export_png(self):
-        file, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, 'Export As...', 'graph.png', 'PNG Files (*.png)')
+    def export_png(self, file=None):
+        if file is None:
+            file, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self, 'Export As...', 'graph.png', 'PNG Files (*.png)')
         if not file:
             return
         print('PNG >', file)
