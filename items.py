@@ -135,21 +135,31 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.node1 = node1
         self.node2 = node2
 
+        self.state_highlighted = False
+        self._highlight_color = QtCore.Qt.magenta
+
     def paint(self, painter, options, widget=None):
-        super().paint(painter, options, widget)
-
-        if self.segments < 2:
-            return
-
         painter.save()
-        painter.setPen(self.pen())
-        painter.setBrush(self.pen().color())
 
-        for dot in range(1, self.segments):
-            center = self.line().pointAt(dot/self.segments)
-            painter.drawEllipse(center, 2.5, 2.5)
+        if self.state_highlighted:
+            pen = QtGui.QPen(self._highlight_color, 4)
+        else:
+            pen = self.pen()
+
+        painter.setPen(pen)
+        painter.setBrush(pen.color())
+
+        painter.drawLine(self.line())
+
+        if self.segments > 1:
+            for dot in range(1, self.segments):
+                center = self.line().pointAt(dot/self.segments)
+                painter.drawEllipse(center, 2.5, 2.5)
 
         painter.restore()
+
+    def set_highlight_color(self, value):
+        self._highlight_color = value
 
     def boundingRect(self):
         # Expand to account for segment dots
@@ -204,7 +214,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.locked_transform = None
         self.state_hovered = False
         self.state_pressed = False
-        self.items = dict()
+        self.edges = dict()
 
     def paint(self, painter, options, widget=None):
         painter.save()
@@ -230,7 +240,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         return self.pen()
 
     def addChild(self, item, segments=1):
-        self.items[item] = Edge(self, self, item, segments)
+        self.edges[item] = Edge(self, self, item, segments)
         item.setParentItem(self)
         self.adjustItemEdge(item)
 
@@ -253,7 +263,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         return super().itemChange(change, value)
 
     def adjustItemEdge(self, item):
-        edge = self.items[item]
+        edge = self.edges[item]
         edge.adjustPosition()
 
     def lockTransform(self, event):

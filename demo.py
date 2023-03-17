@@ -150,43 +150,44 @@ class Scene(QtWidgets.QGraphicsScene):
         self.settings = settings
         self.hovered_item = None
         self.pressed_item = None
+        self.lighlighted_edge = None
         self.binder = Binder()
 
     def addNodes(self):
-        self.node1 = self.create_node(85, 140, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
-        self.addItem(self.node1)
+        node1 = self.create_node(85, 140, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
+        self.addItem(node1)
 
-        self.node2 = self.create_node(95, -30, 20, 'Beta', {'X': 4, 'Z': 2})
-        self.node1.addChild(self.node2, 2)
+        node2 = self.create_node(95, -30, 20, 'Beta', {'X': 4, 'Z': 2})
+        self.add_node_child(node1, node2, 2)
 
-        self.node3 = self.create_node(115, 60, 25, 'C', {'Y': 6, 'Z': 2})
-        self.node1.addChild(self.node3, 3)
+        node3 = self.create_node(115, 60, 25, 'C', {'Y': 6, 'Z': 2})
+        self.add_node_child(node1, node3, 3)
 
-        self.node4 = self.create_node(60, -30, 15, 'D', {'Y': 1})
-        self.node3.addChild(self.node4, 1)
+        node4 = self.create_node(60, -30, 15, 'D', {'Y': 1})
+        self.add_node_child(node3, node4, 1)
 
-        self.vertex1 = self.create_vertex(-60, 60)
-        self.node3.addChild(self.vertex1, 2)
+        vertex1 = self.create_vertex(-60, 60)
+        self.add_node_child(node3, vertex1, 2)
 
-        self.node5 = self.create_node(-80, 40, 30, 'Error', {'?': 1})
-        self.vertex1.addChild(self.node5, 4)
+        node5 = self.create_node(-80, 40, 30, 'Error', {'?': 1})
+        self.add_node_child(vertex1, node5, 4)
 
-        self.block1 = self.create_block(self.vertex1)
+        block1 = self.create_block(vertex1)
 
-        self.node6 = self.create_node(60, 20, 15, 'R', {'Z': 1})
-        self.block1.setMainNode(self.node6)
+        node6 = self.create_node(60, 20, 15, 'R', {'Z': 1})
+        block1.setMainNode(node6)
 
-        self.node7 = self.create_node(100, 80, 15, 'S', {'Z': 1})
-        self.block1.addNode(self.node7)
-        self.block1.addEdge(self.node7, self.node6, 2)
+        node7 = self.create_node(100, 80, 15, 'S', {'Z': 1})
+        block1.addNode(node7)
+        block1.addEdge(node7, node6, 2)
 
-        self.node8 = self.create_node(20, 80, 15, 'T', {'Y': 1})
-        self.block1.addNode(self.node8)
-        self.block1.addEdge(self.node8, self.node6)
-        self.block1.addEdge(self.node8, self.node7)
+        node8 = self.create_node(20, 80, 15, 'T', {'Y': 1})
+        block1.addNode(node8)
+        block1.addEdge(node8, node6)
+        block1.addEdge(node8, node7)
 
-        self.node9 = self.create_node(20, -40, 10, 'x', {'Z': 1})
-        self.node7.addChild(self.node9)
+        node9 = self.create_node(20, -40, 10, 'x', {'Z': 1})
+        self.add_node_child(node7, node9, 1)
 
     def addManyNodes(self, dx, dy):
         block = Block(None)
@@ -216,6 +217,11 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def create_block(self, *args, **kwargs):
         return Block(*args, **kwargs)
+
+    def add_node_child(self, parent, child, segments=1):
+        parent.addChild(child, segments)
+        edge = parent.edges[child]
+        self.binder.bind(self.settings.properties.highlight_color, edge.set_highlight_color)
 
     def event(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
@@ -259,6 +265,9 @@ class Scene(QtWidgets.QGraphicsScene):
         self.hovered_item = item
         if item is not None:
             self._set_hovered_item_state(True)
+        if self.pressed_item is None:
+            edge = self.get_item_edge(item)
+            self.set_highlighted_edge(edge)
 
     def _set_hovered_item_state(self, state: bool):
         item = self.hovered_item
@@ -277,6 +286,8 @@ class Scene(QtWidgets.QGraphicsScene):
         self.pressed_item = item
         if item is not None:
             self._set_pressed_item_state(True)
+        edge = self.get_item_edge(item)
+        self.set_highlighted_edge(edge)
 
     def _set_pressed_item_state(self, state: bool):
         item = self.pressed_item
@@ -288,6 +299,27 @@ class Scene(QtWidgets.QGraphicsScene):
             item.label.update()
         item.state_pressed = state
         item.update()
+
+    def get_item_edge(self, item):
+        if item is None:
+            return None
+        if isinstance(item, Label):
+            item = item.parentItem()
+        if isinstance(item.parentItem(), Vertex):
+            return item.parentItem().edges[item]
+        return None
+
+    def set_highlighted_edge(self, edge):
+        if self.lighlighted_edge is not None:
+            self._set_highlighted_edge_state(False)
+        self.lighlighted_edge = edge
+        if edge is not None:
+            self._set_highlighted_edge_state(True)
+
+    def _set_highlighted_edge_state(self, state: bool):
+        edge = self.lighlighted_edge
+        edge.state_highlighted = state
+        edge.update()
 
 
 class PaletteSelector(QtWidgets.QComboBox):

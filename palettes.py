@@ -128,7 +128,7 @@ class Spectrum(Palette):
 class Grayscale(Palette):
     label = 'Grayscale'
     default = '#070707'
-    highlight = '#ececec'
+    highlight = '#bcbcbc'
     colors = [
         '#252525',
         '#cccccc',
