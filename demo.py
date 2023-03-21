@@ -10,7 +10,7 @@ from PySide6 import QtSvg
 from itaxotools.common.bindings import PropertyObject, Property, Binder, Instance
 # from itaxotools.common.utility import override
 
-from items import Vertex, Node, Label, Block
+from items import Vertex, Node, Label, Block, BezierCurve
 from palettes import Palette
 
 
@@ -152,6 +152,12 @@ class Scene(QtWidgets.QGraphicsScene):
         self.pressed_item = None
         self.lighlighted_edge = None
         self.binder = Binder()
+
+    def addBezier(self):
+        item = BezierCurve(QtCore.QPointF(0, 0), QtCore.QPointF(200, 0))
+        self.addItem(item)
+        item.setPos(60, 160)
+
 
     def addNodes(self):
         node1 = self.create_node(85, 140, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
@@ -379,7 +385,8 @@ class Window(QtWidgets.QWidget):
         settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
 
         scene = Scene(settings)
-        # scene.addManyNodes(8, 32)ho
+        # scene.addManyNodes(8, 32)
+        scene.addBezier()
         scene.addNodes()
 
         scene_view = QtWidgets.QGraphicsView()
