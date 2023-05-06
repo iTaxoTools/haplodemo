@@ -1,10 +1,117 @@
-from math import degrees, atan2
-
 from PySide6 import QtWidgets
 from PySide6 import QtGui
 from PySide6 import QtCore
 
 from itaxotools.common.utility import override
+
+
+class LabelNew(QtWidgets.QGraphicsItem):
+    def __init__(self, text, parent):
+        super().__init__(parent)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
+
+        self._highlight_color = QtCore.Qt.magenta
+
+        font = QtGui.QFont()
+        font.setPixelSize(16)
+        font.setFamily('Arial')
+        font.setHintingPreference(QtGui.QFont.PreferNoHinting)
+        self.font = font
+
+        self.text = text
+        self.rect = self.getCenteredRect()
+        self.outline = self.getTextOutline()
+
+        self.state_hovered = False
+        self.state_pressed = False
+
+        self.locked_rect = self.rect
+        self.locked_pos = QtCore.QPointF(0, 0)
+
+    @override
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self.locked_rect = self.rect
+            self.locked_pos = event.scenePos()
+        super().mousePressEvent(event)
+
+    @override
+    def mouseMoveEvent(self, event):
+        epos = event.scenePos()
+        diff = (epos - self.locked_pos).toPoint()
+
+        self.prepareGeometryChange()
+        self.rect = self.locked_rect.translated(diff)
+
+    @override
+    def mouseDoubleClickEvent(self, event):
+        self.prepareGeometryChange()
+        self.rect = self.getCenteredRect()
+
+    @override
+    def boundingRect(self):
+        return self.rect
+
+    @override
+    def shape(self):
+        path = QtGui.QPainterPath()
+        path.addRect(self.rect)
+        return path
+
+    @override
+    def paint(self, painter, options, widget=None):
+        painter.save()
+
+        pos = QtGui.QFontMetrics(self.font).boundingRect(self.text).center()
+        pos -= self.rect.center()
+        painter.translate(-pos)
+
+        self.paint_outline(painter)
+        self.paint_text(painter)
+
+        painter.restore()
+
+    def set_locked(self, value):
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, not value)
+
+    def set_highlight_color(self, value):
+        self._highlight_color = value
+
+    def isHighlighted(self):
+        if self.state_pressed:
+            return True
+        if self.state_hovered and self.scene().pressed_item is None:
+            return True
+        return False
+
+    def getCenteredRect(self):
+        rect = QtGui.QFontMetrics(self.font).tightBoundingRect(self.text)
+        rect = rect.translated(-rect.center())
+        rect = rect.adjusted(-3, -3, 3, 3)
+        return rect
+
+    def getTextOutline(self):
+        path = QtGui.QPainterPath()
+        path.setFillRule(QtCore.Qt.WindingFill)
+        path.addText(0, 0, self.font, self.text)
+        return path
+
+    def paint_outline(self, painter):
+        if not self.isHighlighted():
+            return
+        color = self._highlight_color
+        pen = QtGui.QPen(color, 4, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin)
+        painter.setPen(pen)
+        painter.setBrush(QtGui.QBrush(color))
+        painter.drawPath(self.outline)
+
+    def paint_text(self, painter):
+        pen = QtGui.QPen(QtGui.QColor('black'))
+        painter.setPen(pen)
+        painter.setBrush(QtCore.Qt.NoBrush)
+        painter.setFont(self.font)
+        painter.drawText(0, 0, self.text)
 
 
 class EdgeNew(QtWidgets.QGraphicsLineItem):
@@ -207,3 +314,70 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
     #     new_angle = self.locked_angle - line.angle()
     #     self.setPos(new_pos)
     #     self.setRotation(self.locked_rotation + new_angle)
+
+
+class NodeNew(VertexNew):
+    def __init__(self, x, y, r, text, weights):
+        super().__init__(x, y, r)
+        self.weights = weights
+        self.pies = dict()
+        self.text = text
+
+        font = QtGui.QFont()
+        font.setPixelSize(16)
+        font.setFamily('Arial')
+        self.font = font
+
+        self.label = LabelNew(text, self)
+
+    @override
+    def mouseDoubleClickEvent(self, event):
+        super().mouseDoubleClickEvent(event)
+        self.label.mouseDoubleClickEvent(event)
+
+    @override
+    def paint(self, painter, options, widget=None):
+        self.paint_node(painter)
+        self.paint_pies(painter)
+
+    def paint_node(self, painter):
+        painter.save()
+        if self.pies:
+            painter.setPen(QtCore.Qt.NoPen)
+        else:
+            painter.setPen(self.getBorderPen())
+        painter.setBrush(self.brush())
+        painter.drawEllipse(self.rect())
+        painter.restore()
+
+    def paint_pies(self, painter):
+        if not self.pies:
+            return
+        painter.save()
+
+        painter.setPen(QtCore.Qt.NoPen)
+        starting_angle = 16 * 90
+
+        for color, span in self.pies.items():
+            painter.setBrush(QtGui.QBrush(color))
+            painter.drawPie(self.rect(), starting_angle, span)
+            starting_angle += span
+
+        painter.setBrush(QtCore.Qt.NoBrush)
+        painter.setPen(self.getBorderPen())
+        painter.drawEllipse(self.rect())
+        painter.restore()
+
+    def update_colors(self, color_map):
+        total_weight = sum(weight for weight in self.weights.values())
+
+        weight_items = iter(self.weights.items())
+        first_key, _ = next(weight_items)
+        first_color = color_map[first_key]
+        self.setBrush(QtGui.QBrush(first_color))
+
+        self.pies = dict()
+        for key, weight in weight_items:
+            color = color_map[key]
+            span = int(5760 * weight / total_weight)
+            self.pies[color] = span

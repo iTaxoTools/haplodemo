@@ -11,7 +11,7 @@ from itaxotools.common.bindings import PropertyObject, Property, Binder, Instanc
 # from itaxotools.common.utility import override
 
 from items import Vertex, Node, Label, Block, BezierCurve
-from items_new import VertexNew, EdgeNew
+from items_new import VertexNew, NodeNew, EdgeNew, LabelNew
 from palettes import Palette
 
 
@@ -213,12 +213,27 @@ class Scene(QtWidgets.QGraphicsScene):
         vertex2 = self.create_vertex_new(85, 240)
         self.add_vertex_sibling_new(vertex1, vertex2)
 
-        vertex3 = self.create_vertex_new(180, 190)
-        self.add_vertex_child_new(vertex1, vertex3, 2)
+        node1 = self.create_node_new(180, 190, 25, 'A', {'X': 4, 'Y': 3, 'Z': 2})
+        self.add_vertex_child_new(vertex1, node1, 2)
+
+        node2 = self.create_node_new(240, 210, 15, 'B', {'X': 4})
+        self.add_vertex_child_new(node1, node2, 1)
+
+        node3 = self.create_node_new(290, 170, 15, 'C', {'Y': 4})
+        self.add_vertex_child_new(node1, node3, 2)
 
     def create_vertex_new(self, *args, **kwargs):
         item = VertexNew(*args, **kwargs)
         self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
+        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
+        return item
+
+    def create_node_new(self, *args, **kwargs):
+        item = NodeNew(*args, **kwargs)
+        self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
+        self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
+        self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
+        self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
         return item
 
@@ -279,7 +294,7 @@ class Scene(QtWidgets.QGraphicsScene):
         for item in self.items(event.scenePos()):
             if item == self.hovered_item:
                 return
-            if isinstance(item, Vertex) or isinstance(item, VertexNew) or isinstance(item, Label):
+            if isinstance(item, Vertex) or isinstance(item, VertexNew) or isinstance(item, Label) or isinstance(item, LabelNew):
                 self.set_hovered_item(item)
                 return
         self.set_hovered_item(None)
@@ -289,7 +304,7 @@ class Scene(QtWidgets.QGraphicsScene):
         if event.button() != QtCore.Qt.LeftButton:
             return
         for item in self.items(event.scenePos()):
-            if isinstance(item, Vertex) or isinstance(item, VertexNew) or isinstance(item, Label):
+            if isinstance(item, Vertex) or isinstance(item, VertexNew) or isinstance(item, Label) or isinstance(item, LabelNew):
                 self.set_pressed_item(item)
                 return
 
@@ -310,7 +325,7 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def _set_hovered_item_state(self, state: bool):
         item = self.hovered_item
-        if isinstance(item, Label):
+        if isinstance(item, Label) or isinstance(item, LabelNew):
             item.parentItem().state_hovered = state
             item.parentItem().update()
         if isinstance(item, Node):
@@ -330,7 +345,7 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def _set_pressed_item_state(self, state: bool):
         item = self.pressed_item
-        if isinstance(item, Label):
+        if isinstance(item, Label) or isinstance(item, LabelNew):
             item.parentItem().state_pressed = state
             item.parentItem().update()
         if isinstance(item, Node):
@@ -342,7 +357,7 @@ class Scene(QtWidgets.QGraphicsScene):
     def get_item_edge(self, item):
         if item is None:
             return None
-        if isinstance(item, Label):
+        if isinstance(item, Label) or isinstance(item, LabelNew):
             item = item.parentItem()
         if isinstance(item.parentItem(), Vertex):
             return item.parentItem().edges[item]
@@ -439,13 +454,13 @@ class Window(QtWidgets.QWidget):
         division_view.setItemDelegate(ColorDelegate(self))
 
         button_svg = QtWidgets.QPushButton('Export as SVG')
-        button_svg.clicked.connect(self.export_svg)
+        button_svg.clicked.connect(lambda: self.export_svg())
 
         button_pdf = QtWidgets.QPushButton('Export as PDF')
-        button_pdf.clicked.connect(self.export_pdf)
+        button_pdf.clicked.connect(lambda: self.export_pdf())
 
         button_png = QtWidgets.QPushButton('Export as PNG')
-        button_png.clicked.connect(self.export_png)
+        button_png.clicked.connect(lambda: self.export_png())
 
         options = QtWidgets.QHBoxLayout()
         options.addWidget(toggle_rotation)
