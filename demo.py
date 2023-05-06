@@ -11,7 +11,7 @@ from itaxotools.common.bindings import PropertyObject, Property, Binder, Instanc
 # from itaxotools.common.utility import override
 
 from items import Vertex, Node, Label, Block, BezierCurve
-from items_new import VertexNew
+from items_new import VertexNew, EdgeNew
 from palettes import Palette
 
 
@@ -211,16 +211,33 @@ class Scene(QtWidgets.QGraphicsScene):
         self.addItem(vertex1)
 
         vertex2 = self.create_vertex_new(85, 240)
-        self.addItem(vertex2)
+        self.add_vertex_sibling_new(vertex1, vertex2)
 
         vertex3 = self.create_vertex_new(180, 190)
-        self.addItem(vertex3)
+        self.add_vertex_child_new(vertex1, vertex3, 2)
 
     def create_vertex_new(self, *args, **kwargs):
         item = VertexNew(*args, **kwargs)
         self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
         return item
+
+    def create_edge_new(self, *args, **kwargs):
+        item = EdgeNew(*args, **kwargs)
+        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
+        return item
+
+    def add_vertex_child_new(self, parent, child, segments=1):
+        edge = self.create_edge_new(parent, child, segments)
+        parent.addChild(child, edge)
+        self.addItem(edge)
+        self.addItem(child)
+
+    def add_vertex_sibling_new(self, vertex, sibling, segments=1):
+        edge = self.create_edge_new(vertex, sibling, segments)
+        vertex.addSibling(sibling, edge)
+        self.addItem(edge)
+        self.addItem(sibling)
 
     def create_node(self, *args, **kwargs):
         item = Node(*args, **kwargs)

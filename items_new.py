@@ -4,21 +4,94 @@ from PySide6 import QtWidgets
 from PySide6 import QtGui
 from PySide6 import QtCore
 
+from itaxotools.common.utility import override
+
+
+class EdgeNew(QtWidgets.QGraphicsLineItem):
+    def __init__(self, node1, node2, segments=2):
+        super().__init__()
+        # self.setFlag(QtWidgets.QGraphicsItem.ItemStacksBehindParent, True)
+        self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
+        self.setZValue(-1)
+        self.segments = segments
+        self.node1 = node1
+        self.node2 = node2
+
+        self.state_highlighted = False
+        self._highlight_color = QtCore.Qt.magenta
+
+    @override
+    def paint(self, painter, options, widget=None):
+        painter.save()
+
+        if self.state_highlighted:
+            pen = QtGui.QPen(self._highlight_color, 4)
+        else:
+            pen = self.pen()
+
+        painter.setPen(pen)
+        painter.setBrush(pen.color())
+
+        painter.drawLine(self.line())
+
+        if self.segments > 1:
+            for dot in range(1, self.segments):
+                center = self.line().pointAt(dot/self.segments)
+                painter.drawEllipse(center, 2.5, 2.5)
+
+        painter.restore()
+
+    @override
+    def boundingRect(self):
+        # Expand to account for segment dots
+        return super().boundingRect().adjusted(-50, -50, 50, 50)
+
+    def set_highlight_color(self, value):
+        self._highlight_color = value
+
+    def adjustPosition(self):
+        pos1 = self.node1.scenePos()
+        pos2 = self.node2.scenePos()
+        rad1 = self.node1.radius
+        rad2 = self.node2.radius
+
+        line = QtCore.QLineF(
+            pos1.x(),
+            pos1.y(),
+            pos2.x(),
+            pos2.y())
+        length = line.length()
+
+        if length < (rad1 + rad2):
+            self.hide()
+            return
+        self.show()
+
+        line.setLength(length - rad1 - rad2)
+
+        unit = line.unitVector()
+        unit.setLength(rad1)
+        unit.translate(-unit.x1(), -unit.y1())
+
+        line.translate(unit.x2(), unit.y2())
+        self.setLine(line)
+
 
 class VertexNew(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, r=2.5):
         super().__init__(-r, -r, r * 2, r * 2)
+
+        self.parent = None
+        self.children = list()
+        self.siblings = list()
+        self.edges = dict()
+
         self.setAcceptHoverEvents(True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
         self.setBrush(self.pen().color())
         self.setPos(x, y)
-
-        self.parent = None
-        self.children = set()
-        self.siblings = set()
-        self.edges = dict()
 
         self._rotational_setting = None
         self._highlight_color = QtCore.Qt.magenta
@@ -31,6 +104,7 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
         self.state_hovered = False
         self.state_pressed = False
 
+    @override
     def paint(self, painter, options, widget=None):
         painter.save()
         painter.setPen(self.getBorderPen())
@@ -41,6 +115,25 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
             rect = rect.adjusted(-r, -r, r, r)
         painter.drawEllipse(rect)
         painter.restore()
+
+    @override
+    def boundingRect(self):
+        # Hack to prevent drag n draw glitch
+        return self.rect().adjusted(-50, -50, 50, 50)
+
+    @override
+    def shape(self):
+        path = QtGui.QPainterPath()
+        path.addEllipse(self.rect().adjusted(-3, -3, 3, 3))
+        return path
+
+    @override
+    def itemChange(self, change, value):
+        parent = self.parentItem()
+        if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
+            for edge in self.edges.values():
+                edge.adjustPosition()
+        return super().itemChange(change, value)
 
     def isHighlighted(self):
         if self.state_pressed:
@@ -54,33 +147,19 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
             return QtGui.QPen(self._highlight_color, 4)
         return self.pen()
 
-    # def addChild(self, item, segments=1):
-    #     self.edges[item] = Edge(self, self, item, segments)
-    #     item.setParentItem(self)
-    #     self.adjustItemEdge(item)
+    def addChild(self, item, edge):
+        item.parent = self
+        item.edges[self] = edge
+        self.edges[item] = edge
+        self.children.append(item)
+        edge.adjustPosition()
 
-    def boundingRect(self):
-        # Hack to prevent drag n draw glitch
-        return self.rect().adjusted(-50, -50, 50, 50)
-
-    def shape(self):
-        path = QtGui.QPainterPath()
-        path.addEllipse(self.rect().adjusted(-3, -3, 3, 3))
-        return path
-
-    def itemChange(self, change, value):
-        parent = self.parentItem()
-        if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
-            try:
-                for edge in self.edges.values():
-                    edge.adjustPosition()
-            except AttributeError:
-                pass
-            # if isinstance(parent, VertexNew):
-            #     parent.adjustItemEdge(self)
-            # elif isinstance(parent, Block):
-            #     parent.adjustItemEdges(self)
-        return super().itemChange(change, value)
+    def addSibling(self, item, edge):
+        item.edges[self] = edge
+        self.edges[item] = edge
+        self.siblings.append(item)
+        item.siblings.append(self)
+        edge.adjustPosition()
 
     # def adjustItemEdge(self, item):
     #     edge = self.edges[item]
