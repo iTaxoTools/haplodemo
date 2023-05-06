@@ -11,6 +11,7 @@ from itaxotools.common.bindings import PropertyObject, Property, Binder, Instanc
 # from itaxotools.common.utility import override
 
 from items import Vertex, Node, Label, Block, BezierCurve
+from items_new import VertexNew
 from palettes import Palette
 
 
@@ -158,7 +159,6 @@ class Scene(QtWidgets.QGraphicsScene):
         self.addItem(item)
         item.setPos(60, 160)
 
-
     def addNodes(self):
         node1 = self.create_node(85, 140, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
         self.addItem(node1)
@@ -206,6 +206,22 @@ class Scene(QtWidgets.QGraphicsScene):
                 nodey = self.create_node(80 + 40 * y, 40, 15, f'y{y}', {'Y': 1})
                 nodex.addChild(nodey)
 
+    def addNodesNew(self):
+        vertex1 = self.create_vertex_new(85, 140)
+        self.addItem(vertex1)
+
+        vertex2 = self.create_vertex_new(85, 240)
+        self.addItem(vertex2)
+
+        vertex3 = self.create_vertex_new(180, 190)
+        self.addItem(vertex3)
+
+    def create_vertex_new(self, *args, **kwargs):
+        item = VertexNew(*args, **kwargs)
+        self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
+        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
+        return item
+
     def create_node(self, *args, **kwargs):
         item = Node(*args, **kwargs)
         self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
@@ -246,7 +262,7 @@ class Scene(QtWidgets.QGraphicsScene):
         for item in self.items(event.scenePos()):
             if item == self.hovered_item:
                 return
-            if isinstance(item, Vertex) or isinstance(item, Label):
+            if isinstance(item, Vertex) or isinstance(item, VertexNew) or isinstance(item, Label):
                 self.set_hovered_item(item)
                 return
         self.set_hovered_item(None)
@@ -256,7 +272,7 @@ class Scene(QtWidgets.QGraphicsScene):
         if event.button() != QtCore.Qt.LeftButton:
             return
         for item in self.items(event.scenePos()):
-            if isinstance(item, Vertex) or isinstance(item, Label):
+            if isinstance(item, Vertex) or isinstance(item, VertexNew) or isinstance(item, Label):
                 self.set_pressed_item(item)
                 return
 
@@ -386,8 +402,9 @@ class Window(QtWidgets.QWidget):
 
         scene = Scene(settings)
         # scene.addManyNodes(8, 32)
-        scene.addBezier()
-        scene.addNodes()
+        # scene.addBezier()
+        # scene.addNodes()
+        scene.addNodesNew()
 
         scene_view = QtWidgets.QGraphicsView()
         scene_view.setRenderHints(QtGui.QPainter.Antialiasing)
