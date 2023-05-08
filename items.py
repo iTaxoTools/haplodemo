@@ -4,6 +4,8 @@ from PySide6 import QtWidgets
 from PySide6 import QtGui
 from PySide6 import QtCore
 
+from itaxotools.common.utility import override
+
 
 class BezierHandleLine(QtWidgets.QGraphicsLineItem):
     def __init__(self, parent, p1, p2):
@@ -101,9 +103,6 @@ class Label(QtWidgets.QGraphicsItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
 
-        # This one option would be very convenient, but bugs out PDF export...
-        # self.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, True)
-
         self._highlight_color = QtCore.Qt.magenta
 
         font = QtGui.QFont()
@@ -121,6 +120,49 @@ class Label(QtWidgets.QGraphicsItem):
 
         self.locked_rect = self.rect
         self.locked_pos = QtCore.QPointF(0, 0)
+
+    @override
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self.locked_rect = self.rect
+            self.locked_pos = event.scenePos()
+        super().mousePressEvent(event)
+
+    @override
+    def mouseMoveEvent(self, event):
+        epos = event.scenePos()
+        diff = (epos - self.locked_pos).toPoint()
+
+        self.prepareGeometryChange()
+        self.rect = self.locked_rect.translated(diff)
+
+    @override
+    def mouseDoubleClickEvent(self, event):
+        self.prepareGeometryChange()
+        self.rect = self.getCenteredRect()
+
+    @override
+    def boundingRect(self):
+        return self.rect
+
+    @override
+    def shape(self):
+        path = QtGui.QPainterPath()
+        path.addRect(self.rect)
+        return path
+
+    @override
+    def paint(self, painter, options, widget=None):
+        painter.save()
+
+        pos = QtGui.QFontMetrics(self.font).boundingRect(self.text).center()
+        pos -= self.rect.center()
+        painter.translate(-pos)
+
+        self.paint_outline(painter)
+        self.paint_text(painter)
+
+        painter.restore()
 
     def set_locked(self, value):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, not value)
@@ -147,40 +189,6 @@ class Label(QtWidgets.QGraphicsItem):
         path.addText(0, 0, self.font, self.text)
         return path
 
-    def boundingRect(self):
-        t = self.sceneTransform()
-        angle = atan2(t.m12(), t.m11())
-        t2 = QtGui.QTransform()
-        t2.rotate(-degrees(angle))
-        return t2.mapRect(self.rect)
-
-    def shape(self):
-        t = self.sceneTransform()
-        angle = atan2(t.m12(), t.m11())
-        t2 = QtGui.QTransform()
-        t2.rotate(-degrees(angle))
-        polygon = t2.mapToPolygon(self.rect)
-
-        path = QtGui.QPainterPath()
-        path.addPolygon(polygon)
-        return path
-
-    def paint(self, painter, options, widget=None):
-        painter.save()
-
-        t = self.sceneTransform()
-        angle = atan2(t.m12(), t.m11())
-        painter.rotate(-degrees(angle))
-
-        pos = QtGui.QFontMetrics(self.font).boundingRect(self.text).center()
-        pos -= self.rect.center()
-        painter.translate(-pos)
-
-        self.paint_outline(painter)
-        self.paint_text(painter)
-
-        painter.restore()
-
     def paint_outline(self, painter):
         if not self.isHighlighted():
             return
@@ -197,28 +205,11 @@ class Label(QtWidgets.QGraphicsItem):
         painter.setFont(self.font)
         painter.drawText(0, 0, self.text)
 
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            self.locked_rect = self.rect
-            self.locked_pos = event.scenePos()
-        super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event):
-        epos = event.scenePos()
-        diff = (epos - self.locked_pos).toPoint()
-
-        self.prepareGeometryChange()
-        self.rect = self.locked_rect.translated(diff)
-
-    def mouseDoubleClickEvent(self, event):
-        self.prepareGeometryChange()
-        self.rect = self.getCenteredRect()
-
 
 class Edge(QtWidgets.QGraphicsLineItem):
-    def __init__(self, parent, node1, node2, segments=2):
-        super().__init__(parent)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemStacksBehindParent, True)
+    def __init__(self, node1, node2, segments=2):
+        super().__init__()
+        # self.setFlag(QtWidgets.QGraphicsItem.ItemStacksBehindParent, True)
         self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
         self.setZValue(-1)
         self.segments = segments
@@ -228,6 +219,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.state_highlighted = False
         self._highlight_color = QtCore.Qt.magenta
 
+    @override
     def paint(self, painter, options, widget=None):
         painter.save()
 
@@ -248,17 +240,17 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
         painter.restore()
 
-    def set_highlight_color(self, value):
-        self._highlight_color = value
-
+    @override
     def boundingRect(self):
         # Expand to account for segment dots
         return super().boundingRect().adjusted(-50, -50, 50, 50)
 
+    def set_highlight_color(self, value):
+        self._highlight_color = value
+
     def adjustPosition(self):
-        transform, _ = self.parentItem().sceneTransform().inverted()
-        pos1 = transform.map(self.node1.scenePos())
-        pos2 = transform.map(self.node2.scenePos())
+        pos1 = self.node1.scenePos()
+        pos2 = self.node2.scenePos()
         rad1 = self.node1.radius
         rad2 = self.node2.radius
 
@@ -287,6 +279,12 @@ class Edge(QtWidgets.QGraphicsLineItem):
 class Vertex(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, r=2.5):
         super().__init__(-r, -r, r * 2, r * 2)
+
+        self.parent = None
+        self.children = list()
+        self.siblings = list()
+        self.edges = dict()
+
         self.setAcceptHoverEvents(True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
@@ -295,6 +293,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.setPos(x, y)
 
         self._rotational_setting = None
+        self._recursive_setting = None
         self._highlight_color = QtCore.Qt.magenta
 
         self.radius = r
@@ -304,8 +303,8 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.locked_transform = None
         self.state_hovered = False
         self.state_pressed = False
-        self.edges = dict()
 
+    @override
     def paint(self, painter, options, widget=None):
         painter.save()
         painter.setPen(self.getBorderPen())
@@ -316,6 +315,41 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
             rect = rect.adjusted(-r, -r, r, r)
         painter.drawEllipse(rect)
         painter.restore()
+
+    @override
+    def boundingRect(self):
+        # Hack to prevent drag n draw glitch
+        return self.rect().adjusted(-50, -50, 50, 50)
+
+    @override
+    def shape(self):
+        path = QtGui.QPainterPath()
+        path.addEllipse(self.rect().adjusted(-3, -3, 3, 3))
+        return path
+
+    @override
+    def itemChange(self, change, value):
+        parent = self.parentItem()
+        if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
+            for edge in self.edges.values():
+                edge.adjustPosition()
+        return super().itemChange(change, value)
+
+    @override
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            center = self.parent.scenePos() if self.parent else None
+            if self.isMovementRecursive():
+                return self.applyRecursive(type(self).lockPosition, event, center)
+            return self.lockPosition(event, center)
+
+        super().mousePressEvent(event)
+
+    @override
+    def mouseMoveEvent(self, event):
+        if self.isMovementRotational():
+            return self.moveRotationally(event)
+        return self.moveOrthogonally(event)
 
     def isHighlighted(self):
         if self.state_pressed:
@@ -329,47 +363,25 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
             return QtGui.QPen(self._highlight_color, 4)
         return self.pen()
 
-    def addChild(self, item, segments=1):
-        self.edges[item] = Edge(self, self, item, segments)
-        item.setParentItem(self)
-        self.adjustItemEdge(item)
-
-    def boundingRect(self):
-        # Hack to prevent drag n draw glitch
-        return self.rect().adjusted(-50, -50, 50, 50)
-
-    def shape(self):
-        path = QtGui.QPainterPath()
-        path.addEllipse(self.rect().adjusted(-3, -3, 3, 3))
-        return path
-
-    def itemChange(self, change, value):
-        parent = self.parentItem()
-        if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
-            if isinstance(parent, Vertex):
-                parent.adjustItemEdge(self)
-            elif isinstance(parent, Block):
-                parent.adjustItemEdges(self)
-        return super().itemChange(change, value)
-
-    def adjustItemEdge(self, item):
-        edge = self.edges[item]
+    def addChild(self, item, edge):
+        item.parent = self
+        item.edges[self] = edge
+        self.edges[item] = edge
+        self.children.append(item)
         edge.adjustPosition()
 
-    def lockTransform(self, event):
-        line = QtCore.QLineF(0, 0, self.pos().x(), self.pos().y())
-        self.locked_distance = line.length()
-        self.locked_rotation = self.rotation()
-        self.locked_angle = line.angle()
-
-        clicked_pos = self.mapToParent(event.pos())
-        eline = QtCore.QLineF(0, 0, clicked_pos.x(), clicked_pos.y())
-        transform = QtGui.QTransform()
-        transform.rotate(eline.angle() - line.angle())
-        self.locked_transform = transform
+    def addSibling(self, item, edge):
+        item.edges[self] = edge
+        self.edges[item] = edge
+        self.siblings.append(item)
+        item.siblings.append(self)
+        edge.adjustPosition()
 
     def set_rotational_setting(self, value):
         self._rotational_setting = value
+
+    def set_recursive_setting(self, value):
+        self._recursive_setting = value
 
     def set_highlight_color(self, value):
         self._highlight_color = value
@@ -377,26 +389,66 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def isMovementRotational(self):
         if not self._rotational_setting:
             return False
-        return isinstance(self.parentItem(), Vertex)
+        return isinstance(self.parent, Vertex)
 
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            self.lockTransform(event)
-        super().mousePressEvent(event)
+    def isMovementRecursive(self):
+        return self._recursive_setting
 
-    def mouseMoveEvent(self, event):
-        epos = self.mapToParent(event.pos())
-        if not self.isMovementRotational():
-            self.setPos(epos)
+    def _applyRecursive(self, siblings, visited, func, *args, **kwargs):
+        if self in visited:
             return
+        visited.add(self)
 
-        line = QtCore.QLineF(0, 0, epos.x(), epos.y())
-        line.setLength(self.locked_distance)
-        line = self.locked_transform.map(line)
-        new_pos = line.p2()
-        new_angle = self.locked_angle - line.angle()
-        self.setPos(new_pos)
-        self.setRotation(self.locked_rotation + new_angle)
+        func(self, *args, **kwargs)
+
+        for child in self.children:
+            child._applyRecursive(True, visited, func, *args, **kwargs)
+
+        if not siblings:
+            return
+        for sibling in self.siblings:
+            sibling._applyRecursive(True, visited, func, *args, **kwargs)
+
+    def applyRecursive(self, func, *args, **kwargs):
+        self._applyRecursive(False, set(), func, *args, **kwargs)
+
+    def lockPosition(self, event, center=None):
+        self.locked_event_pos = event.scenePos()
+        self.locked_pos = self.pos()
+
+        if center:
+            line = QtCore.QLineF(center, event.scenePos())
+            self.locked_angle = line.angle()
+            self.locked_center = center
+
+    def applyTranspose(self, diff):
+        self.setPos(self.locked_pos + diff)
+
+    def applyTransform(self, transform):
+        pos = transform.map(self.locked_pos)
+        self.setPos(pos)
+
+    def moveOrthogonally(self, event):
+        epos = event.scenePos()
+        diff = epos - self.locked_event_pos
+        if self.isMovementRecursive():
+            return self.applyRecursive(type(self).applyTranspose, diff)
+        return self.applyTranspose(diff)
+
+    def moveRotationally(self, event):
+        epos = event.scenePos()
+        line = QtCore.QLineF(self.locked_center, epos)
+        angle =  self.locked_angle - line.angle()
+        center = self.locked_center
+
+        transform = QtGui.QTransform()
+        transform.translate(center.x(), center.y())
+        transform.rotate(angle)
+        transform.translate(-center.x(), -center.y())
+
+        if self.isMovementRecursive():
+            return self.applyRecursive(type(self).applyTransform, transform)
+        return self.applyTransform(transform)
 
 
 class Node(Vertex):
@@ -413,20 +465,12 @@ class Node(Vertex):
 
         self.label = Label(text, self)
 
-    def update_colors(self, color_map):
-        total_weight = sum(weight for weight in self.weights.values())
+    @override
+    def mouseDoubleClickEvent(self, event):
+        super().mouseDoubleClickEvent(event)
+        self.label.mouseDoubleClickEvent(event)
 
-        weight_items = iter(self.weights.items())
-        first_key, _ = next(weight_items)
-        first_color = color_map[first_key]
-        self.setBrush(QtGui.QBrush(first_color))
-
-        self.pies = dict()
-        for key, weight in weight_items:
-            color = color_map[key]
-            span = int(5760 * weight / total_weight)
-            self.pies[color] = span
-
+    @override
     def paint(self, painter, options, widget=None):
         self.paint_node(painter)
         self.paint_pies(painter)
@@ -446,10 +490,6 @@ class Node(Vertex):
             return
         painter.save()
 
-        t = self.sceneTransform()
-        angle = atan2(t.m12(), t.m11())
-        painter.rotate(-degrees(angle))
-
         painter.setPen(QtCore.Qt.NoPen)
         starting_angle = 16 * 90
 
@@ -463,42 +503,16 @@ class Node(Vertex):
         painter.drawEllipse(self.rect())
         painter.restore()
 
-    def mouseDoubleClickEvent(self, event):
-        super().mouseDoubleClickEvent(event)
-        self.label.mouseDoubleClickEvent(event)
+    def update_colors(self, color_map):
+        total_weight = sum(weight for weight in self.weights.values())
 
+        weight_items = iter(self.weights.items())
+        first_key, _ = next(weight_items)
+        first_color = color_map[first_key]
+        self.setBrush(QtGui.QBrush(first_color))
 
-class Block(QtWidgets.QGraphicsItem):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemStacksBehindParent, True)
-        self.parent_node = parent
-        self.edges = dict()
-        self.main = None
-
-    def setMainNode(self, node, segments=1):
-        self.main = node
-        edge = Edge(self, self.parent_node, node, segments)
-        self.edges[node] = [edge]
-        node.setParentItem(self)
-        self.adjustItemEdges(node)
-
-    def addNode(self, node, segments=1):
-        self.edges[node] = []
-        node.setParentItem(self)
-
-    def addEdge(self, node1, node2, segments=1):
-        edge = Edge(self, node1, node2, segments)
-        self.edges[node1].append(edge)
-        self.edges[node2].append(edge)
-        edge.adjustPosition()
-
-    def adjustItemEdges(self, node):
-        for edge in self.edges[node]:
-            edge.adjustPosition()
-
-    def boundingRect(self):
-        return QtCore.QRect(0, 0, 0, 0)
-
-    def paint(self, painter, options, widget=None):
-        pass
+        self.pies = dict()
+        for key, weight in weight_items:
+            color = color_map[key]
+            span = int(5760 * weight / total_weight)
+            self.pies[color] = span

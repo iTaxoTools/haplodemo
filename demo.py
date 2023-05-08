@@ -10,8 +10,7 @@ from PySide6 import QtSvg
 from itaxotools.common.bindings import PropertyObject, Property, Binder, Instance
 # from itaxotools.common.utility import override
 
-from items import Vertex, Node, Label, Block, BezierCurve
-from items_new import VertexNew, NodeNew, EdgeNew, LabelNew
+from items import Vertex, Node, Label, Edge, BezierCurve
 from palettes import Palette
 
 
@@ -161,106 +160,81 @@ class Scene(QtWidgets.QGraphicsScene):
         item.setPos(60, 160)
 
     def addNodes(self):
-        node1 = self.create_node_new(85, 140, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
+        node1 = self.create_node(85, 140, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
         self.addItem(node1)
 
-        node2 = self.create_node_new(node1.pos().x() + 95, node1.pos().y() - 30, 20, 'Beta', {'X': 4, 'Z': 2})
-        self.add_vertex_child_new(node1, node2, 2)
+        node2 = self.create_node(node1.pos().x() + 95, node1.pos().y() - 30, 20, 'Beta', {'X': 4, 'Z': 2})
+        self.add_child(node1, node2, 2)
 
-        node3 = self.create_node_new(node1.pos().x() + 115, node1.pos().y() + 60, 25, 'C', {'Y': 6, 'Z': 2})
-        self.add_vertex_child_new(node1, node3, 3)
+        node3 = self.create_node(node1.pos().x() + 115, node1.pos().y() + 60, 25, 'C', {'Y': 6, 'Z': 2})
+        self.add_child(node1, node3, 3)
 
-        node4 = self.create_node_new(node3.pos().x() + 60, node3.pos().y() - 30, 15, 'D', {'Y': 1})
-        self.add_vertex_child_new(node3, node4, 1)
+        node4 = self.create_node(node3.pos().x() + 60, node3.pos().y() - 30, 15, 'D', {'Y': 1})
+        self.add_child(node3, node4, 1)
 
-        vertex1 = self.create_vertex_new(node3.pos().x() - 60, node3.pos().y() + 60)
-        self.add_vertex_child_new(node3, vertex1, 2)
+        vertex1 = self.create_vertex(node3.pos().x() - 60, node3.pos().y() + 60)
+        self.add_child(node3, vertex1, 2)
 
-        node5 = self.create_node_new(vertex1.pos().x() - 80, vertex1.pos().y() + 40, 30, 'Error', {'?': 1})
-        self.add_vertex_child_new(vertex1, node5, 4)
+        node5 = self.create_node(vertex1.pos().x() - 80, vertex1.pos().y() + 40, 30, 'Error', {'?': 1})
+        self.add_child(vertex1, node5, 4)
 
-        node6 = self.create_node_new(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 15, 'R', {'Z': 1})
-        self.add_vertex_child_new(vertex1, node6, 1)
+        node6 = self.create_node(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 15, 'R', {'Z': 1})
+        self.add_child(vertex1, node6, 1)
 
-        node7 = self.create_node_new(vertex1.pos().x() + 100, vertex1.pos().y() + 80, 15, 'S', {'Z': 1})
-        self.add_vertex_sibling_new(node6, node7, 2)
+        node7 = self.create_node(vertex1.pos().x() + 100, vertex1.pos().y() + 80, 15, 'S', {'Z': 1})
+        self.add_sibling(node6, node7, 2)
 
-        node8 = self.create_node_new(vertex1.pos().x() + 20, vertex1.pos().y() + 80, 15, 'T', {'Y': 1})
-        self.add_vertex_sibling_new(node6, node8, 1)
-        self.add_vertex_sibling_new(node7, node8, 1)
+        node8 = self.create_node(vertex1.pos().x() + 20, vertex1.pos().y() + 80, 15, 'T', {'Y': 1})
+        self.add_sibling(node6, node8, 1)
+        self.add_sibling(node7, node8, 1)
 
-        node9 = self.create_node_new(node7.pos().x() + 20, node7.pos().y() - 40, 10, 'x', {'Z': 1})
-        self.add_vertex_child_new(node7, node9, 1)
+        node9 = self.create_node(node7.pos().x() + 20, node7.pos().y() - 40, 10, 'x', {'Z': 1})
+        self.add_child(node7, node9, 1)
 
     def addManyNodes(self, dx, dy):
-        block = Block(None)
-        self.addItem(block)
         for x in range(dx):
             nodex = self.create_node(20, 80 * x, 15, f'x{x}', {'X': 1})
-            block.addNode(nodex)
+            self.addItem(nodex)
 
             for y in range(dy):
-                nodey = self.create_node(80 + 40 * y, 40, 15, f'y{y}', {'Y': 1})
-                nodex.addChild(nodey)
+                nodey = self.create_node(nodex.pos().x() + 80 + 40 * y, nodex.pos().y() + 40, 15, f'y{y}', {'Y': 1})
+                self.add_child(nodex, nodey)
 
-    def create_vertex_new(self, *args, **kwargs):
-        item = VertexNew(*args, **kwargs)
+    def create_vertex(self, *args, **kwargs):
+        item = Vertex(*args, **kwargs)
         self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
         self.binder.bind(self.settings.properties.recursive_movement, item.set_recursive_setting)
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
         return item
-
-    def create_node_new(self, *args, **kwargs):
-        item = NodeNew(*args, **kwargs)
-        self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
-        self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
-        self.binder.bind(self.settings.properties.recursive_movement, item.set_recursive_setting)
-        self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
-        self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
-        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
-        return item
-
-    def create_edge_new(self, *args, **kwargs):
-        item = EdgeNew(*args, **kwargs)
-        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
-        return item
-
-    def add_vertex_child_new(self, parent, child, segments=1):
-        edge = self.create_edge_new(parent, child, segments)
-        parent.addChild(child, edge)
-        self.addItem(edge)
-        self.addItem(child)
-
-    def add_vertex_sibling_new(self, vertex, sibling, segments=1):
-        edge = self.create_edge_new(vertex, sibling, segments)
-        vertex.addSibling(sibling, edge)
-        self.addItem(edge)
-
-        if not sibling.scene():
-            self.addItem(sibling)
 
     def create_node(self, *args, **kwargs):
         item = Node(*args, **kwargs)
         self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
         self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
+        self.binder.bind(self.settings.properties.recursive_movement, item.set_recursive_setting)
         self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
         self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
         return item
 
-    def create_vertex(self, *args, **kwargs):
-        item = Vertex(*args, **kwargs)
-        self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
+    def create_edge(self, *args, **kwargs):
+        item = Edge(*args, **kwargs)
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
         return item
 
-    def create_block(self, *args, **kwargs):
-        return Block(*args, **kwargs)
+    def add_child(self, parent, child, segments=1):
+        edge = self.create_edge(parent, child, segments)
+        parent.addChild(child, edge)
+        self.addItem(edge)
+        self.addItem(child)
 
-    def add_node_child(self, parent, child, segments=1):
-        parent.addChild(child, segments)
-        edge = parent.edges[child]
-        self.binder.bind(self.settings.properties.highlight_color, edge.set_highlight_color)
+    def add_sibling(self, vertex, sibling, segments=1):
+        edge = self.create_edge(vertex, sibling, segments)
+        vertex.addSibling(sibling, edge)
+        self.addItem(edge)
+
+        if not sibling.scene():
+            self.addItem(sibling)
 
     def event(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
@@ -279,7 +253,7 @@ class Scene(QtWidgets.QGraphicsScene):
         for item in self.items(event.scenePos()):
             if item == self.hovered_item:
                 return
-            if isinstance(item, Vertex) or isinstance(item, VertexNew) or isinstance(item, Label) or isinstance(item, LabelNew):
+            if isinstance(item, Vertex) or isinstance(item, Label):
                 self.set_hovered_item(item)
                 return
         self.set_hovered_item(None)
@@ -289,7 +263,7 @@ class Scene(QtWidgets.QGraphicsScene):
         if event.button() != QtCore.Qt.LeftButton:
             return
         for item in self.items(event.scenePos()):
-            if isinstance(item, Vertex) or isinstance(item, VertexNew) or isinstance(item, Label) or isinstance(item, LabelNew):
+            if isinstance(item, Vertex) or isinstance(item, Label):
                 self.set_pressed_item(item)
                 return
 
@@ -310,7 +284,7 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def _set_hovered_item_state(self, state: bool):
         item = self.hovered_item
-        if isinstance(item, Label) or isinstance(item, LabelNew):
+        if isinstance(item, Label):
             item.parentItem().state_hovered = state
             item.parentItem().update()
         if isinstance(item, Node):
@@ -330,7 +304,7 @@ class Scene(QtWidgets.QGraphicsScene):
 
     def _set_pressed_item_state(self, state: bool):
         item = self.pressed_item
-        if isinstance(item, Label) or isinstance(item, LabelNew):
+        if isinstance(item, Label):
             item.parentItem().state_pressed = state
             item.parentItem().update()
         if isinstance(item, Node):
@@ -342,7 +316,7 @@ class Scene(QtWidgets.QGraphicsScene):
     def get_item_edge(self, item):
         if item is None:
             return None
-        if isinstance(item, Label) or isinstance(item, LabelNew):
+        if isinstance(item, Label):
             item = item.parentItem()
         if isinstance(item.parentItem(), Vertex):
             return item.parentItem().edges[item]
