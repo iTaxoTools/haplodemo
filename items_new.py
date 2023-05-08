@@ -268,22 +268,6 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
         item.siblings.append(self)
         edge.adjustPosition()
 
-    # def adjustItemEdge(self, item):
-    #     edge = self.edges[item]
-    #     edge.adjustPosition()
-
-    # def lockTransform(self, event):
-    #     line = QtCore.QLineF(0, 0, self.pos().x(), self.pos().y())
-    #     self.locked_distance = line.length()
-    #     self.locked_rotation = self.rotation()
-    #     self.locked_angle = line.angle()
-    #
-    #     clicked_pos = self.mapToParent(event.pos())
-    #     eline = QtCore.QLineF(0, 0, clicked_pos.x(), clicked_pos.y())
-    #     transform = QtGui.QTransform()
-    #     transform.rotate(eline.angle() - line.angle())
-    #     self.locked_transform = transform
-
     def set_rotational_setting(self, value):
         self._rotational_setting = value
 
@@ -291,29 +275,66 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
         self._highlight_color = value
 
     def isMovementRotational(self):
-        return False
-        # if not self._rotational_setting:
-        #     return False
-        # return isinstance(self.parentItem(), VertexNew)
+        if not self._rotational_setting:
+            return False
+        return isinstance(self.parent, VertexNew)
 
-    # def mousePressEvent(self, event):
-    #     if event.button() == QtCore.Qt.LeftButton:
-    #         self.lockTransform(event)
-    #     super().mousePressEvent(event)
+    def isMovementRecursive(self):
+        return True
 
-    # def mouseMoveEvent(self, event):
-    #     epos = self.mapToParent(event.pos())
-    #     if not self.isMovementRotational():
-    #         self.setPos(epos)
-    #         return
-    #
-    #     line = QtCore.QLineF(0, 0, epos.x(), epos.y())
-    #     line.setLength(self.locked_distance)
-    #     line = self.locked_transform.map(line)
-    #     new_pos = line.p2()
-    #     new_angle = self.locked_angle - line.angle()
-    #     self.setPos(new_pos)
-    #     self.setRotation(self.locked_rotation + new_angle)
+    def lockTransform(self, event, center=None, recursive=False):
+        self.locked_event_pos = event.scenePos()
+        self.locked_pos = self.pos()
+
+        if center:
+            line = QtCore.QLineF(center, event.scenePos())
+            self.locked_angle = line.angle()
+            self.locked_center = center
+
+        if recursive:
+            for child in self.children:
+                child.lockTransform(event, center, recursive)
+
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            center = self.parent.scenePos() if self.parent else None
+            recursive = self.isMovementRecursive()
+            self.lockTransform(event, center, recursive)
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self.isMovementRotational():
+            return self.moveRotationally(event)
+        return self.moveOrthogonally(event)
+
+    def moveOrthogonally(self, event):
+        epos = event.scenePos()
+        diff = epos - self.locked_event_pos
+        self.setPos(self.locked_pos + diff)
+
+        if self.isMovementRecursive():
+            for child in self.children:
+                child.moveOrthogonally(event)
+
+    def moveRotationally(self, event):
+        epos = event.scenePos()
+        line = QtCore.QLineF(self.locked_center, epos)
+        angle =  self.locked_angle - line.angle()
+        center = self.locked_center
+
+        transform = QtGui.QTransform()
+        transform.translate(center.x(), center.y())
+        transform.rotate(angle)
+        transform.translate(-center.x(), -center.y())
+        self.applyTransform(transform)
+
+    def applyTransform(self, transform, recursive=True):
+        pos = transform.map(self.locked_pos)
+        self.setPos(pos)
+
+        if recursive:
+            for child in self.children:
+                child.applyTransform(transform, recursive)
 
 
 class NodeNew(VertexNew):
