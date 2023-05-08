@@ -201,6 +201,7 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
         self.setPos(x, y)
 
         self._rotational_setting = None
+        self._recursive_setting = None
         self._highlight_color = QtCore.Qt.magenta
 
         self.radius = r
@@ -271,6 +272,9 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
     def set_rotational_setting(self, value):
         self._rotational_setting = value
 
+    def set_recursive_setting(self, value):
+        self._recursive_setting = value
+
     def set_highlight_color(self, value):
         self._highlight_color = value
 
@@ -280,7 +284,7 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
         return isinstance(self.parent, VertexNew)
 
     def isMovementRecursive(self):
-        return True
+        return self._recursive_setting
 
     def lockTransform(self, event, center=None, recursive=False):
         self.locked_event_pos = event.scenePos()
@@ -295,6 +299,7 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
             for child in self.children:
                 child.lockTransform(event, center, recursive)
 
+    @override
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             center = self.parent.scenePos() if self.parent else None
@@ -302,6 +307,7 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
             self.lockTransform(event, center, recursive)
         super().mousePressEvent(event)
 
+    @override
     def mouseMoveEvent(self, event):
         if self.isMovementRotational():
             return self.moveRotationally(event)
@@ -326,9 +332,11 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
         transform.translate(center.x(), center.y())
         transform.rotate(angle)
         transform.translate(-center.x(), -center.y())
-        self.applyTransform(transform)
 
-    def applyTransform(self, transform, recursive=True):
+        recursive = self.isMovementRecursive()
+        self.applyTransform(transform, recursive)
+
+    def applyTransform(self, transform, recursive=False):
         pos = transform.map(self.locked_pos)
         self.setPos(pos)
 

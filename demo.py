@@ -136,6 +136,7 @@ class Settings(PropertyObject):
     divisions = Property(DivisionListModel, Instance)
     highlight_color = Property(QtGui.QColor, QtCore.Qt.magenta)
     rotational_movement = Property(bool, True)
+    recursive_movement = Property(bool, True)
     label_movement = Property(bool, False)
 
     def __init__(self, *args, **kwargs):
@@ -225,6 +226,7 @@ class Scene(QtWidgets.QGraphicsScene):
     def create_vertex_new(self, *args, **kwargs):
         item = VertexNew(*args, **kwargs)
         self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
+        self.binder.bind(self.settings.properties.recursive_movement, item.set_recursive_setting)
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
         return item
 
@@ -232,6 +234,7 @@ class Scene(QtWidgets.QGraphicsScene):
         item = NodeNew(*args, **kwargs)
         self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
         self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
+        self.binder.bind(self.settings.properties.recursive_movement, item.set_recursive_setting)
         self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
         self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
@@ -447,6 +450,7 @@ class Window(QtWidgets.QWidget):
         palette_selector = PaletteSelector()
 
         toggle_rotation = ToggleButton('Rotate nodes')
+        toggle_recursive = ToggleButton('Move children')
         toggle_labels = ToggleButton('Unlock labels')
 
         division_view = QtWidgets.QListView()
@@ -462,9 +466,10 @@ class Window(QtWidgets.QWidget):
         button_png = QtWidgets.QPushButton('Export as PNG')
         button_png.clicked.connect(lambda: self.export_png())
 
-        options = QtWidgets.QHBoxLayout()
-        options.addWidget(toggle_rotation)
-        options.addWidget(toggle_labels)
+        options = QtWidgets.QGridLayout()
+        options.addWidget(toggle_rotation, 0, 0)
+        options.addWidget(toggle_recursive, 0, 1)
+        options.addWidget(toggle_labels, 1, 0, 1, 2)
 
         buttons = QtWidgets.QHBoxLayout()
         buttons.addWidget(button_svg)
@@ -489,6 +494,9 @@ class Window(QtWidgets.QWidget):
 
         self.binder.bind(settings.properties.rotational_movement, toggle_rotation.setChecked)
         self.binder.bind(toggle_rotation.toggled, settings.properties.rotational_movement)
+
+        self.binder.bind(settings.properties.recursive_movement, toggle_recursive.setChecked)
+        self.binder.bind(toggle_recursive.toggled, settings.properties.recursive_movement)
 
         self.binder.bind(settings.properties.label_movement, toggle_labels.setChecked)
         self.binder.bind(toggle_labels.toggled, settings.properties.label_movement)
