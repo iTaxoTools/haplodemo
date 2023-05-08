@@ -243,6 +243,22 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
                 edge.adjustPosition()
         return super().itemChange(change, value)
 
+    @override
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            center = self.parent.scenePos() if self.parent else None
+            if self.isMovementRecursive():
+                return self.applyRecursive(type(self).lockPosition, event, center)
+            return self.lockPosition(event, center)
+
+        super().mousePressEvent(event)
+
+    @override
+    def mouseMoveEvent(self, event):
+        if self.isMovementRotational():
+            return self.moveRotationally(event)
+        return self.moveOrthogonally(event)
+
     def isHighlighted(self):
         if self.state_pressed:
             return True
@@ -286,7 +302,25 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
     def isMovementRecursive(self):
         return self._recursive_setting
 
-    def lockTransform(self, event, center=None, recursive=False):
+    def _applyRecursive(self, siblings, visited, func, *args, **kwargs):
+        if self in visited:
+            return
+        visited.add(self)
+
+        func(self, *args, **kwargs)
+
+        for child in self.children:
+            child._applyRecursive(True, visited, func, *args, **kwargs)
+
+        if not siblings:
+            return
+        for sibling in self.siblings:
+            sibling._applyRecursive(True, visited, func, *args, **kwargs)
+
+    def applyRecursive(self, func, *args, **kwargs):
+        self._applyRecursive(False, set(), func, *args, **kwargs)
+
+    def lockPosition(self, event, center=None):
         self.locked_event_pos = event.scenePos()
         self.locked_pos = self.pos()
 
@@ -295,32 +329,19 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
             self.locked_angle = line.angle()
             self.locked_center = center
 
-        if recursive:
-            for child in self.children:
-                child.lockTransform(event, center, recursive)
+    def applyTranspose(self, diff):
+        self.setPos(self.locked_pos + diff)
 
-    @override
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            center = self.parent.scenePos() if self.parent else None
-            recursive = self.isMovementRecursive()
-            self.lockTransform(event, center, recursive)
-        super().mousePressEvent(event)
-
-    @override
-    def mouseMoveEvent(self, event):
-        if self.isMovementRotational():
-            return self.moveRotationally(event)
-        return self.moveOrthogonally(event)
+    def applyTransform(self, transform):
+        pos = transform.map(self.locked_pos)
+        self.setPos(pos)
 
     def moveOrthogonally(self, event):
         epos = event.scenePos()
         diff = epos - self.locked_event_pos
-        self.setPos(self.locked_pos + diff)
-
         if self.isMovementRecursive():
-            for child in self.children:
-                child.moveOrthogonally(event)
+            return self.applyRecursive(type(self).applyTranspose, diff)
+        return self.applyTranspose(diff)
 
     def moveRotationally(self, event):
         epos = event.scenePos()
@@ -333,16 +354,9 @@ class VertexNew(QtWidgets.QGraphicsEllipseItem):
         transform.rotate(angle)
         transform.translate(-center.x(), -center.y())
 
-        recursive = self.isMovementRecursive()
-        self.applyTransform(transform, recursive)
-
-    def applyTransform(self, transform, recursive=False):
-        pos = transform.map(self.locked_pos)
-        self.setPos(pos)
-
-        if recursive:
-            for child in self.children:
-                child.applyTransform(transform, recursive)
+        if self.isMovementRecursive():
+            return self.applyRecursive(type(self).applyTransform, transform)
+        return self.applyTransform(transform)
 
 
 class NodeNew(VertexNew):

@@ -161,40 +161,36 @@ class Scene(QtWidgets.QGraphicsScene):
         item.setPos(60, 160)
 
     def addNodes(self):
-        node1 = self.create_node(85, 140, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
+        node1 = self.create_node_new(85, 140, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
         self.addItem(node1)
 
-        node2 = self.create_node(95, -30, 20, 'Beta', {'X': 4, 'Z': 2})
-        self.add_node_child(node1, node2, 2)
+        node2 = self.create_node_new(node1.pos().x() + 95, node1.pos().y() - 30, 20, 'Beta', {'X': 4, 'Z': 2})
+        self.add_vertex_child_new(node1, node2, 2)
 
-        node3 = self.create_node(115, 60, 25, 'C', {'Y': 6, 'Z': 2})
-        self.add_node_child(node1, node3, 3)
+        node3 = self.create_node_new(node1.pos().x() + 115, node1.pos().y() + 60, 25, 'C', {'Y': 6, 'Z': 2})
+        self.add_vertex_child_new(node1, node3, 3)
 
-        node4 = self.create_node(60, -30, 15, 'D', {'Y': 1})
-        self.add_node_child(node3, node4, 1)
+        node4 = self.create_node_new(node3.pos().x() + 60, node3.pos().y() - 30, 15, 'D', {'Y': 1})
+        self.add_vertex_child_new(node3, node4, 1)
 
-        vertex1 = self.create_vertex(-60, 60)
-        self.add_node_child(node3, vertex1, 2)
+        vertex1 = self.create_vertex_new(node3.pos().x() - 60, node3.pos().y() + 60)
+        self.add_vertex_child_new(node3, vertex1, 2)
 
-        node5 = self.create_node(-80, 40, 30, 'Error', {'?': 1})
-        self.add_node_child(vertex1, node5, 4)
+        node5 = self.create_node_new(vertex1.pos().x() - 80, vertex1.pos().y() + 40, 30, 'Error', {'?': 1})
+        self.add_vertex_child_new(vertex1, node5, 4)
 
-        block1 = self.create_block(vertex1)
+        node6 = self.create_node_new(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 15, 'R', {'Z': 1})
+        self.add_vertex_child_new(vertex1, node6, 1)
 
-        node6 = self.create_node(60, 20, 15, 'R', {'Z': 1})
-        block1.setMainNode(node6)
+        node7 = self.create_node_new(vertex1.pos().x() + 100, vertex1.pos().y() + 80, 15, 'S', {'Z': 1})
+        self.add_vertex_sibling_new(node6, node7, 2)
 
-        node7 = self.create_node(100, 80, 15, 'S', {'Z': 1})
-        block1.addNode(node7)
-        block1.addEdge(node7, node6, 2)
+        node8 = self.create_node_new(vertex1.pos().x() + 20, vertex1.pos().y() + 80, 15, 'T', {'Y': 1})
+        self.add_vertex_sibling_new(node6, node8, 1)
+        self.add_vertex_sibling_new(node7, node8, 1)
 
-        node8 = self.create_node(20, 80, 15, 'T', {'Y': 1})
-        block1.addNode(node8)
-        block1.addEdge(node8, node6)
-        block1.addEdge(node8, node7)
-
-        node9 = self.create_node(20, -40, 10, 'x', {'Z': 1})
-        self.add_node_child(node7, node9, 1)
+        node9 = self.create_node_new(node7.pos().x() + 20, node7.pos().y() - 40, 10, 'x', {'Z': 1})
+        self.add_vertex_child_new(node7, node9, 1)
 
     def addManyNodes(self, dx, dy):
         block = Block(None)
@@ -206,22 +202,6 @@ class Scene(QtWidgets.QGraphicsScene):
             for y in range(dy):
                 nodey = self.create_node(80 + 40 * y, 40, 15, f'y{y}', {'Y': 1})
                 nodex.addChild(nodey)
-
-    def addNodesNew(self):
-        vertex1 = self.create_vertex_new(85, 140)
-        self.addItem(vertex1)
-
-        vertex2 = self.create_vertex_new(85, 240)
-        self.add_vertex_sibling_new(vertex1, vertex2)
-
-        node1 = self.create_node_new(180, 190, 25, 'A', {'X': 4, 'Y': 3, 'Z': 2})
-        self.add_vertex_child_new(vertex1, node1, 2)
-
-        node2 = self.create_node_new(240, 210, 15, 'B', {'X': 4})
-        self.add_vertex_child_new(node1, node2, 1)
-
-        node3 = self.create_node_new(290, 170, 15, 'C', {'Y': 4})
-        self.add_vertex_child_new(node1, node3, 2)
 
     def create_vertex_new(self, *args, **kwargs):
         item = VertexNew(*args, **kwargs)
@@ -255,7 +235,9 @@ class Scene(QtWidgets.QGraphicsScene):
         edge = self.create_edge_new(vertex, sibling, segments)
         vertex.addSibling(sibling, edge)
         self.addItem(edge)
-        self.addItem(sibling)
+
+        if not sibling.scene():
+            self.addItem(sibling)
 
     def create_node(self, *args, **kwargs):
         item = Node(*args, **kwargs)
@@ -438,8 +420,7 @@ class Window(QtWidgets.QWidget):
         scene = Scene(settings)
         # scene.addManyNodes(8, 32)
         # scene.addBezier()
-        # scene.addNodes()
-        scene.addNodesNew()
+        scene.addNodes()
 
         scene_view = QtWidgets.QGraphicsView()
         scene_view.setRenderHints(QtGui.QPainter.Antialiasing)
