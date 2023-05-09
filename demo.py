@@ -236,64 +236,6 @@ class Scene(QtWidgets.QGraphicsScene):
         if not sibling.scene():
             self.addItem(sibling)
 
-    def mousePressEvent(self, event):
-        super().mousePressEvent(event)
-        if event.button() != QtCore.Qt.LeftButton:
-            return
-        for item in self.items(event.scenePos()):
-            if any((
-                isinstance(item, Vertex),
-                isinstance(item, Label),
-            )):
-                self.set_pressed_item(item)
-                return
-
-    def mouseReleaseEvent(self, event):
-        super().mouseReleaseEvent(event)
-        if event.button() == QtCore.Qt.LeftButton:
-            self.set_pressed_item(None)
-
-    def set_pressed_item(self, item):
-        if self.pressed_item is not None:
-            self._set_pressed_item_state(False)
-        self.pressed_item = item
-        if item is not None:
-            self._set_pressed_item_state(True)
-        edge = self.get_item_edge(item)
-        self.set_highlighted_edge(edge)
-
-    def _set_pressed_item_state(self, state: bool):
-        item = self.pressed_item
-        if isinstance(item, Label):
-            item.parentItem().state_pressed = state
-            item.parentItem().update()
-        if isinstance(item, Node):
-            item.label.state_pressed = state
-            item.label.update()
-        item.state_pressed = state
-        item.update()
-
-    def get_item_edge(self, item):
-        if item is None:
-            return None
-        if isinstance(item, Label):
-            item = item.parentItem()
-        if isinstance(item.parent, Vertex):
-            return item.parent.edges[item]
-        return None
-
-    def set_highlighted_edge(self, edge):
-        if self.lighlighted_edge is not None:
-            self._set_highlighted_edge_state(False)
-        self.lighlighted_edge = edge
-        if edge is not None:
-            self._set_highlighted_edge_state(True)
-
-    def _set_highlighted_edge_state(self, state: bool):
-        edge = self.lighlighted_edge
-        edge.state_highlighted = state
-        edge.update()
-
 
 class PaletteSelector(QtWidgets.QComboBox):
     currentValueChanged = QtCore.Signal(Palette)

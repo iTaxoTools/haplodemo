@@ -382,15 +382,11 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def hoverEnterEvent(self, event):
         super().hoverEnterEvent(event)
         self.set_hovered(True)
-        # if self.isMovementRecursive():
-        #     self.applyRecursive(type(self).set_hovered, True)
 
     @override
     def hoverLeaveEvent(self, event):
         super().hoverLeaveEvent(event)
         self.set_hovered(False)
-        # if self.isMovementRecursive():
-        #     self.applyRecursive(type(self).set_hovered, False)
 
     @override
     def mousePressEvent(self, event):
@@ -401,6 +397,12 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
             return self.lockPosition(event, center)
 
         super().mousePressEvent(event)
+        self.set_pressed(True)
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        self.set_pressed(False)
+        self.set_hovered(True)
 
     @override
     def mouseMoveEvent(self, event):
@@ -433,6 +435,13 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.siblings.append(item)
         item.siblings.append(self)
         edge.adjustPosition()
+
+    def set_pressed(self, value):
+        self.state_pressed = value
+        if self.parent and self._rotational_setting:
+            edge = self.edges[self.parent]
+            edge.state_hovered = value
+            edge.update()
 
     def set_hovered(self, value):
         self.state_hovered = value
