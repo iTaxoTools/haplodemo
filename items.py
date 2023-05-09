@@ -10,15 +10,20 @@ from utility import shapeFromPath
 
 
 class EdgeStyle(Enum):
-    Bubbles = 'Bubbles'
-    Plain = 'Plain'
-    Dots = 'Dots'
+    Bubbles = 'Bubbles', True, False, False
+    Plain = 'Plain', False, False, False
+    Dots = 'Dots', False, True, False
+    PlainWithText = 'Plain with text', False, False, True
+    DotsWithText = 'Dots with text', False, True, True
 
-    def __new__(cls, label):
+    def __new__(cls, name, has_bubbles, has_dots, has_text):
         value = len(cls.__members__) + 1
         obj = object.__new__(cls)
-        obj._value_ = label
-        obj.label = label
+        obj._value_ = value
+        obj.label = name
+        obj.has_bubbles = has_bubbles
+        obj.has_dots = has_dots
+        obj.has_text = has_text
 
         members = list(cls.__members__.values())
         if members:
@@ -128,11 +133,12 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
 class Label(QtWidgets.QGraphicsItem):
     def __init__(self, text, parent):
         super().__init__(parent)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setAcceptHoverEvents(True)
 
         self._highlight_color = QtCore.Qt.magenta
+        self._white_outline = False
 
         font = QtGui.QFont()
         font.setPixelSize(16)
@@ -167,8 +173,7 @@ class Label(QtWidgets.QGraphicsItem):
 
     @override
     def mouseDoubleClickEvent(self, event):
-        self.prepareGeometryChange()
-        self.rect = self.getCenteredRect()
+        self.recenter()
 
     @override
     def hoverEnterEvent(self, event):
@@ -198,10 +203,33 @@ class Label(QtWidgets.QGraphicsItem):
         pos -= self.rect.center()
         painter.translate(-pos)
 
-        self.paint_outline(painter)
-        self.paint_text(painter)
+        self.paintOutline(painter)
+        self.paintText(painter)
 
         painter.restore()
+
+    def paintOutline(self, painter):
+        if self.isHighlighted():
+            color = self._highlight_color
+        elif self._white_outline:
+            color = QtCore.Qt.white
+        else:
+            return
+        pen = QtGui.QPen(color, 4, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin)
+        painter.setPen(pen)
+        painter.setBrush(QtGui.QBrush(color))
+        painter.drawPath(self.outline)
+
+    def paintText(self, painter):
+        pen = QtGui.QPen(QtGui.QColor('black'))
+        painter.setPen(pen)
+        painter.setBrush(QtCore.Qt.NoBrush)
+        painter.setFont(self.font)
+        painter.drawText(0, 0, self.text)
+
+    def set_white_outline(self, value):
+        self._white_outline = value
+        self.update()
 
     def set_locked(self, value):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, not value)
@@ -211,6 +239,7 @@ class Label(QtWidgets.QGraphicsItem):
 
     def set_hovered(self, value):
         self.state_hovered = value
+        self.update()
 
     def isHighlighted(self):
         if self.state_pressed:
@@ -231,22 +260,9 @@ class Label(QtWidgets.QGraphicsItem):
         path.addText(0, 0, self.font, self.text)
         return path
 
-    def paint_outline(self, painter):
-        if not self.isHighlighted():
-            return
-        color = self._highlight_color
-        pen = QtGui.QPen(color, 4, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin)
-        painter.setPen(pen)
-        painter.setBrush(QtGui.QBrush(color))
-        painter.drawPath(self.outline)
-
-    def paint_text(self, painter):
-        pen = QtGui.QPen(QtGui.QColor('black'))
-        painter.setPen(pen)
-        painter.setBrush(QtCore.Qt.NoBrush)
-        painter.setFont(self.font)
-        painter.drawText(0, 0, self.text)
-
+    def recenter(self):
+        self.prepareGeometryChange()
+        self.rect = self.getCenteredRect()
 
 class Edge(QtWidgets.QGraphicsLineItem):
     def __init__(self, node1, node2, segments=2):
@@ -261,6 +277,10 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.state_hovered = False
         self._highlight_color = QtCore.Qt.magenta
 
+        self.label = Label(str(segments), self)
+        self.label.set_white_outline(True)
+        self.set_style(EdgeStyle.Bubbles)
+
     def shape(self):
         line = self.line()
         path = QtGui.QPainterPath()
@@ -274,8 +294,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
     @override
     def mouseDoubleClickEvent(self, event):
-        self.style = self.style.next
-        self.update()
+        self.set_style(self.style.next)
 
     @override
     def hoverEnterEvent(self, event):
@@ -296,7 +315,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
     def pen(self):
         cap = QtCore.Qt.SquareCap
         style = QtCore.Qt.SolidLine
-        if self.style == EdgeStyle.Dots:
+        if self.style.has_dots:
             cap = QtCore.Qt.FlatCap
             style = QtCore.Qt.DotLine
         return QtGui.QPen(QtCore.Qt.black, 2, style, cap)
@@ -315,7 +334,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
         painter.drawLine(self.line())
 
-        if self.style == EdgeStyle.Bubbles:
+        if self.style.has_bubbles:
             self.paintBubbles(painter)
 
         painter.restore()
@@ -339,8 +358,15 @@ class Edge(QtWidgets.QGraphicsLineItem):
                     painter.restore()
                 painter.drawEllipse(center, 2.5, 2.5)
 
+    def set_style(self, style):
+        self.style = style
+        self.label.setVisible(self.style.has_text)
+        self.label.recenter()
+        self.update()
+
     def set_hovered(self, value):
         self.state_hovered = value
+        self.label.set_hovered(value)
 
     def set_highlight_color(self, value):
         self._highlight_color = value
@@ -351,11 +377,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
         rad1 = self.node1.radius
         rad2 = self.node2.radius
 
-        line = QtCore.QLineF(
-            pos1.x(),
-            pos1.y(),
-            pos2.x(),
-            pos2.y())
+        line = QtCore.QLineF(pos1, pos2)
         length = line.length()
 
         if length < (rad1 + rad2):
@@ -371,6 +393,9 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
         line.translate(unit.x2(), unit.y2())
         self.setLine(line)
+
+        center = line.pointAt(0.5)
+        self.label.setPos(center)
 
 
 class Vertex(QtWidgets.QGraphicsEllipseItem):
@@ -501,8 +526,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.state_hovered = value
         if self.parent and self._rotational_setting:
             edge = self.edges[self.parent]
-            edge.state_hovered = value
-            edge.update()
+            edge.set_hovered(value)
 
     def set_rotational_setting(self, value):
         self._rotational_setting = value

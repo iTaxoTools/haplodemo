@@ -220,6 +220,8 @@ class Scene(QtWidgets.QGraphicsScene):
     def create_edge(self, *args, **kwargs):
         item = Edge(*args, **kwargs)
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
+        self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
+        self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
         return item
 
     def add_child(self, parent, child, segments=1):
