@@ -2,26 +2,32 @@ from PySide6 import QtWidgets
 from PySide6 import QtGui
 from PySide6 import QtCore
 
-from enum import Enum
+from enum import Enum, auto
 
 from itaxotools.common.utility import override
 
 from utility import shapeFromPath
 
 
-class EdgeStyle(Enum):
-    Bubbles = 'Bubbles', True, False, False
-    Plain = 'Plain', False, False, False
-    Dots = 'Dots', False, True, False
-    PlainWithText = 'Plain with text', False, False, True
-    DotsWithText = 'Dots with text', False, True, True
+class EdgeDecoration(Enum):
+    Bubbles = auto()
+    Strikes = auto()
 
-    def __new__(cls, name, has_bubbles, has_dots, has_text):
+
+class EdgeStyle(Enum):
+    Bubbles = 'Bubbles', EdgeDecoration.Bubbles, False, False
+    Strikes = 'Strikes', EdgeDecoration.Strikes, False, False
+    PlainWithText = 'Plain with text', None, False, True
+    DotsWithText = 'Dots with text', None, True, True
+    Plain = 'Plain', None, False, False
+    Dots = 'Dots', None, True, False
+
+    def __new__(cls, name, decoration, has_dots, has_text):
         value = len(cls.__members__) + 1
         obj = object.__new__(cls)
         obj._value_ = value
         obj.label = name
-        obj.has_bubbles = has_bubbles
+        obj.decoration = decoration
         obj.has_dots = has_dots
         obj.has_text = has_text
 
@@ -281,6 +287,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.label.set_white_outline(True)
         self.set_style(EdgeStyle.Bubbles)
 
+    @override
     def shape(self):
         line = self.line()
         path = QtGui.QPainterPath()
@@ -289,7 +296,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
         path.moveTo(line.p1())
         path.lineTo(line.p2())
         pen = self.pen()
-        pen.setWidth(pen.width() + 12)
+        pen.setWidth(pen.width() + 16)
         return shapeFromPath(path, pen)
 
     @override
@@ -334,8 +341,10 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
         painter.drawLine(self.line())
 
-        if self.style.has_bubbles:
+        if self.style.decoration == EdgeDecoration.Bubbles:
             self.paintBubbles(painter)
+        elif self.style.decoration == EdgeDecoration.Strikes:
+            self.paintStrikes(painter)
 
         painter.restore()
 
@@ -347,16 +356,72 @@ class Edge(QtWidgets.QGraphicsLineItem):
         painter.restore()
 
     def paintBubbles(self, painter):
-        if self.segments > 1:
-            for dot in range(1, self.segments):
-                center = self.line().pointAt(dot/self.segments)
-                if self.state_hovered:
-                    painter.save()
-                    painter.setPen(QtCore.Qt.NoPen)
-                    painter.setBrush(self._highlight_color)
-                    painter.drawEllipse(center, 6, 6)
-                    painter.restore()
-                painter.drawEllipse(center, 2.5, 2.5)
+        if self.segments <= 1:
+            return
+
+        for dot in range(1, self.segments):
+            point = self.line().pointAt(dot / self.segments)
+            self.paintBubble(painter, point)
+
+    def paintBubble(self, painter, point):
+        if self.state_hovered:
+            painter.save()
+            painter.setPen(QtCore.Qt.NoPen)
+            painter.setBrush(self._highlight_color)
+            painter.drawEllipse(point, 6, 6)
+            painter.restore()
+        painter.drawEllipse(point, 2.5, 2.5)
+
+    def paintStrikes(self, painter):
+        if self.segments <= 1:
+            return
+
+        strikes = self.segments - 1
+        line = self.line()
+
+        length = 12
+        spacing = 6
+        offset = (strikes - 1) * spacing / 2
+
+        if offset * 2 > line.length():
+            self.paintError(painter)
+            return
+
+        center = line.center()
+        unit = line.unitVector()
+        unit.translate(center - unit.p1())
+        normal = unit.normalVector()
+        strike = QtCore.QLineF(0, 0, normal.dx(), normal.dy())
+        strike.setLength(length / 2)
+
+        for count in range(strikes):
+            point = unit.pointAt(count * spacing - offset)
+            self.drawStrike(painter, point, strike)
+
+    def drawStrike(self, painter, point, strike):
+        strike = strike.translated(point)
+        strike = QtCore.QLineF(strike.pointAt(-1), strike.pointAt(1))
+
+        if self.state_hovered:
+            painter.save()
+            pen = QtGui.QPen(self._highlight_color, 6)
+            painter.setPen(pen)
+            painter.drawLine(strike)
+            painter.restore()
+        painter.drawLine(strike)
+
+    def paintError(self, painter):
+        painter.save()
+        line = self.line()
+        if self.state_hovered:
+            pen = QtGui.QPen(self._highlight_color, 20, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap)
+            painter.setPen(pen)
+            painter.drawLine(line)
+        pen = QtGui.QPen(QtCore.Qt.black, 12, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap)
+        painter.setPen(pen)
+        painter.drawLine(line)
+
+        painter.restore()
 
     def set_style(self, style):
         self.style = style
@@ -394,7 +459,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
         line.translate(unit.x2(), unit.y2())
         self.setLine(line)
 
-        center = line.pointAt(0.5)
+        center = line.center()
         self.label.setPos(center)
 
 
