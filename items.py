@@ -1,12 +1,39 @@
-from math import degrees, atan2
-
 from PySide6 import QtWidgets
 from PySide6 import QtGui
 from PySide6 import QtCore
 
+from enum import Enum
+
 from itaxotools.common.utility import override
 
 from utility import shapeFromPath
+
+
+class EdgeStyle(Enum):
+    Bubbles = 'Bubbles'
+    Plain = 'Plain'
+    Dots = 'Dots'
+
+    def __new__(cls, label):
+        value = len(cls.__members__) + 1
+        obj = object.__new__(cls)
+        obj._value_ = label
+        obj.label = label
+
+        members = list(cls.__members__.values())
+        if members:
+            members[-1].next = obj
+            obj.next = members[0]
+
+        return obj
+
+    def __repr__(self):
+        cls_name = self.__class__.__name__
+        return f'{cls_name}.{self._name_}'
+
+    def __str__(self):
+        return self.label
+
 
 class BezierHandleLine(QtWidgets.QGraphicsLineItem):
     def __init__(self, parent, p1, p2):
@@ -225,12 +252,12 @@ class Edge(QtWidgets.QGraphicsLineItem):
     def __init__(self, node1, node2, segments=2):
         super().__init__()
         self.setAcceptHoverEvents(True)
-        self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
         self.setZValue(-1)
         self.segments = segments
         self.node1 = node1
         self.node2 = node2
 
+        self.style = EdgeStyle.Bubbles
         self.state_hovered = False
         self._highlight_color = QtCore.Qt.magenta
 
@@ -247,7 +274,8 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
     @override
     def mouseDoubleClickEvent(self, event):
-        print('KLIK-KLIK')
+        self.style = self.style.next
+        self.update()
 
     @override
     def hoverEnterEvent(self, event):
@@ -260,30 +288,56 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.set_hovered(False)
 
     @override
+    def boundingRect(self):
+        # Expand to account for segment dots
+        return super().boundingRect().adjusted(-5, -5, 5, 5)
+
+    @override
+    def pen(self):
+        cap = QtCore.Qt.SquareCap
+        style = QtCore.Qt.SolidLine
+        if self.style == EdgeStyle.Dots:
+            cap = QtCore.Qt.FlatCap
+            style = QtCore.Qt.DotLine
+        return QtGui.QPen(QtCore.Qt.black, 2, style, cap)
+
+    @override
     def paint(self, painter, options, widget=None):
         painter.save()
 
         if self.state_hovered:
-            pen = QtGui.QPen(self._highlight_color, 4)
-        else:
-            pen = self.pen()
+            self.paintHoverLine(painter)
+
+        pen = self.pen()
 
         painter.setPen(pen)
         painter.setBrush(pen.color())
 
         painter.drawLine(self.line())
 
-        if self.segments > 1:
-            for dot in range(1, self.segments):
-                center = self.line().pointAt(dot/self.segments)
-                painter.drawEllipse(center, 2.5, 2.5)
+        if self.style == EdgeStyle.Bubbles:
+            self.paintBubbles(painter)
 
         painter.restore()
 
-    @override
-    def boundingRect(self):
-        # Expand to account for segment dots
-        return super().boundingRect().adjusted(-50, -50, 50, 50)
+    def paintHoverLine(self, painter):
+        painter.save()
+        pen = QtGui.QPen(self._highlight_color, 6)
+        painter.setPen(pen)
+        painter.drawLine(self.line())
+        painter.restore()
+
+    def paintBubbles(self, painter):
+        if self.segments > 1:
+            for dot in range(1, self.segments):
+                center = self.line().pointAt(dot/self.segments)
+                if self.state_hovered:
+                    painter.save()
+                    painter.setPen(QtCore.Qt.NoPen)
+                    painter.setBrush(self._highlight_color)
+                    painter.drawEllipse(center, 6, 6)
+                    painter.restore()
+                painter.drawEllipse(center, 2.5, 2.5)
 
     def set_hovered(self, value):
         self.state_hovered = value
