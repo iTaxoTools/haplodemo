@@ -236,34 +236,15 @@ class Scene(QtWidgets.QGraphicsScene):
         if not sibling.scene():
             self.addItem(sibling)
 
-    def event(self, event):
-        if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
-            self.customHoverEvent(event)
-        if event.type() == QtCore.QEvent.GraphicsSceneLeave:
-            self.mouseLeaveEvent(event)
-        return super().event(event)
-
-    def mouseLeaveEvent(self, event):
-        self.set_hovered_item(None)
-
-    def customHoverEvent(self, event):
-        # This is required, since the default hover implementation
-        # sends the event to the parent of the hovered item,
-        # which we don't want!
-        for item in self.items(event.scenePos()):
-            if item == self.hovered_item:
-                return
-            if isinstance(item, Vertex) or isinstance(item, Label):
-                self.set_hovered_item(item)
-                return
-        self.set_hovered_item(None)
-
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
         if event.button() != QtCore.Qt.LeftButton:
             return
         for item in self.items(event.scenePos()):
-            if isinstance(item, Vertex) or isinstance(item, Label):
+            if any((
+                isinstance(item, Vertex),
+                isinstance(item, Label),
+            )):
                 self.set_pressed_item(item)
                 return
 
@@ -271,27 +252,6 @@ class Scene(QtWidgets.QGraphicsScene):
         super().mouseReleaseEvent(event)
         if event.button() == QtCore.Qt.LeftButton:
             self.set_pressed_item(None)
-
-    def set_hovered_item(self, item):
-        if self.hovered_item is not None:
-            self._set_hovered_item_state(False)
-        self.hovered_item = item
-        if item is not None:
-            self._set_hovered_item_state(True)
-        if self.pressed_item is None:
-            edge = self.get_item_edge(item)
-            self.set_highlighted_edge(edge)
-
-    def _set_hovered_item_state(self, state: bool):
-        item = self.hovered_item
-        if isinstance(item, Label):
-            item.parentItem().state_hovered = state
-            item.parentItem().update()
-        if isinstance(item, Node):
-            item.label.state_hovered = state
-            item.label.update()
-        item.state_hovered = state
-        item.update()
 
     def set_pressed_item(self, item):
         if self.pressed_item is not None:
@@ -318,8 +278,8 @@ class Scene(QtWidgets.QGraphicsScene):
             return None
         if isinstance(item, Label):
             item = item.parentItem()
-        if isinstance(item.parentItem(), Vertex):
-            return item.parentItem().edges[item]
+        if isinstance(item.parent, Vertex):
+            return item.parent.edges[item]
         return None
 
     def set_highlighted_edge(self, edge):

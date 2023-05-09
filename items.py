@@ -6,6 +6,7 @@ from PySide6 import QtCore
 
 from itaxotools.common.utility import override
 
+from utility import shapeFromPath
 
 class BezierHandleLine(QtWidgets.QGraphicsLineItem):
     def __init__(self, parent, p1, p2):
@@ -102,6 +103,7 @@ class Label(QtWidgets.QGraphicsItem):
         super().__init__(parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
+        self.setAcceptHoverEvents(True)
 
         self._highlight_color = QtCore.Qt.magenta
 
@@ -142,6 +144,16 @@ class Label(QtWidgets.QGraphicsItem):
         self.rect = self.getCenteredRect()
 
     @override
+    def hoverEnterEvent(self, event):
+        super().hoverEnterEvent(event)
+        self.set_hovered(True)
+
+    @override
+    def hoverLeaveEvent(self, event):
+        super().hoverLeaveEvent(event)
+        self.set_hovered(False)
+
+    @override
     def boundingRect(self):
         return self.rect
 
@@ -169,6 +181,9 @@ class Label(QtWidgets.QGraphicsItem):
 
     def set_highlight_color(self, value):
         self._highlight_color = value
+
+    def set_hovered(self, value):
+        self.state_hovered = value
 
     def isHighlighted(self):
         if self.state_pressed:
@@ -209,21 +224,46 @@ class Label(QtWidgets.QGraphicsItem):
 class Edge(QtWidgets.QGraphicsLineItem):
     def __init__(self, node1, node2, segments=2):
         super().__init__()
-        # self.setFlag(QtWidgets.QGraphicsItem.ItemStacksBehindParent, True)
+        self.setAcceptHoverEvents(True)
         self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
         self.setZValue(-1)
         self.segments = segments
         self.node1 = node1
         self.node2 = node2
 
-        self.state_highlighted = False
+        self.state_hovered = False
         self._highlight_color = QtCore.Qt.magenta
+
+    def shape(self):
+        line = self.line()
+        path = QtGui.QPainterPath()
+        if line == QtCore.QLineF():
+            return path
+        path.moveTo(line.p1())
+        path.lineTo(line.p2())
+        pen = self.pen()
+        pen.setWidth(pen.width() + 12)
+        return shapeFromPath(path, pen)
+
+    @override
+    def mouseDoubleClickEvent(self, event):
+        print('KLIK-KLIK')
+
+    @override
+    def hoverEnterEvent(self, event):
+        super().hoverEnterEvent(event)
+        self.set_hovered(True)
+
+    @override
+    def hoverLeaveEvent(self, event):
+        super().hoverLeaveEvent(event)
+        self.set_hovered(False)
 
     @override
     def paint(self, painter, options, widget=None):
         painter.save()
 
-        if self.state_highlighted:
+        if self.state_hovered:
             pen = QtGui.QPen(self._highlight_color, 4)
         else:
             pen = self.pen()
@@ -244,6 +284,9 @@ class Edge(QtWidgets.QGraphicsLineItem):
     def boundingRect(self):
         # Expand to account for segment dots
         return super().boundingRect().adjusted(-50, -50, 50, 50)
+
+    def set_hovered(self, value):
+        self.state_hovered = value
 
     def set_highlight_color(self, value):
         self._highlight_color = value
@@ -336,6 +379,20 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         return super().itemChange(change, value)
 
     @override
+    def hoverEnterEvent(self, event):
+        super().hoverEnterEvent(event)
+        self.set_hovered(True)
+        # if self.isMovementRecursive():
+        #     self.applyRecursive(type(self).set_hovered, True)
+
+    @override
+    def hoverLeaveEvent(self, event):
+        super().hoverLeaveEvent(event)
+        self.set_hovered(False)
+        # if self.isMovementRecursive():
+        #     self.applyRecursive(type(self).set_hovered, False)
+
+    @override
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             center = self.parent.scenePos() if self.parent else None
@@ -376,6 +433,13 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.siblings.append(item)
         item.siblings.append(self)
         edge.adjustPosition()
+
+    def set_hovered(self, value):
+        self.state_hovered = value
+        if self.parent and self._rotational_setting:
+            edge = self.edges[self.parent]
+            edge.state_hovered = value
+            edge.update()
 
     def set_rotational_setting(self, value):
         self._rotational_setting = value
@@ -464,6 +528,18 @@ class Node(Vertex):
         self.font = font
 
         self.label = Label(text, self)
+
+    @override
+    def hoverEnterEvent(self, event):
+        super().hoverEnterEvent(event)
+        self.label.state_hovered = True
+        self.label.update()
+
+    @override
+    def hoverLeaveEvent(self, event):
+        super().hoverLeaveEvent(event)
+        self.label.state_hovered = False
+        self.label.update()
 
     @override
     def mouseDoubleClickEvent(self, event):
