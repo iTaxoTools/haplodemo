@@ -12,17 +12,19 @@ from utility import shapeFromPath
 class EdgeDecoration(Enum):
     Bubbles = auto()
     Strikes = auto()
+    DoubleStrike = auto()
 
 
 class EdgeStyle(Enum):
-    Bubbles = 'Bubbles', EdgeDecoration.Bubbles, False, False
-    Strikes = 'Strikes', EdgeDecoration.Strikes, False, False
-    PlainWithText = 'Plain with text', None, False, True
-    DotsWithText = 'Dots with text', None, True, True
-    Plain = 'Plain', None, False, False
-    Dots = 'Dots', None, True, False
+    Bubbles = 'Bubbles', EdgeDecoration.Bubbles, False, False, False
+    Strikes = 'Strikes', EdgeDecoration.Strikes, False, False, False
+    Collapsed = 'Collapsed', EdgeDecoration.DoubleStrike, False, True, True
+    PlainWithText = 'Plain with text', None, False, True, False
+    DotsWithText = 'Dots with text', None, True, True, False
+    Plain = 'Plain', None, False, False, False
+    Dots = 'Dots', None, True, False, False
 
-    def __new__(cls, name, decoration, has_dots, has_text):
+    def __new__(cls, name, decoration, has_dots, has_text, has_text_offset):
         value = len(cls.__members__) + 1
         obj = object.__new__(cls)
         obj._value_ = value
@@ -30,6 +32,7 @@ class EdgeStyle(Enum):
         obj.decoration = decoration
         obj.has_dots = has_dots
         obj.has_text = has_text
+        obj.has_text_offset = has_text_offset
 
         members = list(cls.__members__.values())
         if members:
@@ -270,6 +273,7 @@ class Label(QtWidgets.QGraphicsItem):
         self.prepareGeometryChange()
         self.rect = self.getCenteredRect()
 
+
 class Edge(QtWidgets.QGraphicsLineItem):
     def __init__(self, node1, node2, segments=2):
         super().__init__()
@@ -345,6 +349,8 @@ class Edge(QtWidgets.QGraphicsLineItem):
             self.paintBubbles(painter)
         elif self.style.decoration == EdgeDecoration.Strikes:
             self.paintStrikes(painter)
+        elif self.style.decoration == EdgeDecoration.DoubleStrike:
+            self.paintDoubleStrike(painter)
 
         painter.restore()
 
@@ -398,6 +404,34 @@ class Edge(QtWidgets.QGraphicsLineItem):
             point = unit.pointAt(count * spacing - offset)
             self.drawStrike(painter, point, strike)
 
+    def paintDoubleStrike(self, painter):
+        if self.segments <= 1:
+            return
+
+        strikes = 2
+        line = self.line()
+
+        length = 12
+        spacing = 6
+        offset = (strikes - 1) * spacing / 2
+
+        if offset * 2 > line.length():
+            self.paintError(painter)
+            return
+
+        center = line.center()
+        unit = line.unitVector()
+        unit.translate(center - unit.p1())
+        normal = unit.normalVector()
+        strike = QtCore.QLineF(0, 0,
+            2 * normal.dx() + unit.dx(),
+            2 * normal.dy() + unit.dy())
+        strike.setLength(length / 2)
+
+        for count in range(strikes):
+            point = unit.pointAt(count * spacing - offset)
+            self.drawStrike(painter, point, strike)
+
     def drawStrike(self, painter, point, strike):
         strike = strike.translated(point)
         strike = QtCore.QLineF(strike.pointAt(-1), strike.pointAt(1))
@@ -427,6 +461,16 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.style = style
         self.label.setVisible(self.style.has_text)
         self.label.recenter()
+        if style.has_text_offset:
+            offset = 16
+            line = self.line()
+            center = line.center()
+            unit = line.unitVector()
+            normal = line.normalVector().unitVector()
+            point = QtCore.QLineF(0, 0, - offset * normal.dx() + offset * unit.dx(), - offset * normal.dy() + offset * unit.dy())
+            point.translate(center)
+
+            self.label.setPos(point.p2())
         self.update()
 
     def set_hovered(self, value):
@@ -458,6 +502,11 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
         line.translate(unit.x2(), unit.y2())
         self.setLine(line)
+
+        # self.label.update()
+        # print('pos', self.label.pos())
+        # print('rect', self.label.rect)
+        # print(self.label.scenePos())
 
         center = line.center()
         self.label.setPos(center)
