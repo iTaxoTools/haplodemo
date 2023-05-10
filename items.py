@@ -483,6 +483,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
     def set_hovered(self, value):
         self.state_hovered = value
         self.label.set_hovered(value)
+        self.update()
 
     def set_highlight_color(self, value):
         self._highlight_color = value
@@ -490,6 +491,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
     def resetLabelPosition(self, offset: bool | None):
         if not offset:
             self.label.setPos(0, 0)
+            self.label.recenter()
             return
 
         line = self.line()
@@ -690,9 +692,13 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
     def set_hovered(self, value):
         self.state_hovered = value
-        if self.parent and self._rotational_setting:
+        if self.parent and any((
+            self.isMovementRotational(),
+            self.isMovementRecursive())
+        ):
             edge = self.edges[self.parent]
             edge.set_hovered(value)
+        self.update()
 
     def set_rotational_setting(self, value):
         self._rotational_setting = value
