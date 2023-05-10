@@ -16,15 +16,15 @@ class EdgeDecoration(Enum):
 
 
 class EdgeStyle(Enum):
-    Bubbles = 'Bubbles', EdgeDecoration.Bubbles, False, False, False
-    Strikes = 'Strikes', EdgeDecoration.Strikes, False, False, False
-    Collapsed = 'Collapsed', EdgeDecoration.DoubleStrike, False, True, True
-    PlainWithText = 'Plain with text', None, False, True, False
-    DotsWithText = 'Dots with text', None, True, True, False
-    Plain = 'Plain', None, False, False, False
-    Dots = 'Dots', None, True, False, False
+    Bubbles = 'Bubbles', EdgeDecoration.Bubbles, False, False, None
+    Strikes = 'Strikes', EdgeDecoration.Strikes, False, False, None
+    Collapsed = 'Collapsed', EdgeDecoration.DoubleStrike, False, True, 16
+    PlainWithText = 'Plain with text', None, False, True, None
+    DotsWithText = 'Dots with text', None, True, True, None
+    Plain = 'Plain', None, False, False, None
+    Dots = 'Dots', None, True, False, None
 
-    def __new__(cls, name, decoration, has_dots, has_text, has_text_offset):
+    def __new__(cls, name, decoration, has_dots, has_text, text_offset):
         value = len(cls.__members__) + 1
         obj = object.__new__(cls)
         obj._value_ = value
@@ -32,7 +32,7 @@ class EdgeStyle(Enum):
         obj.decoration = decoration
         obj.has_dots = has_dots
         obj.has_text = has_text
-        obj.has_text_offset = has_text_offset
+        obj.text_offset = text_offset
 
         members = list(cls.__members__.values())
         if members:
@@ -164,6 +164,13 @@ class Label(QtWidgets.QGraphicsItem):
 
         self.locked_rect = self.rect
         self.locked_pos = QtCore.QPointF(0, 0)
+
+    @override
+    def mouseReleaseEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self.locked_rect = self.rect
+            print(self.rect)
+        super().mouseReleaseEvent(event)
 
     @override
     def mousePressEvent(self, event):
@@ -461,16 +468,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.style = style
         self.label.setVisible(self.style.has_text)
         self.label.recenter()
-        if style.has_text_offset:
-            offset = 16
-            line = self.line()
-            center = line.center()
-            unit = line.unitVector()
-            normal = line.normalVector().unitVector()
-            point = QtCore.QLineF(0, 0, - offset * normal.dx() + offset * unit.dx(), - offset * normal.dy() + offset * unit.dy())
-            point.translate(center)
-
-            self.label.setPos(point.p2())
+        self.adjustLabel(style.text_offset)
         self.update()
 
     def set_hovered(self, value):
@@ -479,6 +477,23 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
     def set_highlight_color(self, value):
         self._highlight_color = value
+
+    def lockLabelPosition(self):
+        print('lock', self.label.text)
+
+    def adjustLabel(self, offset: bool | None):
+        if not offset:
+            self.label.setPos(0, 0)
+            return
+
+        line = self.line()
+        center = line.center()
+        unit = line.unitVector()
+        normal = line.normalVector().unitVector()
+        point = QtCore.QLineF(0, 0, - offset * normal.dx() + offset * unit.dx(), - offset * normal.dy() + offset * unit.dy())
+        point.translate(center)
+
+        self.label.setPos(point.p2())
 
     def adjustPosition(self):
         pos1 = self.node1.scenePos()
@@ -501,15 +516,11 @@ class Edge(QtWidgets.QGraphicsLineItem):
         unit.translate(-unit.x1(), -unit.y1())
 
         line.translate(unit.x2(), unit.y2())
-        self.setLine(line)
-
-        # self.label.update()
-        # print('pos', self.label.pos())
-        # print('rect', self.label.rect)
-        # print(self.label.scenePos())
 
         center = line.center()
-        self.label.setPos(center)
+        self.setPos(center)
+        line.translate(-center)
+        self.setLine(line)
 
 
 class Vertex(QtWidgets.QGraphicsEllipseItem):
@@ -585,13 +596,19 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             center = self.parent.scenePos() if self.parent else None
+            if self.isMovementRotational():
+                edge = self.edges[self.parent]
+                edge.lockLabelPosition()
             if self.isMovementRecursive():
-                return self.applyRecursive(type(self).lockPosition, event, center)
+                return self.mapNodeEdgeRecursive(
+                    type(self).lockPosition, [event, center], {},
+                    Edge.lockLabelPosition, [], {})
             return self.lockPosition(event, center)
 
         super().mousePressEvent(event)
         self.set_pressed(True)
 
+    @override
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
         self.set_pressed(False)
@@ -659,23 +676,46 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def isMovementRecursive(self):
         return self._recursive_setting
 
-    def _applyRecursive(self, siblings, visited, func, *args, **kwargs):
-        if self in visited:
+    def _mapRecursive(
+        self, siblings,
+        visited_nodes, visited_edges,
+        node_func, node_args, node_kwargs,
+        edge_func, edge_args, edge_kwargs,
+    ):
+        if self in visited_nodes:
             return
-        visited.add(self)
+        visited_nodes.add(self)
 
-        func(self, *args, **kwargs)
+        if node_func:
+            node_func(self, *node_args, **node_kwargs)
 
-        for child in self.children:
-            child._applyRecursive(True, visited, func, *args, **kwargs)
+        nodes = self.children
+        if siblings:
+            nodes += self.siblings
 
-        if not siblings:
-            return
-        for sibling in self.siblings:
-            sibling._applyRecursive(True, visited, func, *args, **kwargs)
+        for node in nodes:
+            node._mapRecursive(
+                True, visited_nodes, visited_edges,
+                node_func, node_args, node_kwargs,
+                edge_func, edge_args, edge_kwargs)
 
-    def applyRecursive(self, func, *args, **kwargs):
-        self._applyRecursive(False, set(), func, *args, **kwargs)
+            edge = self.edges[node]
+            if edge_func and edge not in visited_edges:
+                edge_func(edge, *edge_args, **edge_kwargs)
+            visited_edges.add(edge)
+
+    def mapNodeRecursive(self, func, *args, **kwargs):
+        self._mapRecursive(False, set(), set(), func, args, kwargs, None, None, None)
+
+    def mapNodeEdgeRecursive(
+        self,
+        node_func, node_args, node_kwargs,
+        edge_func, edge_args, edge_kwargs,
+    ):
+        self._mapRecursive(
+            False, set(), set(),
+            node_func, node_args, node_kwargs,
+            edge_func, edge_args, edge_kwargs)
 
     def lockPosition(self, event, center=None):
         self.locked_event_pos = event.scenePos()
@@ -697,7 +737,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         epos = event.scenePos()
         diff = epos - self.locked_event_pos
         if self.isMovementRecursive():
-            return self.applyRecursive(type(self).applyTranspose, diff)
+            return self.mapNodeRecursive(type(self).applyTranspose, diff)
         return self.applyTranspose(diff)
 
     def moveRotationally(self, event):
@@ -712,7 +752,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         transform.translate(-center.x(), -center.y())
 
         if self.isMovementRecursive():
-            return self.applyRecursive(type(self).applyTransform, transform)
+            return self.mapNodeRecursive(type(self).applyTransform, transform)
         return self.applyTransform(transform)
 
 
