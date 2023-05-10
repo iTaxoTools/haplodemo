@@ -313,6 +313,9 @@ class ToggleButton(QtWidgets.QPushButton):
         painter.drawPolyline(self.checkmark)
         painter.end()
 
+    def sizeHint(self):
+        return super().sizeHint() + QtCore.QSize(48, 0)
+
 
 class EdgeStyleSettings(PropertyObject):
     bubbles = Property(bool, True)
@@ -408,7 +411,7 @@ class Window(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowFlags(QtCore.Qt.Window)
-        self.resize(400, 580)
+        self.resize(440, 620)
         self.setWindowTitle('Haplodemo')
 
         settings = Settings()
@@ -432,8 +435,11 @@ class Window(QtWidgets.QWidget):
         toggle_recursive = ToggleButton('Move children')
         toggle_labels = ToggleButton('Unlock labels')
 
-        mass_style_edges = QtWidgets.QPushButton('Edge style')
+        mass_style_edges = QtWidgets.QPushButton('Set edge style')
         mass_style_edges.clicked.connect(self.show_edge_style_dialog)
+
+        mass_resize_nodes = QtWidgets.QPushButton('Set node size')
+        mass_resize_nodes.clicked.connect(self.show_node_resize_dialog)
 
         division_view = QtWidgets.QListView()
         division_view.setModel(settings.divisions)
@@ -448,11 +454,14 @@ class Window(QtWidgets.QWidget):
         button_png = QtWidgets.QPushButton('Export as PNG')
         button_png.clicked.connect(lambda: self.export_png())
 
-        options = QtWidgets.QGridLayout()
-        options.addWidget(mass_style_edges, 0, 0, 1, 2)
-        options.addWidget(toggle_rotation, 1, 0)
-        options.addWidget(toggle_recursive, 1, 1)
-        options.addWidget(toggle_labels, 2, 0, 1, 2)
+        options = QtWidgets.QHBoxLayout()
+        options.addWidget(toggle_rotation)
+        options.addWidget(toggle_recursive)
+        options.addWidget(toggle_labels)
+
+        dialogs = QtWidgets.QHBoxLayout()
+        dialogs.addWidget(mass_style_edges)
+        dialogs.addWidget(mass_resize_nodes)
 
         buttons = QtWidgets.QHBoxLayout()
         buttons.addWidget(button_svg)
@@ -464,6 +473,7 @@ class Window(QtWidgets.QWidget):
         layout.addWidget(palette_selector)
         layout.addWidget(division_view, 1)
         layout.addLayout(options)
+        layout.addLayout(dialogs)
         layout.addLayout(buttons)
         self.setLayout(layout)
 
@@ -495,6 +505,9 @@ class Window(QtWidgets.QWidget):
 
     def show_edge_style_dialog(self):
         self.edge_style_dialog.show()
+
+    def show_node_resize_dialog(self):
+        print('klik')
 
     def quick_save(self):
         self.export_svg('graph.svg')
