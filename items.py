@@ -169,7 +169,6 @@ class Label(QtWidgets.QGraphicsItem):
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             self.locked_rect = self.rect
-            print(self.rect)
         super().mouseReleaseEvent(event)
 
     @override
@@ -183,9 +182,8 @@ class Label(QtWidgets.QGraphicsItem):
     def mouseMoveEvent(self, event):
         epos = event.scenePos()
         diff = (epos - self.locked_pos).toPoint()
-
-        self.prepareGeometryChange()
-        self.rect = self.locked_rect.translated(diff)
+        rect = self.locked_rect.translated(diff)
+        self.setRect(rect)
 
     @override
     def mouseDoubleClickEvent(self, event):
@@ -257,6 +255,10 @@ class Label(QtWidgets.QGraphicsItem):
         self.state_hovered = value
         self.update()
 
+    def setRect(self, rect):
+        self.prepareGeometryChange()
+        self.rect = rect
+
     def isHighlighted(self):
         if self.state_pressed:
             return True
@@ -277,8 +279,8 @@ class Label(QtWidgets.QGraphicsItem):
         return path
 
     def recenter(self):
-        self.prepareGeometryChange()
-        self.rect = self.getCenteredRect()
+        rect = self.getCenteredRect()
+        self.setRect(rect)
 
 
 class Edge(QtWidgets.QGraphicsLineItem):
@@ -292,6 +294,8 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
         self.style = EdgeStyle.Bubbles
         self.state_hovered = False
+        self.locked_label_pos = None
+        self.locked_label_rect_pos = None
         self._highlight_color = QtCore.Qt.magenta
 
         self.label = Label(str(segments), self)
@@ -372,8 +376,14 @@ class Edge(QtWidgets.QGraphicsLineItem):
         if self.segments <= 1:
             return
 
+        line = self.line()
+
+        if (self.segments - 1) * 6 > line.length():
+            self.paintError(painter)
+            return
+
         for dot in range(1, self.segments):
-            point = self.line().pointAt(dot / self.segments)
+            point = line.pointAt(dot / self.segments)
             self.paintBubble(painter, point)
 
     def paintBubble(self, painter, point):
@@ -389,7 +399,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
         if self.segments <= 1:
             return
 
-        strikes = self.segments - 1
+        strikes = self.segments
         line = self.line()
 
         length = 12
@@ -467,8 +477,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
     def set_style(self, style):
         self.style = style
         self.label.setVisible(self.style.has_text)
-        self.label.recenter()
-        self.adjustLabel(style.text_offset)
+        self.resetLabelPosition(style.text_offset)
         self.update()
 
     def set_hovered(self, value):
@@ -478,10 +487,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
     def set_highlight_color(self, value):
         self._highlight_color = value
 
-    def lockLabelPosition(self):
-        print('lock', self.label.text)
-
-    def adjustLabel(self, offset: bool | None):
+    def resetLabelPosition(self, offset: bool | None):
         if not offset:
             self.label.setPos(0, 0)
             return
@@ -494,6 +500,33 @@ class Edge(QtWidgets.QGraphicsLineItem):
         point.translate(center)
 
         self.label.setPos(point.p2())
+        self.label.recenter()
+
+    def lockLabelPosition(self):
+        angle = self.line().angle()
+        transform = QtGui.QTransform().rotate(angle)
+
+        pos = self.label.pos()
+        pos = transform.map(pos)
+        self.locked_label_pos = pos
+
+        rpos = self.label.pos() + self.label.rect.center()
+        rpos = transform.map(rpos)
+        self.locked_label_rect_pos = rpos
+
+    def adjustLabelPosition(self):
+        angle = self.line().angle()
+        transform = QtGui.QTransform().rotate(-angle)
+
+        pos = self.locked_label_pos
+        pos = transform.map(pos)
+        self.label.setPos(pos)
+
+        rpos = self.locked_label_rect_pos
+        rpos = transform.map(rpos)
+        rect = self.label.rect
+        rect.moveCenter((rpos - pos).toPoint())
+        self.label.setRect(rect)
 
     def adjustPosition(self):
         pos1 = self.node1.scenePos()
@@ -521,6 +554,9 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.setPos(center)
         line.translate(-center)
         self.setLine(line)
+
+        if self.label.isVisible():
+            self.adjustLabelPosition()
 
 
 class Vertex(QtWidgets.QGraphicsEllipseItem):
@@ -596,14 +632,13 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             center = self.parent.scenePos() if self.parent else None
-            if self.isMovementRotational():
-                edge = self.edges[self.parent]
+            for edge in self.edges.values():
                 edge.lockLabelPosition()
+            self.lockPosition(event, center)
             if self.isMovementRecursive():
-                return self.mapNodeEdgeRecursive(
+                self.mapNodeEdgeRecursive(
                     type(self).lockPosition, [event, center], {},
                     Edge.lockLabelPosition, [], {})
-            return self.lockPosition(event, center)
 
         super().mousePressEvent(event)
         self.set_pressed(True)
