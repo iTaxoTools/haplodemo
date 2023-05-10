@@ -197,7 +197,9 @@ class Label(QtWidgets.QGraphicsItem):
     @override
     def hoverLeaveEvent(self, event):
         super().hoverLeaveEvent(event)
-        self.set_hovered(False)
+        parent = self.parentItem()
+        if parent and not parent.state_hovered:
+            self.set_hovered(False)
 
     @override
     def boundingRect(self):
@@ -396,7 +398,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
         painter.drawEllipse(point, 2.5, 2.5)
 
     def paintStrikes(self, painter):
-        if self.segments <= 1:
+        if self.segments == 0:
             return
 
         strikes = self.segments

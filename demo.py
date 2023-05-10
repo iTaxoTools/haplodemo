@@ -8,9 +8,9 @@ from PySide6 import QtCore
 from PySide6 import QtSvg
 
 from itaxotools.common.bindings import PropertyObject, Property, Binder, Instance
-# from itaxotools.common.utility import override
+from itaxotools.common.utility import Guard, type_convert
 
-from items import Vertex, Node, Label, Edge, BezierCurve
+from items import Vertex, Node, Label, Edge, BezierCurve, EdgeStyle
 from palettes import Palette
 
 
@@ -18,6 +18,24 @@ from palettes import Palette
 class Division:
     key: str
     color: str
+
+
+class GLineEdit(QtWidgets.QLineEdit):
+    textEditedSafe = QtCore.Signal(str)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.textEdited.connect(self._handleEdit)
+        self._guard = Guard()
+
+    def _handleEdit(self, text):
+        with self._guard:
+            self.textEditedSafe.emit(text)
+
+    def setText(self, text):
+        if self._guard:
+            return
+        super().setText(text)
 
 
 class ColorDelegate(QtWidgets.QStyledItemDelegate):
@@ -200,6 +218,17 @@ class Scene(QtWidgets.QGraphicsScene):
                 nodey = self.create_node(nodex.pos().x() + 80 + 40 * y, nodex.pos().y() + 40, 15, f'y{y}', {'Y': 1})
                 self.add_child(nodex, nodey)
 
+    def styleEdges(self, bubbles=True, cutoff=3):
+        if not cutoff:
+            cutoff = float('inf')
+        style_default = EdgeStyle.Bubbles if bubbles else EdgeStyle.Strikes
+        style_cutoff = EdgeStyle.DotsWithText if bubbles else EdgeStyle.Collapsed
+        edges = (item for item in self.items() if isinstance(item, Edge))
+
+        for edge in edges:
+            style = style_default if edge.segments <= cutoff else style_cutoff
+            edge.set_style(style)
+
     def create_vertex(self, *args, **kwargs):
         item = Vertex(*args, **kwargs)
         self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
@@ -285,11 +314,101 @@ class ToggleButton(QtWidgets.QPushButton):
         painter.end()
 
 
+class EdgeStyleSettings(PropertyObject):
+    bubbles = Property(bool, True)
+    cutoff = Property(int, 3)
+
+
+class EdgeStyleDialog(QtWidgets.QDialog):
+    def __init__(self, parent, scene):
+        super().__init__(parent)
+        self.setWindowTitle('Haplodemo - Edge style')
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.MSWindowsFixedSizeDialogHint)
+        self.resize(280, 0)
+
+        self.scene = scene
+        self.settings = EdgeStyleSettings()
+        self.binder = Binder()
+
+        label_info = QtWidgets.QLabel('Massively style all edges. To set the style for individual edges instead, double click them.')
+        label_info.setWordWrap(True)
+
+        label_more_info = QtWidgets.QLabel('Edges with more segments than the cutoff value will be collapsed. Set it to zero to collapse no edges, or -1 to collapse all edges.')
+        label_more_info.setWordWrap(True)
+
+        label_style = QtWidgets.QLabel('Style:')
+        bubbles = QtWidgets.QRadioButton('Bubbles')
+        bars = QtWidgets.QRadioButton('Bars')
+
+        label_cutoff = QtWidgets.QLabel('Cutoff:')
+        cutoff = GLineEdit()
+        cutoff.setTextMargins(4, 0, 4, 0)
+        validator = QtGui.QIntValidator()
+        cutoff.setValidator(validator)
+
+        self.binder.bind(bubbles.toggled, self.settings.properties.bubbles, lambda x: x)
+        self.binder.bind(bars.toggled, self.settings.properties.bubbles, lambda x: not x)
+
+        self.binder.bind(self.settings.properties.bubbles, bubbles.setChecked, lambda x: x)
+        self.binder.bind(self.settings.properties.bubbles, bars.setChecked, lambda x: not x)
+
+        self.binder.bind(cutoff.textEditedSafe, self.settings.properties.cutoff, lambda x: type_convert(x, int, None))
+        self.binder.bind(self.settings.properties.cutoff, cutoff.setText, lambda x: type_convert(x, str, ''))
+
+        controls = QtWidgets.QGridLayout()
+        controls.setColumnMinimumWidth(0, 8)
+        controls.setRowMinimumHeight(1, 8)
+        controls.setRowMinimumHeight(3, 8)
+        controls.setRowMinimumHeight(5, 8)
+        controls.setRowMinimumHeight(7, 8)
+        controls.addWidget(label_info, 0, 0, 1, 4)
+        controls.addWidget(label_style, 2, 1)
+        controls.addWidget(bubbles, 2, 2)
+        controls.addWidget(bars, 2, 3)
+        controls.addWidget(label_cutoff, 4, 1)
+        controls.addWidget(cutoff, 4, 2, 1, 2)
+        controls.addWidget(label_more_info, 6, 0, 1, 4)
+
+        ok = QtWidgets.QPushButton('OK')
+        cancel = QtWidgets.QPushButton('Cancel')
+        apply = QtWidgets.QPushButton('Apply')
+
+        ok.clicked.connect(self.accept)
+        cancel.clicked.connect(self.reject)
+        apply.clicked.connect(self.apply)
+
+        cancel.setAutoDefault(True)
+
+        buttons = QtWidgets.QHBoxLayout()
+        buttons.addStretch(1)
+        buttons.addWidget(ok)
+        buttons.addWidget(cancel)
+        buttons.addWidget(apply)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addStretch(1)
+        layout.addLayout(controls, 1)
+        layout.addLayout(buttons)
+        self.setLayout(layout)
+
+    def show(self):
+        for property in self.settings.properties:
+            property.set(property.default)
+        super().show()
+
+    def accept(self):
+        self.apply()
+        super().accept()
+
+    def apply(self):
+        self.scene.styleEdges(self.settings.bubbles, self.settings.cutoff)
+
+
 class Window(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowFlags(QtCore.Qt.Window)
-        self.resize(400, 500)
+        self.resize(400, 580)
         self.setWindowTitle('Haplodemo')
 
         settings = Settings()
@@ -299,6 +418,7 @@ class Window(QtWidgets.QWidget):
         # scene.addManyNodes(8, 32)
         # scene.addBezier()
         scene.addNodes()
+        scene.styleEdges(bubbles=True, cutoff=3)
 
         scene_view = QtWidgets.QGraphicsView()
         scene_view.setRenderHints(QtGui.QPainter.Antialiasing)
@@ -311,6 +431,9 @@ class Window(QtWidgets.QWidget):
         toggle_rotation = ToggleButton('Rotate nodes')
         toggle_recursive = ToggleButton('Move children')
         toggle_labels = ToggleButton('Unlock labels')
+
+        mass_style_edges = QtWidgets.QPushButton('Edge style')
+        mass_style_edges.clicked.connect(self.show_edge_style_dialog)
 
         division_view = QtWidgets.QListView()
         division_view.setModel(settings.divisions)
@@ -326,9 +449,10 @@ class Window(QtWidgets.QWidget):
         button_png.clicked.connect(lambda: self.export_png())
 
         options = QtWidgets.QGridLayout()
-        options.addWidget(toggle_rotation, 0, 0)
-        options.addWidget(toggle_recursive, 0, 1)
-        options.addWidget(toggle_labels, 1, 0, 1, 2)
+        options.addWidget(mass_style_edges, 0, 0, 1, 2)
+        options.addWidget(toggle_rotation, 1, 0)
+        options.addWidget(toggle_recursive, 1, 1)
+        options.addWidget(toggle_labels, 2, 0, 1, 2)
 
         buttons = QtWidgets.QHBoxLayout()
         buttons.addWidget(button_svg)
@@ -343,7 +467,10 @@ class Window(QtWidgets.QWidget):
         layout.addLayout(buttons)
         self.setLayout(layout)
 
+        self.scene = scene
         self.scene_view = scene_view
+
+        self.edge_style_dialog = EdgeStyleDialog(self, self.scene)
 
         self.binder = Binder()
 
@@ -365,6 +492,9 @@ class Window(QtWidgets.QWidget):
         action.triggered.connect(self.quick_save)
         self.quick_save_action = action
         self.addAction(action)
+
+    def show_edge_style_dialog(self):
+        self.edge_style_dialog.show()
 
     def quick_save(self):
         self.export_svg('graph.svg')
