@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from collections import defaultdict
 
 from PySide6 import QtWidgets
+from PySide6 import QtOpenGLWidgets
 from PySide6 import QtGui
 from PySide6 import QtCore
 from PySide6 import QtSvg
@@ -163,9 +164,10 @@ class Settings(PropertyObject):
         self.binder.bind(self.properties.palette, self.properties.highlight_color, lambda x: x.highlight)
 
 
-class Scene(QtWidgets.QGraphicsScene):
+class GraphicsScene(QtWidgets.QGraphicsScene):
     def __init__(self, settings, parent=None):
         super().__init__(parent)
+        self.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.white)))
         self.settings = settings
         self.hovered_item = None
         self.pressed_item = None
@@ -266,6 +268,30 @@ class Scene(QtWidgets.QGraphicsScene):
 
         if not sibling.scene():
             self.addItem(sibling)
+
+
+class GraphicsView(QtWidgets.QGraphicsView):
+    def __init__(self, scene=None, opengl=False, parent=None):
+        super().__init__(scene, parent)
+        self.setRenderHints(QtGui.QPainter.TextAntialiasing)
+        self.setRenderHints(QtGui.QPainter.Antialiasing)
+
+        if opengl:
+            self.enable_opengl()
+
+    def enable_opengl(self):
+        format = QtGui.QSurfaceFormat()
+        format.setVersion(3, 3)
+        format.setProfile(QtGui.QSurfaceFormat.CoreProfile)
+        format.setRenderableType(QtGui.QSurfaceFormat.OpenGL)
+        format.setDepthBufferSize(24)
+        format.setStencilBufferSize(8)
+        format.setSamples(8)
+
+        glwidget = QtOpenGLWidgets.QOpenGLWidget()
+        glwidget.setFormat(format)
+        self.setViewport(glwidget)
+        self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
 
 
 class PaletteSelector(QtWidgets.QComboBox):
@@ -408,7 +434,7 @@ class EdgeStyleDialog(QtWidgets.QDialog):
 
 
 class Window(QtWidgets.QWidget):
-    def __init__(self):
+    def __init__(self, opengl=False):
         super().__init__()
         self.setWindowFlags(QtCore.Qt.Window)
         self.resize(440, 620)
@@ -417,17 +443,13 @@ class Window(QtWidgets.QWidget):
         settings = Settings()
         settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
 
-        scene = Scene(settings)
+        scene = GraphicsScene(settings)
         # scene.addManyNodes(8, 32)
         # scene.addBezier()
         scene.addNodes()
         scene.styleEdges(bubbles=True, cutoff=3)
 
-        scene_view = QtWidgets.QGraphicsView()
-        scene_view.setRenderHints(QtGui.QPainter.Antialiasing)
-        # This just makes things worse when moving text around:
-        # scene_view.setRenderHints( QtGui.QPainter.TextAntialiasing)
-        scene_view.setScene(scene)
+        scene_view = GraphicsView(scene, opengl)
 
         palette_selector = PaletteSelector()
 
