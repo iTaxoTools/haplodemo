@@ -188,8 +188,8 @@ class Settings(PropertyObject):
     node_e = Property(float, 0)
     node_f = Property(float, 0)
 
-    node_label_format = '{text}'
-    edge_label_format = '({weight})'
+    node_label_template = Property(str, 'NAME')
+    edge_label_template = Property(str, '(WEIGHT)')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -276,11 +276,13 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         for edge in edges:
             edge.adjustPosition()
 
-    def styleLabels(self, node_label_format, edge_label_format):
+    def styleLabels(self, node_label_template, edge_label_template):
+        node_label_format = node_label_template.replace('NAME', '{name}').replace('WEIGHT', '{weight}')
+        edge_label_format = edge_label_template.replace('WEIGHT', '{weight}')
         nodes = (item for item in self.items() if isinstance(item, Node))
         edges = (item for item in self.items() if isinstance(item, Edge))
         for node in nodes:
-            text = node_label_format.format(text=node.text, weight=node.weight)
+            text = node_label_format.format(name=node.name, weight=node.weight)
             node.label.setText(text)
         for edge in edges:
             text = edge_label_format.format(weight=edge.weight)
@@ -432,7 +434,7 @@ class EdgeStyleDialog(QtWidgets.QDialog):
 
         label_cutoff = QtWidgets.QLabel('Cutoff:')
         cutoff = GLineEdit()
-        cutoff.setTextMargins(4, 0, 4, 0)
+        cutoff.setTextMargins(2, 0, 2, 0)
         validator = QtGui.QIntValidator()
         cutoff.setValidator(validator)
 
@@ -499,7 +501,7 @@ class NodeSizeSettings(PropertyObject):
     node_f = Property(float, None)
 
 
-class NodeSiszeDialog(QtWidgets.QDialog):
+class NodeSizeDialog(QtWidgets.QDialog):
     def __init__(self, parent, scene, global_settings):
         super().__init__(parent)
         self.setWindowTitle('Haplodemo - Node size')
@@ -616,6 +618,103 @@ class NodeSiszeDialog(QtWidgets.QDialog):
         self.push()
 
 
+class LabelFormatSettings(PropertyObject):
+    node_label_template = Property(str, None)
+    edge_label_template = Property(str, None)
+
+
+class LabelFormatDialog(QtWidgets.QDialog):
+    def __init__(self, parent, scene, global_settings):
+        super().__init__(parent)
+        self.setWindowTitle('Haplodemo - Label format')
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.MSWindowsFixedSizeDialogHint)
+        self.resize(340, 0)
+
+        self.scene = scene
+        self.global_settings = global_settings
+        self.settings = LabelFormatSettings()
+        self.binder = Binder()
+
+        self.pull()
+
+        label_info = QtWidgets.QLabel('Set all labels from templates, where "NAME" and "WEIGHT" are replaced by the corresponding values.')
+        label_info.setWordWrap(True)
+
+        label_nodes = QtWidgets.QLabel('Nodes:')
+        label_edges = QtWidgets.QLabel('Edges:')
+
+        field_nodes = GLineEdit()
+        field_edges = GLineEdit()
+
+        field_nodes.setTextMargins(2, 0, 2, 0)
+        field_edges.setTextMargins(2, 0, 2, 0)
+
+        self.binder.bind(field_nodes.textEditedSafe, self.settings.properties.node_label_template)
+        self.binder.bind(self.settings.properties.node_label_template, field_nodes.setText)
+
+        self.binder.bind(field_edges.textEditedSafe, self.settings.properties.edge_label_template)
+        self.binder.bind(self.settings.properties.edge_label_template, field_edges.setText)
+
+        controls = QtWidgets.QGridLayout()
+        controls.setContentsMargins(8, 8, 8, 8)
+        controls.setColumnMinimumWidth(1, 8)
+        controls.setColumnStretch(2, 1)
+
+        controls.addWidget(label_nodes, 0, 0)
+        controls.addWidget(field_nodes, 0, 2)
+
+        controls.addWidget(label_edges, 1, 0)
+        controls.addWidget(field_edges, 1, 2)
+
+        ok = QtWidgets.QPushButton('OK')
+        cancel = QtWidgets.QPushButton('Cancel')
+        apply = QtWidgets.QPushButton('Apply')
+
+        ok.clicked.connect(self.accept)
+        cancel.clicked.connect(self.reject)
+        apply.clicked.connect(self.apply)
+
+        cancel.setAutoDefault(True)
+
+        buttons = QtWidgets.QHBoxLayout()
+        buttons.addStretch(1)
+        buttons.addWidget(ok)
+        buttons.addWidget(cancel)
+        buttons.addWidget(apply)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addStretch(1)
+        layout.addWidget(label_info, 1)
+        layout.addLayout(controls, 1)
+        layout.addLayout(buttons)
+        self.setLayout(layout)
+
+    def show(self):
+        super().show()
+        self.pull()
+
+    def pull(self):
+        for property in self.settings.properties:
+            global_value = self.global_settings.properties[property.key].value
+            property.set(global_value)
+
+    def push(self):
+        for property in self.settings.properties:
+            self.global_settings.properties[property.key].set(property.value)
+
+    def accept(self):
+        self.apply()
+        super().accept()
+
+    def apply(self):
+        settings = self.settings
+        self.scene.styleLabels(
+            settings.node_label_template,
+            settings.edge_label_template,
+        )
+        self.push()
+
+
 class Window(QtWidgets.QWidget):
     def __init__(self, opengl=False):
         super().__init__()
@@ -631,7 +730,7 @@ class Window(QtWidgets.QWidget):
         # scene.addBezier()
         scene.addNodes()
 
-        scene.styleLabels(settings.node_label_format, settings.edge_label_format)
+        scene.styleLabels(settings.node_label_template, settings.edge_label_template)
 
         scene_view = GraphicsView(scene, opengl)
 
@@ -646,6 +745,9 @@ class Window(QtWidgets.QWidget):
 
         mass_resize_nodes = QtWidgets.QPushButton('Set node size')
         mass_resize_nodes.clicked.connect(self.show_node_resize_dialog)
+
+        mass_format_labels = QtWidgets.QPushButton('Set label format')
+        mass_format_labels.clicked.connect(self.show_label_format_dialog)
 
         division_view = QtWidgets.QListView()
         division_view.setModel(settings.divisions)
@@ -668,6 +770,7 @@ class Window(QtWidgets.QWidget):
         dialogs = QtWidgets.QHBoxLayout()
         dialogs.addWidget(mass_style_edges)
         dialogs.addWidget(mass_resize_nodes)
+        dialogs.addWidget(mass_format_labels)
 
         buttons = QtWidgets.QHBoxLayout()
         buttons.addWidget(button_svg)
@@ -690,8 +793,11 @@ class Window(QtWidgets.QWidget):
         self.edge_style_dialog = EdgeStyleDialog(self, self.scene)
         self.edge_style_dialog.apply()
 
-        self.node_size_dialog = NodeSiszeDialog(self, self.scene, self.settings)
+        self.node_size_dialog = NodeSizeDialog(self, self.scene, self.settings)
         self.node_size_dialog.apply()
+
+        self.label_format_dialog = LabelFormatDialog(self, self.scene, self.settings)
+        self.label_format_dialog.apply()
 
         self.binder = Binder()
 
@@ -719,6 +825,9 @@ class Window(QtWidgets.QWidget):
 
     def show_node_resize_dialog(self):
         self.node_size_dialog.show()
+
+    def show_label_format_dialog(self):
+        self.label_format_dialog.show()
 
     def quick_save(self):
         self.export_svg('graph.svg')

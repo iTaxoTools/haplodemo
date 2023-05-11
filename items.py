@@ -812,18 +812,18 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
 
 class Node(Vertex):
-    def __init__(self, x, y, r, text, weights):
+    def __init__(self, x, y, r, name, weights):
         super().__init__(x, y, r)
         self.weights = weights
         self.pies = dict()
-        self.text = text
+        self.name = name
 
         font = QtGui.QFont()
         font.setPixelSize(16)
         font.setFamily('Arial')
         self.font = font
 
-        self.label = Label(text, self)
+        self.label = Label(name, self)
         self.adjust_radius()
 
     @override
