@@ -188,6 +188,9 @@ class Settings(PropertyObject):
     node_e = Property(float, 0)
     node_f = Property(float, 0)
 
+    node_label_format = '{text}'
+    edge_label_format = '({weight})'
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.binder = Binder()
@@ -272,6 +275,16 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             node.adjust_radius(a, b, c, d, e, f)
         for edge in edges:
             edge.adjustPosition()
+
+    def styleLabels(self, node_label_format, edge_label_format):
+        nodes = (item for item in self.items() if isinstance(item, Node))
+        edges = (item for item in self.items() if isinstance(item, Edge))
+        for node in nodes:
+            text = node_label_format.format(text=node.text, weight=node.weight)
+            node.label.setText(text)
+        for edge in edges:
+            text = edge_label_format.format(weight=edge.weight)
+            edge.label.setText(text)
 
     def create_vertex(self, *args, **kwargs):
         item = Vertex(*args, **kwargs)
@@ -617,6 +630,8 @@ class Window(QtWidgets.QWidget):
         # scene.addManyNodes(8, 32)
         # scene.addBezier()
         scene.addNodes()
+
+        scene.styleLabels(settings.node_label_format, settings.edge_label_format)
 
         scene_view = GraphicsView(scene, opengl)
 

@@ -285,13 +285,22 @@ class Label(QtWidgets.QGraphicsItem):
         rect = self.getCenteredRect()
         self.setRect(rect)
 
+    def setText(self, text):
+        center = self.rect.center()
+        self.text = text
+        self.outline = self.getTextOutline()
+        rect = self.getCenteredRect()
+        rect.moveCenter(center)
+        self.setRect(rect)
+
 
 class Edge(QtWidgets.QGraphicsLineItem):
-    def __init__(self, node1, node2, segments=2):
+    def __init__(self, node1, node2, weight=1):
         super().__init__()
         self.setAcceptHoverEvents(True)
         self.setZValue(-1)
-        self.segments = segments
+        self.weight = weight
+        self.segments = weight
         self.node1 = node1
         self.node2 = node2
 
@@ -301,7 +310,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.locked_label_rect_pos = None
         self._highlight_color = QtCore.Qt.magenta
 
-        self.label = Label(str(segments), self)
+        self.label = Label(str(weight), self)
         self.label.set_white_outline(True)
         self.set_style(EdgeStyle.Bubbles)
         self.lockLabelPosition()
@@ -585,7 +594,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self._recursive_setting = None
         self._highlight_color = QtCore.Qt.magenta
 
-        self.size = r
+        self.weight = r
         self.radius = r
         self.locked_distance = None
         self.locked_rotation = None
@@ -882,7 +891,7 @@ class Node(Vertex):
             self.pies[color] = span
 
     def adjust_radius(self, a=10, b=2, c=0.4, d=1, e=0, f=0):
-        r = self.radius_from_size(self.size, a, b, c, d, e, f)
+        r = self.radius_from_size(self.weight, a, b, c, d, e, f)
         self.radius = r
 
         self.prepareGeometryChange()
