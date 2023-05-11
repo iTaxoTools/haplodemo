@@ -405,17 +405,77 @@ class EdgeStyleSettings(PropertyObject):
     cutoff = Property(int, 3)
 
 
-class EdgeStyleDialog(QtWidgets.QDialog):
+class OptionsDialog(QtWidgets.QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.MSWindowsFixedSizeDialogHint)
+        self.binder = Binder()
+
+    def draw_dialog(self, contents):
+        ok = QtWidgets.QPushButton('OK')
+        cancel = QtWidgets.QPushButton('Cancel')
+        apply = QtWidgets.QPushButton('Apply')
+
+        ok.clicked.connect(self.accept)
+        cancel.clicked.connect(self.reject)
+        apply.clicked.connect(self.apply)
+
+        cancel.setAutoDefault(True)
+
+        buttons = QtWidgets.QHBoxLayout()
+        buttons.addStretch(1)
+        buttons.addWidget(ok)
+        buttons.addWidget(cancel)
+        buttons.addWidget(apply)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addLayout(contents, 1)
+        layout.addSpacing(8)
+        layout.addLayout(buttons)
+        self.setLayout(layout)
+
+    def accept(self):
+        self.apply()
+        super().accept()
+
+    def apply(self):
+        pass
+
+
+class BoundOptionsDialog(OptionsDialog):
+    def __init__(self, parent, settings, global_settings):
+        super().__init__(parent)
+        self.settings = settings
+        self.global_settings = global_settings
+        self.pull()
+
+    def show(self):
+        super().show()
+        self.pull()
+
+    def pull(self):
+        for property in self.settings.properties:
+            global_value = self.global_settings.properties[property.key].value
+            property.set(global_value)
+
+    def push(self):
+        for property in self.settings.properties:
+            self.global_settings.properties[property.key].set(property.value)
+
+
+class EdgeStyleDialog(OptionsDialog):
     def __init__(self, parent, scene):
         super().__init__(parent)
         self.setWindowTitle('Haplodemo - Edge style')
-        self.setWindowFlags(self.windowFlags() | QtCore.Qt.MSWindowsFixedSizeDialogHint)
         self.resize(280, 0)
 
         self.scene = scene
         self.settings = EdgeStyleSettings()
-        self.binder = Binder()
 
+        contents = self.draw_contents()
+        self.draw_dialog(contents)
+
+    def draw_contents(self):
         label_info = QtWidgets.QLabel('Massively style all edges. To set the style for individual edges instead, double click them.')
         label_info.setWordWrap(True)
 
@@ -454,30 +514,11 @@ class EdgeStyleDialog(QtWidgets.QDialog):
         controls.addWidget(label_cutoff, 1, 0)
         controls.addWidget(cutoff, 1, 2, 1, 3)
 
-        ok = QtWidgets.QPushButton('OK')
-        cancel = QtWidgets.QPushButton('Cancel')
-        apply = QtWidgets.QPushButton('Apply')
-
-        ok.clicked.connect(self.accept)
-        cancel.clicked.connect(self.reject)
-        apply.clicked.connect(self.apply)
-
-        cancel.setAutoDefault(True)
-
-        buttons = QtWidgets.QHBoxLayout()
-        buttons.addStretch(1)
-        buttons.addWidget(ok)
-        buttons.addWidget(cancel)
-        buttons.addWidget(apply)
-
         layout = QtWidgets.QVBoxLayout()
-        layout.addStretch(1)
         layout.addWidget(label_info)
         layout.addLayout(controls, 1)
         layout.addWidget(label_more_info)
-        layout.addSpacing(8)
-        layout.addLayout(buttons)
-        self.setLayout(layout)
+        return layout
 
     def show(self):
         for property in self.settings.properties:
@@ -501,19 +542,17 @@ class NodeSizeSettings(PropertyObject):
     node_f = Property(float, None)
 
 
-class NodeSizeDialog(QtWidgets.QDialog):
+class NodeSizeDialog(BoundOptionsDialog):
     def __init__(self, parent, scene, global_settings):
-        super().__init__(parent)
+        super().__init__(parent, NodeSizeSettings(), global_settings)
         self.setWindowTitle('Haplodemo - Node size')
-        self.setWindowFlags(self.windowFlags() | QtCore.Qt.MSWindowsFixedSizeDialogHint)
 
         self.scene = scene
-        self.global_settings = global_settings
-        self.settings = NodeSizeSettings()
-        self.binder = Binder()
 
-        self.pull()
+        contents = self.draw_contents()
+        self.draw_dialog(contents)
 
+    def draw_contents(self):
         label_info = QtWidgets.QLabel('Set node radius (r) from node weight (w) according to the following formula:')
         label_info.setWordWrap(True)
 
@@ -564,46 +603,11 @@ class NodeSizeDialog(QtWidgets.QDialog):
         controls.addWidget(labels.f, 2, 4)
         controls.addWidget(fields.f, 2, 6)
 
-        ok = QtWidgets.QPushButton('OK')
-        cancel = QtWidgets.QPushButton('Cancel')
-        apply = QtWidgets.QPushButton('Apply')
-
-        ok.clicked.connect(self.accept)
-        cancel.clicked.connect(self.reject)
-        apply.clicked.connect(self.apply)
-
-        cancel.setAutoDefault(True)
-
-        buttons = QtWidgets.QHBoxLayout()
-        buttons.addStretch(1)
-        buttons.addWidget(ok)
-        buttons.addWidget(cancel)
-        buttons.addWidget(apply)
-
         layout = QtWidgets.QVBoxLayout()
-        layout.addStretch(1)
         layout.addWidget(label_info, 1)
         layout.addWidget(label_formula, 0)
         layout.addLayout(controls, 1)
-        layout.addLayout(buttons)
-        self.setLayout(layout)
-
-    def show(self):
-        super().show()
-        self.pull()
-
-    def pull(self):
-        for property in self.settings.properties:
-            global_value = self.global_settings.properties[property.key].value
-            property.set(global_value)
-
-    def push(self):
-        for property in self.settings.properties:
-            self.global_settings.properties[property.key].set(property.value)
-
-    def accept(self):
-        self.apply()
-        super().accept()
+        return layout
 
     def apply(self):
         settings = self.settings
@@ -623,20 +627,18 @@ class LabelFormatSettings(PropertyObject):
     edge_label_template = Property(str, None)
 
 
-class LabelFormatDialog(QtWidgets.QDialog):
+class LabelFormatDialog(BoundOptionsDialog):
     def __init__(self, parent, scene, global_settings):
-        super().__init__(parent)
+        super().__init__(parent, LabelFormatSettings(), global_settings)
         self.setWindowTitle('Haplodemo - Label format')
-        self.setWindowFlags(self.windowFlags() | QtCore.Qt.MSWindowsFixedSizeDialogHint)
         self.resize(340, 0)
 
         self.scene = scene
-        self.global_settings = global_settings
-        self.settings = LabelFormatSettings()
-        self.binder = Binder()
 
-        self.pull()
+        contents = self.draw_contents()
+        self.draw_dialog(contents)
 
+    def draw_contents(self):
         label_info = QtWidgets.QLabel('Set all labels from templates, where "NAME" and "WEIGHT" are replaced by the corresponding values.')
         label_info.setWordWrap(True)
 
@@ -666,45 +668,10 @@ class LabelFormatDialog(QtWidgets.QDialog):
         controls.addWidget(label_edges, 1, 0)
         controls.addWidget(field_edges, 1, 2)
 
-        ok = QtWidgets.QPushButton('OK')
-        cancel = QtWidgets.QPushButton('Cancel')
-        apply = QtWidgets.QPushButton('Apply')
-
-        ok.clicked.connect(self.accept)
-        cancel.clicked.connect(self.reject)
-        apply.clicked.connect(self.apply)
-
-        cancel.setAutoDefault(True)
-
-        buttons = QtWidgets.QHBoxLayout()
-        buttons.addStretch(1)
-        buttons.addWidget(ok)
-        buttons.addWidget(cancel)
-        buttons.addWidget(apply)
-
         layout = QtWidgets.QVBoxLayout()
-        layout.addStretch(1)
         layout.addWidget(label_info, 1)
         layout.addLayout(controls, 1)
-        layout.addLayout(buttons)
-        self.setLayout(layout)
-
-    def show(self):
-        super().show()
-        self.pull()
-
-    def pull(self):
-        for property in self.settings.properties:
-            global_value = self.global_settings.properties[property.key].value
-            property.set(global_value)
-
-    def push(self):
-        for property in self.settings.properties:
-            self.global_settings.properties[property.key].set(property.value)
-
-    def accept(self):
-        self.apply()
-        super().accept()
+        return layout
 
     def apply(self):
         settings = self.settings
