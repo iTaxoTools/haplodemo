@@ -3,6 +3,7 @@ from PySide6 import QtGui
 from PySide6 import QtCore
 
 from enum import Enum, auto
+from math import log
 
 from itaxotools.common.utility import override
 
@@ -303,6 +304,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.label = Label(str(segments), self)
         self.label.set_white_outline(True)
         self.set_style(EdgeStyle.Bubbles)
+        self.lockLabelPosition()
 
     @override
     def shape(self):
@@ -583,6 +585,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self._recursive_setting = None
         self._highlight_color = QtCore.Qt.magenta
 
+        self.size = r
         self.radius = r
         self.locked_distance = None
         self.locked_rotation = None
@@ -812,6 +815,7 @@ class Node(Vertex):
         self.font = font
 
         self.label = Label(text, self)
+        self.adjust_radius()
 
     @override
     def hoverEnterEvent(self, event):
@@ -876,3 +880,16 @@ class Node(Vertex):
             color = color_map[key]
             span = int(5760 * weight / total_weight)
             self.pies[color] = span
+
+    def adjust_radius(self, a=10, b=2, c=0.4, d=1, e=0, f=0):
+        r = self.radius_from_size(self.size, a, b, c, d, e, f)
+        self.radius = r
+
+        self.prepareGeometryChange()
+        self.setRect(-r, -r, 2 * r, 2 * r)
+
+    @classmethod
+    def radius_from_size(cls, x, a, b, c, d, e, f):
+        if a and b and c:
+            return a * log(c * x + d, b) + e * x + f
+        return e * x + f

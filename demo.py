@@ -9,7 +9,7 @@ from PySide6 import QtCore
 from PySide6 import QtSvg
 
 from itaxotools.common.bindings import PropertyObject, Property, Binder, Instance
-from itaxotools.common.utility import Guard, type_convert
+from itaxotools.common.utility import AttrDict, Guard, type_convert
 
 from items import Vertex, Node, Label, Edge, BezierCurve, EdgeStyle
 from palettes import Palette
@@ -157,6 +157,13 @@ class Settings(PropertyObject):
     recursive_movement = Property(bool, True)
     label_movement = Property(bool, False)
 
+    node_a = Property(float, 10)
+    node_b = Property(float, 2)
+    node_c = Property(float, 0.2)
+    node_d = Property(float, 1)
+    node_e = Property(float, 0)
+    node_f = Property(float, 0)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.binder = Binder()
@@ -198,17 +205,17 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         node5 = self.create_node(vertex1.pos().x() - 80, vertex1.pos().y() + 40, 30, 'Error', {'?': 1})
         self.add_child(vertex1, node5, 4)
 
-        node6 = self.create_node(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 15, 'R', {'Z': 1})
+        node6 = self.create_node(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 20, 'R', {'Z': 1})
         self.add_child(vertex1, node6, 1)
 
-        node7 = self.create_node(vertex1.pos().x() + 100, vertex1.pos().y() + 80, 15, 'S', {'Z': 1})
+        node7 = self.create_node(vertex1.pos().x() + 100, vertex1.pos().y() + 80, 10, 'S', {'Z': 1})
         self.add_sibling(node6, node7, 2)
 
-        node8 = self.create_node(vertex1.pos().x() + 20, vertex1.pos().y() + 80, 15, 'T', {'Y': 1})
+        node8 = self.create_node(vertex1.pos().x() + 20, vertex1.pos().y() + 80, 40, 'T', {'Y': 1})
         self.add_sibling(node6, node8, 1)
         self.add_sibling(node7, node8, 1)
 
-        node9 = self.create_node(node7.pos().x() + 20, node7.pos().y() - 40, 10, 'x', {'Z': 1})
+        node9 = self.create_node(node7.pos().x() + 20, node7.pos().y() - 40, 5, 'x', {'Z': 1})
         self.add_child(node7, node9, 1)
 
     def addManyNodes(self, dx, dy):
@@ -230,6 +237,14 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         for edge in edges:
             style = style_default if edge.segments <= cutoff else style_cutoff
             edge.set_style(style)
+
+    def styleNodes(self, a=10, b=2, c=0.2, d=1, e=0, f=0):
+        nodes = (item for item in self.items() if isinstance(item, Node))
+        edges = (item for item in self.items() if isinstance(item, Edge))
+        for node in nodes:
+            node.adjust_radius(a, b, c, d, e, f)
+        for edge in edges:
+            edge.adjustPosition()
 
     def create_vertex(self, *args, **kwargs):
         item = Vertex(*args, **kwargs)
@@ -433,6 +448,132 @@ class EdgeStyleDialog(QtWidgets.QDialog):
         self.scene.styleEdges(self.settings.bubbles, self.settings.cutoff)
 
 
+class NodeSizeSettings(PropertyObject):
+    node_a = Property(float, None)
+    node_b = Property(float, None)
+    node_c = Property(float, None)
+    node_d = Property(float, None)
+    node_e = Property(float, None)
+    node_f = Property(float, None)
+
+
+class NodeSiszeDialog(QtWidgets.QDialog):
+    def __init__(self, parent, scene, global_settings):
+        super().__init__(parent)
+        self.setWindowTitle('Haplodemo - Node size')
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.MSWindowsFixedSizeDialogHint)
+
+        self.scene = scene
+        self.global_settings = global_settings
+        self.settings = NodeSizeSettings()
+        self.binder = Binder()
+
+        self.pull()
+
+        label_info = QtWidgets.QLabel('Set node radius (r) from node weight (w) according to the following formula:')
+        label_info.setWordWrap(True)
+
+        dot = ' \u00B7 '
+        sub = '<sub>b</sub>'
+        formula = f'r = a{dot}log{sub}(c{dot}w+d) + e{dot}w + f'
+        label_formula = QtWidgets.QLabel(formula)
+        label_formula.setStyleSheet("padding: 4; font: 16px;")
+        label_formula.setAlignment(QtCore.Qt.AlignCenter)
+
+        labels = AttrDict()
+        for x in ['a', 'b', 'c', 'd', 'e', 'f']:
+            labels[x] = QtWidgets.QLabel(f'{x}:')
+
+        fields = AttrDict()
+        for x in ['a', 'b', 'c', 'd', 'e', 'f']:
+            field = QtWidgets.QDoubleSpinBox()
+            field.setMaximum(float('inf'))
+            field.setSingleStep(1)
+            field.setDecimals(2)
+            property = self.settings.properties[f'node_{x}']
+            self.binder.bind(field.valueChanged, property, lambda x: type_convert(x, float, None))
+            self.binder.bind(property, field.setValue, lambda x: type_convert(x, float, 0))
+            fields[x] = field
+
+        fields.b.setMinimum(2)
+
+        controls = QtWidgets.QGridLayout()
+        controls.setContentsMargins(8, 8, 8, 8)
+        controls.setColumnMinimumWidth(1, 8)
+        controls.setColumnMinimumWidth(3, 8)
+        controls.setColumnMinimumWidth(5, 8)
+        controls.setColumnStretch(2, 1)
+        controls.setColumnStretch(6, 1)
+
+        controls.addWidget(labels.a, 0, 0)
+        controls.addWidget(fields.a, 0, 2)
+        controls.addWidget(labels.b, 0, 4)
+        controls.addWidget(fields.b, 0, 6)
+
+        controls.addWidget(labels.c, 1, 0)
+        controls.addWidget(fields.c, 1, 2)
+        controls.addWidget(labels.d, 1, 4)
+        controls.addWidget(fields.d, 1, 6)
+
+        controls.addWidget(labels.e, 2, 0)
+        controls.addWidget(fields.e, 2, 2)
+        controls.addWidget(labels.f, 2, 4)
+        controls.addWidget(fields.f, 2, 6)
+
+        ok = QtWidgets.QPushButton('OK')
+        cancel = QtWidgets.QPushButton('Cancel')
+        apply = QtWidgets.QPushButton('Apply')
+
+        ok.clicked.connect(self.accept)
+        cancel.clicked.connect(self.reject)
+        apply.clicked.connect(self.apply)
+
+        cancel.setAutoDefault(True)
+
+        buttons = QtWidgets.QHBoxLayout()
+        buttons.addStretch(1)
+        buttons.addWidget(ok)
+        buttons.addWidget(cancel)
+        buttons.addWidget(apply)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addStretch(1)
+        layout.addWidget(label_info, 1)
+        layout.addWidget(label_formula, 0)
+        layout.addLayout(controls, 1)
+        layout.addLayout(buttons)
+        self.setLayout(layout)
+
+    def show(self):
+        super().show()
+        self.pull()
+
+    def pull(self):
+        for property in self.settings.properties:
+            global_value = self.global_settings.properties[property.key].value
+            property.set(global_value)
+
+    def push(self):
+        for property in self.settings.properties:
+            self.global_settings.properties[property.key].set(property.value)
+
+    def accept(self):
+        self.apply()
+        super().accept()
+
+    def apply(self):
+        settings = self.settings
+        self.scene.styleNodes(
+            settings.node_a,
+            settings.node_b,
+            settings.node_c,
+            settings.node_d,
+            settings.node_e,
+            settings.node_f,
+        )
+        self.push()
+
+
 class Window(QtWidgets.QWidget):
     def __init__(self, opengl=False):
         super().__init__()
@@ -447,7 +588,6 @@ class Window(QtWidgets.QWidget):
         # scene.addManyNodes(8, 32)
         # scene.addBezier()
         scene.addNodes()
-        scene.styleEdges(bubbles=True, cutoff=3)
 
         scene_view = GraphicsView(scene, opengl)
 
@@ -501,8 +641,13 @@ class Window(QtWidgets.QWidget):
 
         self.scene = scene
         self.scene_view = scene_view
+        self.settings = settings
 
         self.edge_style_dialog = EdgeStyleDialog(self, self.scene)
+        self.edge_style_dialog.apply()
+
+        self.node_size_dialog = NodeSiszeDialog(self, self.scene, self.settings)
+        self.node_size_dialog.apply()
 
         self.binder = Binder()
 
@@ -529,7 +674,7 @@ class Window(QtWidgets.QWidget):
         self.edge_style_dialog.show()
 
     def show_node_resize_dialog(self):
-        print('klik')
+        self.node_size_dialog.show()
 
     def quick_save(self):
         self.export_svg('graph.svg')
