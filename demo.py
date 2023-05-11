@@ -39,6 +39,30 @@ class GLineEdit(QtWidgets.QLineEdit):
         super().setText(text)
 
 
+class RadioButtonGroup(QtCore.QObject):
+    valueChanged = QtCore.Signal(object)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.members = dict()
+        self.value = None
+
+    def add(self, widget, value):
+        self.members[widget] = value
+        widget.toggled.connect(self.handleToggle)
+
+    def handleToggle(self, checked):
+        if not checked:
+            return
+        self.value = self.members[self.sender()]
+        self.valueChanged.emit(self.value)
+
+    def setValue(self, newValue):
+        self.value = newValue
+        for widget, value in self.members.items():
+            widget.setChecked(value == newValue)
+
+
 class ColorDelegate(QtWidgets.QStyledItemDelegate):
     def paint(self, painter, option, index):
         super().paint(painter, option, index)
@@ -227,11 +251,14 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
                 nodey = self.create_node(nodex.pos().x() + 80 + 40 * y, nodex.pos().y() + 40, 15, f'y{y}', {'Y': 1})
                 self.add_child(nodex, nodey)
 
-    def styleEdges(self, bubbles=True, cutoff=3):
+    def styleEdges(self, style_default=EdgeStyle.Bubbles, cutoff=3):
         if not cutoff:
             cutoff = float('inf')
-        style_default = EdgeStyle.Bubbles if bubbles else EdgeStyle.Strikes
-        style_cutoff = EdgeStyle.DotsWithText if bubbles else EdgeStyle.Collapsed
+        style_cutoff = {
+            EdgeStyle.Bubbles: EdgeStyle.DotsWithText,
+            EdgeStyle.Bars: EdgeStyle.Collapsed,
+            EdgeStyle.Plain: EdgeStyle.PlainWithText,
+        }[style_default]
         edges = (item for item in self.items() if isinstance(item, Edge))
 
         for edge in edges:
@@ -359,7 +386,7 @@ class ToggleButton(QtWidgets.QPushButton):
 
 
 class EdgeStyleSettings(PropertyObject):
-    bubbles = Property(bool, True)
+    style = Property(EdgeStyle, EdgeStyle.Bubbles)
     cutoff = Property(int, 3)
 
 
@@ -383,6 +410,12 @@ class EdgeStyleDialog(QtWidgets.QDialog):
         label_style = QtWidgets.QLabel('Style:')
         bubbles = QtWidgets.QRadioButton('Bubbles')
         bars = QtWidgets.QRadioButton('Bars')
+        plain = QtWidgets.QRadioButton('Plain')
+
+        group = RadioButtonGroup()
+        group.add(bubbles, EdgeStyle.Bubbles)
+        group.add(bars, EdgeStyle.Bars)
+        group.add(plain, EdgeStyle.Plain)
 
         label_cutoff = QtWidgets.QLabel('Cutoff:')
         cutoff = GLineEdit()
@@ -390,28 +423,21 @@ class EdgeStyleDialog(QtWidgets.QDialog):
         validator = QtGui.QIntValidator()
         cutoff.setValidator(validator)
 
-        self.binder.bind(bubbles.toggled, self.settings.properties.bubbles, lambda x: x)
-        self.binder.bind(bars.toggled, self.settings.properties.bubbles, lambda x: not x)
-
-        self.binder.bind(self.settings.properties.bubbles, bubbles.setChecked, lambda x: x)
-        self.binder.bind(self.settings.properties.bubbles, bars.setChecked, lambda x: not x)
+        self.binder.bind(group.valueChanged, self.settings.properties.style)
+        self.binder.bind(self.settings.properties.style, group.setValue)
 
         self.binder.bind(cutoff.textEditedSafe, self.settings.properties.cutoff, lambda x: type_convert(x, int, None))
         self.binder.bind(self.settings.properties.cutoff, cutoff.setText, lambda x: type_convert(x, str, ''))
 
         controls = QtWidgets.QGridLayout()
-        controls.setColumnMinimumWidth(0, 8)
-        controls.setRowMinimumHeight(1, 8)
-        controls.setRowMinimumHeight(3, 8)
-        controls.setRowMinimumHeight(5, 8)
-        controls.setRowMinimumHeight(7, 8)
-        controls.addWidget(label_info, 0, 0, 1, 4)
-        controls.addWidget(label_style, 2, 1)
-        controls.addWidget(bubbles, 2, 2)
-        controls.addWidget(bars, 2, 3)
-        controls.addWidget(label_cutoff, 4, 1)
-        controls.addWidget(cutoff, 4, 2, 1, 2)
-        controls.addWidget(label_more_info, 6, 0, 1, 4)
+        controls.setContentsMargins(8, 8, 8, 8)
+        controls.setColumnMinimumWidth(1, 8)
+        controls.addWidget(label_style, 0, 0)
+        controls.addWidget(bubbles, 0, 2)
+        controls.addWidget(bars, 0, 3)
+        controls.addWidget(plain, 0, 4)
+        controls.addWidget(label_cutoff, 1, 0)
+        controls.addWidget(cutoff, 1, 2, 1, 3)
 
         ok = QtWidgets.QPushButton('OK')
         cancel = QtWidgets.QPushButton('Cancel')
@@ -431,7 +457,10 @@ class EdgeStyleDialog(QtWidgets.QDialog):
 
         layout = QtWidgets.QVBoxLayout()
         layout.addStretch(1)
+        layout.addWidget(label_info)
         layout.addLayout(controls, 1)
+        layout.addWidget(label_more_info)
+        layout.addSpacing(8)
         layout.addLayout(buttons)
         self.setLayout(layout)
 
@@ -445,7 +474,7 @@ class EdgeStyleDialog(QtWidgets.QDialog):
         super().accept()
 
     def apply(self):
-        self.scene.styleEdges(self.settings.bubbles, self.settings.cutoff)
+        self.scene.styleEdges(self.settings.style, self.settings.cutoff)
 
 
 class NodeSizeSettings(PropertyObject):

@@ -12,13 +12,13 @@ from utility import shapeFromPath
 
 class EdgeDecoration(Enum):
     Bubbles = auto()
-    Strikes = auto()
+    Bars = auto()
     DoubleStrike = auto()
 
 
 class EdgeStyle(Enum):
     Bubbles = 'Bubbles', EdgeDecoration.Bubbles, False, False, None
-    Strikes = 'Strikes', EdgeDecoration.Strikes, False, False, None
+    Bars = 'Bars', EdgeDecoration.Bars, False, False, None
     Collapsed = 'Collapsed', EdgeDecoration.DoubleStrike, False, True, 16
     PlainWithText = 'Plain with text', None, False, True, None
     DotsWithText = 'Dots with text', None, True, True, None
@@ -362,8 +362,8 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
         if self.style.decoration == EdgeDecoration.Bubbles:
             self.paintBubbles(painter)
-        elif self.style.decoration == EdgeDecoration.Strikes:
-            self.paintStrikes(painter)
+        elif self.style.decoration == EdgeDecoration.Bars:
+            self.paintBars(painter)
         elif self.style.decoration == EdgeDecoration.DoubleStrike:
             self.paintDoubleStrike(painter)
 
@@ -399,16 +399,16 @@ class Edge(QtWidgets.QGraphicsLineItem):
             painter.restore()
         painter.drawEllipse(point, 2.5, 2.5)
 
-    def paintStrikes(self, painter):
+    def paintBars(self, painter):
         if self.segments == 0:
             return
 
-        strikes = self.segments
+        bars = self.segments
         line = self.line()
 
         length = 12
         spacing = 6
-        offset = (strikes - 1) * spacing / 2
+        offset = (bars - 1) * spacing / 2
 
         if offset * 2 > line.length():
             self.paintError(painter)
@@ -418,12 +418,12 @@ class Edge(QtWidgets.QGraphicsLineItem):
         unit = line.unitVector()
         unit.translate(center - unit.p1())
         normal = unit.normalVector()
-        strike = QtCore.QLineF(0, 0, normal.dx(), normal.dy())
-        strike.setLength(length / 2)
+        bar = QtCore.QLineF(0, 0, normal.dx(), normal.dy())
+        bar.setLength(length / 2)
 
-        for count in range(strikes):
+        for count in range(bars):
             point = unit.pointAt(count * spacing - offset)
-            self.drawStrike(painter, point, strike)
+            self.drawBar(painter, point, bar)
 
     def paintDoubleStrike(self, painter):
         if self.segments <= 1:
@@ -451,19 +451,19 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
         for count in range(strikes):
             point = unit.pointAt(count * spacing - offset)
-            self.drawStrike(painter, point, strike)
+            self.drawBar(painter, point, strike)
 
-    def drawStrike(self, painter, point, strike):
-        strike = strike.translated(point)
-        strike = QtCore.QLineF(strike.pointAt(-1), strike.pointAt(1))
+    def drawBar(self, painter, point, bar):
+        bar = bar.translated(point)
+        bar = QtCore.QLineF(bar.pointAt(-1), bar.pointAt(1))
 
         if self.state_hovered:
             painter.save()
             pen = QtGui.QPen(self._highlight_color, 6)
             painter.setPen(pen)
-            painter.drawLine(strike)
+            painter.drawLine(bar)
             painter.restore()
-        painter.drawLine(strike)
+        painter.drawLine(bar)
 
     def paintError(self, painter):
         painter.save()
