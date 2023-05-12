@@ -10,6 +10,7 @@ from PySide6 import QtSvg
 
 from itaxotools.common.bindings import PropertyObject, Property, Binder, Instance
 from itaxotools.common.utility import AttrDict, Guard, type_convert
+from itaxotools.common.widgets import HLineSeparator
 
 from items import Vertex, Node, Label, Edge, BezierCurve, EdgeStyle
 from palettes import Palette
@@ -686,7 +687,7 @@ class Window(QtWidgets.QWidget):
     def __init__(self, opengl=False):
         super().__init__()
         self.setWindowFlags(QtCore.Qt.Window)
-        self.resize(440, 620)
+        self.resize(680, 480)
         self.setWindowTitle('Haplodemo')
 
         settings = Settings()
@@ -705,7 +706,7 @@ class Window(QtWidgets.QWidget):
 
         toggle_rotation = ToggleButton('Rotate nodes')
         toggle_recursive = ToggleButton('Move children')
-        toggle_labels = ToggleButton('Unlock labels')
+        toggle_labels = ToggleButton('Lock labels')
 
         mass_style_edges = QtWidgets.QPushButton('Set edge style')
         mass_style_edges.clicked.connect(self.show_edge_style_dialog)
@@ -729,28 +730,45 @@ class Window(QtWidgets.QWidget):
         button_png = QtWidgets.QPushButton('Export as PNG')
         button_png.clicked.connect(lambda: self.export_png())
 
-        options = QtWidgets.QHBoxLayout()
+        options = QtWidgets.QVBoxLayout()
         options.addWidget(toggle_rotation)
         options.addWidget(toggle_recursive)
         options.addWidget(toggle_labels)
 
-        dialogs = QtWidgets.QHBoxLayout()
+        dialogs = QtWidgets.QVBoxLayout()
         dialogs.addWidget(mass_style_edges)
         dialogs.addWidget(mass_resize_nodes)
         dialogs.addWidget(mass_format_labels)
 
-        buttons = QtWidgets.QHBoxLayout()
+        buttons = QtWidgets.QVBoxLayout()
         buttons.addWidget(button_svg)
         buttons.addWidget(button_pdf)
         buttons.addWidget(button_png)
 
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(scene_view, 10)
-        layout.addWidget(palette_selector)
-        layout.addWidget(division_view, 1)
-        layout.addLayout(options)
-        layout.addLayout(dialogs)
-        layout.addLayout(buttons)
+        sidebar = QtWidgets.QVBoxLayout()
+        sidebar.setContentsMargins(0, 0, 0, 0)
+        sidebar.addLayout(buttons)
+        sidebar.addSpacing(4)
+        sidebar.addWidget(HLineSeparator(1))
+        sidebar.addSpacing(4)
+        sidebar.addLayout(dialogs)
+        sidebar.addSpacing(4)
+        sidebar.addWidget(HLineSeparator(1))
+        sidebar.addSpacing(4)
+        sidebar.addLayout(options)
+        sidebar.addSpacing(4)
+        sidebar.addWidget(HLineSeparator(1))
+        sidebar.addSpacing(4)
+        sidebar.addWidget(palette_selector)
+        sidebar.addWidget(division_view, 1)
+
+        sidebar_widget = QtWidgets.QWidget()
+        sidebar_widget.setLayout(sidebar)
+        sidebar_widget.setFixedWidth(160)
+
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(sidebar_widget)
+        layout.addWidget(scene_view, 1)
         self.setLayout(layout)
 
         self.scene = scene
@@ -778,8 +796,8 @@ class Window(QtWidgets.QWidget):
         self.binder.bind(settings.properties.recursive_movement, toggle_recursive.setChecked)
         self.binder.bind(toggle_recursive.toggled, settings.properties.recursive_movement)
 
-        self.binder.bind(settings.properties.label_movement, toggle_labels.setChecked)
-        self.binder.bind(toggle_labels.toggled, settings.properties.label_movement)
+        self.binder.bind(settings.properties.label_movement, toggle_labels.setChecked, lambda x: not x)
+        self.binder.bind(toggle_labels.toggled, settings.properties.label_movement, lambda x: not x)
 
         action = QtGui.QAction()
         action.setShortcut(QtGui.QKeySequence.Save)
