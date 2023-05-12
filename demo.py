@@ -333,9 +333,33 @@ class GraphicsView(QtWidgets.QGraphicsView):
         super().__init__(scene, parent)
         self.setRenderHints(QtGui.QPainter.TextAntialiasing)
         self.setRenderHints(QtGui.QPainter.Antialiasing)
-
+        self.setSceneRect(-5000, -5000, 10000, 10000)
+        self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
+        self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
+        self.zoom_factor = 1.25
+        
         if opengl:
             self.enable_opengl()
+
+    def wheelEvent(self, event):
+        zoom_in = bool(event.angleDelta().y() > 0)
+        zoom = self.zoom_factor if zoom_in else 1 / self.zoom_factor
+        self.scale(zoom, zoom)
+
+    def enterEvent(self, event):
+        super().enterEvent(event)
+        self.viewport().setCursor(QtCore.Qt.ArrowCursor)
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)
+
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        self.viewport().setCursor(QtCore.Qt.ArrowCursor)
 
     def enable_opengl(self):
         format = QtGui.QSurfaceFormat()
