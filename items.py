@@ -194,13 +194,17 @@ class Label(QtWidgets.QGraphicsItem):
     def hoverEnterEvent(self, event):
         super().hoverEnterEvent(event)
         self.set_hovered(True)
+        parent = self.parentItem()
+        if parent:
+            parent.set_hovered(True)
 
     @override
     def hoverLeaveEvent(self, event):
         super().hoverLeaveEvent(event)
+        self.set_hovered(False)
         parent = self.parentItem()
-        if parent and not parent.state_hovered:
-            self.set_hovered(False)
+        if parent:
+            parent.set_hovered(False)
 
     @override
     def boundingRect(self):
@@ -265,7 +269,7 @@ class Label(QtWidgets.QGraphicsItem):
     def isHighlighted(self):
         if self.state_pressed:
             return True
-        if self.state_hovered and self.scene().pressed_item is None:
+        if self.state_hovered:
             return True
         return False
 
@@ -298,7 +302,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
     def __init__(self, node1, node2, weight=1):
         super().__init__()
         self.setAcceptHoverEvents(True)
-        self.setZValue(-1)
+        self.setZValue(-10)
         self.weight = weight
         self.segments = weight
         self.node1 = node1
@@ -496,6 +500,10 @@ class Edge(QtWidgets.QGraphicsLineItem):
     def set_hovered(self, value):
         self.state_hovered = value
         self.label.set_hovered(value)
+        if value:
+            self.setZValue(-5)
+        else:
+            self.setZValue(-10)
         self.update()
 
     def set_highlight_color(self, value):
@@ -583,6 +591,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.siblings = list()
         self.edges = dict()
 
+        self.setZValue(10)
         self.setAcceptHoverEvents(True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
@@ -638,11 +647,13 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def hoverEnterEvent(self, event):
         super().hoverEnterEvent(event)
         self.set_hovered(True)
+        self.setZValue(15)
 
     @override
     def hoverLeaveEvent(self, event):
         super().hoverLeaveEvent(event)
         self.set_hovered(False)
+        self.setZValue(10)
 
     @override
     def mousePressEvent(self, event):
@@ -663,7 +674,6 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
         self.set_pressed(False)
-        self.set_hovered(True)
 
     @override
     def mouseMoveEvent(self, event):
@@ -674,7 +684,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def isHighlighted(self):
         if self.state_pressed:
             return True
-        if self.state_hovered and self.scene().pressed_item is None:
+        if self.state_hovered:
             return True
         return False
 
@@ -699,10 +709,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
     def set_pressed(self, value):
         self.state_pressed = value
-        if self.parent and self._rotational_setting:
-            edge = self.edges[self.parent]
-            edge.state_hovered = value
-            edge.update()
+        self.update()
 
     def set_hovered(self, value):
         self.state_hovered = value

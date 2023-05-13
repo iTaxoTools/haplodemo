@@ -205,9 +205,105 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.white)))
         self.settings = settings
         self.hovered_item = None
-        self.pressed_item = None
-        self.lighlighted_edge = None
         self.binder = Binder()
+
+    def event(self, event):
+        if event.type() == QtCore.QEvent.GraphicsSceneLeave:
+            self.mouseLeaveEvent(event)
+        return super().event(event)
+
+    def mouseLeaveEvent(self, event):
+        if self.hovered_item:
+            hover = QtWidgets.QGraphicsSceneHoverEvent()
+            # hover.type = lambda: event.type()
+            self.hovered_item.hoverLeaveEvent(hover)
+            self.hovered_item = None
+
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            item = self.getItemAtPos(event.scenePos(), ignore_edges=True)
+            if item:
+                item.mousePressEvent(event)
+                item.grabMouse()
+                event.accept()
+        self.mouseMoveEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            item = self.mouseGrabberItem()
+            if item:
+                item.mouseReleaseEvent(event)
+                item.ungrabMouse()
+                event.accept()
+        self.mouseMoveEvent(event)
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            item = self.getItemAtPos(event.scenePos())
+            if item:
+                item.mouseDoubleClickEvent(event)
+                item.mouseReleaseEvent(event)
+                event.accept()
+
+    def mouseMoveEvent(self, event):
+        if self.mouseGrabberItem() or event.buttons():
+            super().mouseMoveEvent(event)
+            return
+
+        event.accept()
+
+        hover = self._hoverEventFromMouseEvent(event)
+        item = self.getItemAtPos(event.scenePos())
+
+        if self.hovered_item:
+            if item == self.hovered_item:
+                item.hoverMoveEvent(hover)
+                return
+            self.hovered_item.hoverLeaveEvent(hover)
+
+        self.hovered_item = item
+        if item:
+            item.hoverEnterEvent(hover)
+
+    def _hoverEventFromMouseEvent(self, mouse):
+        hover = QtWidgets.QGraphicsSceneHoverEvent()
+        # hover.widget = lambda: mouse.widget()
+        hover.setPos(mouse.pos())
+        hover.setScenePos(mouse.scenePos())
+        hover.setScreenPos(mouse.screenPos())
+        hover.setLastPos(mouse.lastPos())
+        hover.setLastScenePos(mouse.lastScenePos())
+        hover.setLastScreenPos(mouse.lastScreenPos())
+        hover.setModifiers(mouse.modifiers())
+        hover.setAccepted(mouse.isAccepted())
+        return hover
+
+    def getItemAtPos(self, pos, ignore_edges=False, ignore_labels=None):
+        if ignore_labels is None:
+            ignore_labels = not self.settings.label_movement
+
+        point = QtGui.QVector2D(pos.x(), pos.y())
+        closest_edge_item = None
+        closest_edge_distance = float('inf')
+        for item in super().items(pos):
+            if isinstance(item, Vertex):
+                return item
+            if isinstance(item, Label):
+                if not ignore_labels:
+                    return item
+            if isinstance(item, Edge) and not ignore_edges:
+                line = item.line()
+                p1 = item.mapToScene(line.p1())
+                p1 = QtGui.QVector2D(p1.x(), p1.y())
+                unit = line.unitVector()
+                unit = QtGui.QVector2D(unit.dx(), unit.dy())
+                distance = point.distanceToLine(p1, unit)
+                if distance < closest_edge_distance:
+                    closest_edge_distance = distance
+                    closest_edge_item = item
+        if closest_edge_item:
+            return closest_edge_item
+        return None
 
     def addBezier(self):
         item = BezierCurve(QtCore.QPointF(0, 0), QtCore.QPointF(200, 0))
@@ -340,7 +436,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
         self.zoom_factor = 1.25
-        
+
         if opengl:
             self.enable_opengl()
 
@@ -355,11 +451,13 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
-        self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)
+        if event.button() == QtCore.Qt.LeftButton:
+            self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)
 
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
-        self.viewport().setCursor(QtCore.Qt.ArrowCursor)
+        if event.button() == QtCore.Qt.LeftButton:
+            self.viewport().setCursor(QtCore.Qt.ArrowCursor)
 
     def enable_opengl(self):
         format = QtGui.QSurfaceFormat()
