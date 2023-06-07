@@ -22,7 +22,7 @@ from PySide6 import QtWidgets
 
 import sys
 
-from . import Window
+from .window import Window
 
 
 def run():
