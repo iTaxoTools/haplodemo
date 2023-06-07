@@ -1,13 +1,29 @@
-from PySide6 import QtWidgets
-from PySide6 import QtGui
-from PySide6 import QtCore
+# -----------------------------------------------------------------------------
+# Haplodemo - Visualize, edit and export haplotype networks
+# Copyright (C) 2023  Patmanidis Stefanos
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+# -----------------------------------------------------------------------------
+
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from enum import Enum, auto
 from math import log
 
 from itaxotools.common.utility import override
 
-from utility import shapeFromPath
+from .utility import shapeFromPath
 
 
 class EdgeDecoration(Enum):
@@ -457,7 +473,8 @@ class Edge(QtWidgets.QGraphicsLineItem):
         unit = line.unitVector()
         unit.translate(center - unit.p1())
         normal = unit.normalVector()
-        strike = QtCore.QLineF(0, 0,
+        strike = QtCore.QLineF(
+            0, 0,
             2 * normal.dx() + unit.dx(),
             2 * normal.dy() + unit.dy())
         strike.setLength(length / 2)
@@ -637,7 +654,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
     @override
     def itemChange(self, change, value):
-        parent = self.parentItem()
+        self.parentItem()
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
             for edge in self.edges.values():
                 edge.adjustPosition()
@@ -805,7 +822,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def moveRotationally(self, event):
         epos = event.scenePos()
         line = QtCore.QLineF(self.locked_center, epos)
-        angle =  self.locked_angle - line.angle()
+        angle = self.locked_angle - line.angle()
         center = self.locked_center
 
         transform = QtGui.QTransform()

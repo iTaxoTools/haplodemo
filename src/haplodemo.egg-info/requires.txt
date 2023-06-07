@@ -1,0 +1,8 @@
+itaxotools-common==0.3.0
+pyside6<6.5,>=6.1.1
+
+[dev]
+pyinstaller>=4.5.1
+flake8>=4.0.0
+isort>=5.9.0
+autoflake>=2.0.0

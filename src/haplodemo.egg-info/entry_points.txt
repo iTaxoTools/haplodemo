@@ -1,0 +1,2 @@
+[console_scripts]
+haplodemo = itaxotools.haplodemo.__main__:run
