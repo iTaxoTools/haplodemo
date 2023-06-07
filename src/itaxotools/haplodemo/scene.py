@@ -16,7 +16,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # -----------------------------------------------------------------------------
 
-from PySide6 import QtCore, QtGui, QtOpenGLWidgets, QtWidgets
+from PySide6 import QtCore, QtGui, QtOpenGLWidgets, QtSvg, QtWidgets
 
 from collections import defaultdict
 from dataclasses import dataclass
@@ -410,3 +410,45 @@ class GraphicsView(QtWidgets.QGraphicsView):
         glwidget.setFormat(format)
         self.setViewport(glwidget)
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
+
+    def clear_mouse(self):
+        event = QtWidgets.QGraphicsSceneEvent(QtCore.QEvent.GraphicsSceneLeave)
+        self.scene().mouseLeaveEvent(event)
+
+    def export_svg(self, file: str):
+        self.clear_mouse()
+
+        generator = QtSvg.QSvgGenerator()
+        generator.setFileName(file)
+        generator.setSize(QtCore.QSize(200, 200))
+        generator.setViewBox(QtCore.QRect(0, 0, 200, 200))
+
+        painter = QtGui.QPainter()
+        painter.begin(generator)
+        self.render(painter)
+        painter.end()
+
+    def export_pdf(self, file: str):
+        self.clear_mouse()
+
+        writer = QtGui.QPdfWriter(file)
+
+        painter = QtGui.QPainter()
+        painter.begin(writer)
+        self.render(painter)
+        painter.end()
+
+    def export_png(self, file: str):
+        self.clear_mouse()
+
+        width, height = 400, 400
+        pixmap = QtGui.QPixmap(width, height)
+        pixmap.fill(QtCore.Qt.white)
+
+        painter = QtGui.QPainter()
+        painter.begin(pixmap)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        self.render(painter)
+        painter.end()
+
+        pixmap.save(file)

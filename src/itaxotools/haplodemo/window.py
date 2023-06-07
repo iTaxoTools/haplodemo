@@ -16,7 +16,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # -----------------------------------------------------------------------------
 
-from PySide6 import QtCore, QtGui, QtSvg, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.bindings import Binder
 from itaxotools.common.widgets import HLineSeparator
@@ -167,16 +167,7 @@ class Window(QtWidgets.QWidget):
         if not file:
             return
         print('SVG >', file)
-
-        generator = QtSvg.QSvgGenerator()
-        generator.setFileName(file)
-        generator.setSize(QtCore.QSize(200, 200))
-        generator.setViewBox(QtCore.QRect(0, 0, 200, 200))
-
-        painter = QtGui.QPainter()
-        painter.begin(generator)
-        self.scene_view.render(painter)
-        painter.end()
+        self.scene_view.export_svg(file)
 
     def export_pdf(self, file=None):
         if file is None:
@@ -185,13 +176,7 @@ class Window(QtWidgets.QWidget):
         if not file:
             return
         print('PDF >', file)
-
-        writer = QtGui.QPdfWriter(file)
-
-        painter = QtGui.QPainter()
-        painter.begin(writer)
-        self.scene_view.render(painter)
-        painter.end()
+        self.scene_view.export_pdf(file)
 
     def export_png(self, file=None):
         if file is None:
@@ -200,15 +185,4 @@ class Window(QtWidgets.QWidget):
         if not file:
             return
         print('PNG >', file)
-
-        width, height = 400, 400
-        pixmap = QtGui.QPixmap(width, height)
-        pixmap.fill(QtCore.Qt.white)
-
-        painter = QtGui.QPainter()
-        painter.begin(pixmap)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        self.scene_view.render(painter)
-        painter.end()
-
-        pixmap.save(file)
+        self.scene_view.export_png(file)
