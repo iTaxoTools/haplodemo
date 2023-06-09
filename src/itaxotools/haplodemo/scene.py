@@ -361,6 +361,10 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         if not sibling.scene():
             self.addItem(sibling)
 
+    def clear(self):
+        super().clear()
+        self.binder.unbind_all()
+        
 
 class GraphicsView(QtWidgets.QGraphicsView):
     def __init__(self, scene=None, opengl=False, parent=None):
