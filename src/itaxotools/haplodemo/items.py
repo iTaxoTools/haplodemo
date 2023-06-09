@@ -622,10 +622,12 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
         self.weight = r
         self.radius = r
-        self.locked_distance = None
-        self.locked_rotation = None
+
+        self.locked_pos = None
+        self.locked_event_pos = None
         self.locked_angle = None
-        self.locked_transform = None
+        self.locked_center = None
+
         self.state_hovered = False
         self.state_pressed = False
 
@@ -800,7 +802,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.locked_event_pos = event.scenePos()
         self.locked_pos = self.pos()
 
-        if center:
+        if center is not None:
             line = QtCore.QLineF(center, event.scenePos())
             self.locked_angle = line.angle()
             self.locked_center = center
