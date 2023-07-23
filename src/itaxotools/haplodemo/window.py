@@ -24,6 +24,7 @@ from itaxotools.common.widgets import HLineSeparator
 from .dialogs import EdgeStyleDialog, LabelFormatDialog, NodeSizeDialog
 from .scene import GraphicsScene, GraphicsView, Settings
 from .widgets import ColorDelegate, DivisionView, PaletteSelector, ToggleButton
+from .zoom import ZoomControl
 
 
 class Window(QtWidgets.QWidget):
@@ -112,8 +113,11 @@ class Window(QtWidgets.QWidget):
         layout.addWidget(scene_view, 1)
         self.setLayout(layout)
 
+        zoom_control = ZoomControl(scene_view, self)
+
         self.scene = scene
         self.scene_view = scene_view
+        self.zoom_control = zoom_control
         self.settings = settings
 
         self.edge_style_dialog = EdgeStyleDialog(self, self.scene)
@@ -145,6 +149,15 @@ class Window(QtWidgets.QWidget):
         action.triggered.connect(self.quick_save)
         self.quick_save_action = action
         self.addAction(action)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        gg = self.scene_view.geometry()
+        gg.setTopLeft(QtCore.QPoint(
+            gg.bottomRight().x() - self.zoom_control.width() - 16,
+            gg.bottomRight().y() - self.zoom_control.height() - 16,
+        ))
+        self.zoom_control.setGeometry(gg)
 
     def show_edge_style_dialog(self):
         self.edge_style_dialog.show()

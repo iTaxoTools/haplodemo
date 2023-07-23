@@ -375,8 +375,8 @@ class GraphicsView(QtWidgets.QGraphicsView):
         self.setRenderHints(QtGui.QPainter.Antialiasing)
         self.setSceneRect(-5000, -5000, 10000, 10000)
         self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
-        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
+        self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
         self.zoom_factor = 1.10
@@ -386,7 +386,12 @@ class GraphicsView(QtWidgets.QGraphicsView):
         if opengl:
             self.enable_opengl()
 
-    def scale(self, zoom):
+    def setScale(self, scale):
+        current_scale = self.transform().m11()
+        zoom = scale / current_scale
+        self.zoom(zoom)
+
+    def zoom(self, zoom):
         scale = self.transform().m11()
 
         if scale * zoom < self.zoom_minimum:
@@ -394,8 +399,16 @@ class GraphicsView(QtWidgets.QGraphicsView):
         if scale * zoom > self.zoom_maximum:
             zoom = self.zoom_maximum / scale
 
-        super().scale(zoom, zoom)
+        self.scale(zoom, zoom)
+
+        scale = self.transform().m11()
         self.scaled.emit(scale)
+
+    def zoomIn(self):
+        self.zoom(self.zoom_factor)
+
+    def zoomOut(self):
+        self.zoom(1 / self.zoom_factor)
 
     def event(self, event):
         if event.type() == QtCore.QEvent.NativeGesture:
@@ -403,11 +416,14 @@ class GraphicsView(QtWidgets.QGraphicsView):
         return super().event(event)
 
     def nativeGestureEvent(self, event):
-        if event.gestureType() != QtCore.Qt.NativeGestureType.ZoomNativeGesture:
-            return False
+        if event.gestureType() == QtCore.Qt.NativeGestureType.ZoomNativeGesture:
+            self.nativeZoomEvent(event)
+            return True
+        return False
+
+    def nativeZoomEvent(self, event):
         zoom = 1 + event.value()
-        self.scale(zoom)
-        return True
+        self.zoom(zoom)
 
     def wheelEvent(self, event):
         if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
@@ -417,7 +433,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
     def wheelZoomEvent(self, event):
         zoom_in = bool(event.angleDelta().y() > 0)
         zoom = self.zoom_factor if zoom_in else 1 / self.zoom_factor
-        self.scale(zoom)
+        self.zoom(zoom)
 
     def wheelPanEvent(self, event):
         xx = self.horizontalScrollBar().value()
