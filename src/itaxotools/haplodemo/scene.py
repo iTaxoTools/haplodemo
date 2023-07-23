@@ -364,9 +364,11 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
     def clear(self):
         super().clear()
         self.binder.unbind_all()
-        
+
 
 class GraphicsView(QtWidgets.QGraphicsView):
+    scaled = QtCore.Signal(float)
+
     def __init__(self, scene=None, opengl=False, parent=None):
         super().__init__(scene, parent)
         self.setRenderHints(QtGui.QPainter.TextAntialiasing)
@@ -377,15 +379,51 @@ class GraphicsView(QtWidgets.QGraphicsView):
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
-        self.zoom_factor = 1.25
+        self.zoom_factor = 1.10
+        self.zoom_maximum = 4.0
+        self.zoom_minimum = 0.1
 
         if opengl:
             self.enable_opengl()
 
+    def scale(self, zoom):
+        scale = self.transform().m11()
+
+        if scale * zoom < self.zoom_minimum:
+            zoom = self.zoom_minimum / scale
+        if scale * zoom > self.zoom_maximum:
+            zoom = self.zoom_maximum / scale
+
+        super().scale(zoom, zoom)
+        self.scaled.emit(scale)
+
+    def event(self, event):
+        if event.type() == QtCore.QEvent.NativeGesture:
+            return self.nativeGestureEvent(event)
+        return super().event(event)
+
+    def nativeGestureEvent(self, event):
+        if event.gestureType() != QtCore.Qt.NativeGestureType.ZoomNativeGesture:
+            return False
+        zoom = 1 + event.value()
+        self.scale(zoom)
+        return True
+
     def wheelEvent(self, event):
+        if event.modifiers() & QtCore.Qt.KeyboardModifier.ControlModifier:
+            return self.wheelZoomEvent(event)
+        return self.wheelPanEvent(event)
+
+    def wheelZoomEvent(self, event):
         zoom_in = bool(event.angleDelta().y() > 0)
         zoom = self.zoom_factor if zoom_in else 1 / self.zoom_factor
-        self.scale(zoom, zoom)
+        self.scale(zoom)
+
+    def wheelPanEvent(self, event):
+        xx = self.horizontalScrollBar().value()
+        self.horizontalScrollBar().setValue(xx - event.angleDelta().x())
+        yy = self.verticalScrollBar().value()
+        self.verticalScrollBar().setValue(yy - event.angleDelta().y())
 
     def enterEvent(self, event):
         super().enterEvent(event)
