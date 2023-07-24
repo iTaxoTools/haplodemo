@@ -19,12 +19,13 @@
 from PySide6 import QtCore, QtGui, QtOpenGLWidgets, QtSvg, QtWidgets
 
 from collections import defaultdict
+from contextlib import contextmanager
 from dataclasses import dataclass
 
 from itaxotools.common.bindings import (
     Binder, Instance, Property, PropertyObject)
 
-from .items import BezierCurve, Edge, EdgeStyle, Label, Node, Vertex
+from .items import BezierCurve, Edge, EdgeStyle, Label, Node, Vertex, BoundaryRect
 from .palettes import Palette
 
 
@@ -144,6 +145,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.settings = settings
         self.hovered_item = None
         self.binder = Binder()
+        self.boundary = None
 
     def event(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneLeave:
@@ -242,6 +244,17 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         if closest_edge_item:
             return closest_edge_item
         return None
+
+    def setBoundary(self, x=0, y=0, w=0, h=0):
+        if not self.boundary:
+            self.boundary = BoundaryRect(x, y, w, h)
+            self.addItem(self.boundary)
+            return
+        if w == h == 0:
+            self.removeItem(self.boundary)
+            self.boundary = None
+            return
+        self.boundary.setRect(x, y, w, h)
 
     def addBezier(self):
         item = BezierCurve(QtCore.QPointF(0, 0), QtCore.QPointF(200, 0))
@@ -455,6 +468,9 @@ class GraphicsView(QtWidgets.QGraphicsView):
         if event.button() == QtCore.Qt.LeftButton:
             self.viewport().setCursor(QtCore.Qt.ArrowCursor)
 
+    def resizeEvent(self, event):
+        self.fitInView(self.scene().sceneRect(), QtCore.Qt.KeepAspectRatio)
+
     def enable_opengl(self):
         format = QtGui.QSurfaceFormat()
         format.setVersion(3, 3)
@@ -469,44 +485,79 @@ class GraphicsView(QtWidgets.QGraphicsView):
         self.setViewport(glwidget)
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
 
-    def clear_mouse(self):
+    @contextmanager
+    def prepare_export(self):
+        """Make sure the scene is clean and ready for a snapshot"""
         event = QtWidgets.QGraphicsSceneEvent(QtCore.QEvent.GraphicsSceneLeave)
         self.scene().mouseLeaveEvent(event)
 
+        if self.scene().boundary:
+            self.scene().boundary.setVisible(False)
+
+        yield
+
+        if self.scene().boundary:
+            self.scene().boundary.setVisible(True)
+
+    def get_render_rects(self) -> tuple[QtCore.QRect, QtCore.QRect]:
+        """Return a tuple of rects for rendering: (target, source)"""
+        if self.scene().boundary:
+            source = self.scene().boundary.rect()
+        else:
+            source = self.viewport().rect()
+
+        source = self.mapFromScene(source).boundingRect()
+        target = QtCore.QRect(0, 0, source.width(), source.height())
+
+        return (target, source)
+
     def export_svg(self, file: str):
-        self.clear_mouse()
+        with self.prepare_export():
 
-        generator = QtSvg.QSvgGenerator()
-        generator.setFileName(file)
-        generator.setSize(QtCore.QSize(200, 200))
-        generator.setViewBox(QtCore.QRect(0, 0, 200, 200))
+            target, source = self.get_render_rects()
 
-        painter = QtGui.QPainter()
-        painter.begin(generator)
-        self.render(painter)
-        painter.end()
+            generator = QtSvg.QSvgGenerator()
+            generator.setFileName(file)
+            generator.setSize(QtCore.QSize(target.width(), target.height()))
+            generator.setViewBox(target)
+
+            painter = QtGui.QPainter()
+            painter.begin(generator)
+            self.render(painter, target, source)
+            painter.end()
 
     def export_pdf(self, file: str):
-        self.clear_mouse()
+        with self.prepare_export():
 
-        writer = QtGui.QPdfWriter(file)
+            target, source = self.get_render_rects()
+            size = QtCore.QSizeF(target.width(), target.height())
+            page_size = QtGui.QPageSize(size, QtGui.QPageSize.Unit.Point)
 
-        painter = QtGui.QPainter()
-        painter.begin(writer)
-        self.render(painter)
-        painter.end()
+            writer = QtGui.QPdfWriter(file)
+            writer.setPageSize(page_size)
+
+            painter = QtGui.QPainter()
+            painter.begin(writer)
+            self.render(painter, QtCore.QRect(), source)
+            painter.end()
 
     def export_png(self, file: str):
-        self.clear_mouse()
+        with self.prepare_export():
 
-        width, height = 400, 400
-        pixmap = QtGui.QPixmap(width, height)
-        pixmap.fill(QtCore.Qt.white)
+            target, source = self.get_render_rects()
 
-        painter = QtGui.QPainter()
-        painter.begin(pixmap)
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        self.render(painter)
-        painter.end()
+            # Double PNG canvas
+            target.setWidth(target.width() * 2)
+            target.setHeight(target.height() * 2)
 
-        pixmap.save(file)
+            pixmap = QtGui.QPixmap(target.width(), target.height())
+            pixmap.fill(QtCore.Qt.white)
+
+            painter = QtGui.QPainter()
+            painter.begin(pixmap)
+            painter.setRenderHint(QtGui.QPainter.Antialiasing)
+            self.render(painter, target, source)
+            painter.end()
+
+            self.scene().boundary.setVisible(True)
+            pixmap.save(file)

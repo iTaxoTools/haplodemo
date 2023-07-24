@@ -156,6 +156,10 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
             self.addControls()
 
 
+class BoundaryRect(QtWidgets.QGraphicsRectItem):
+    pass
+
+
 class Label(QtWidgets.QGraphicsItem):
     def __init__(self, text, parent):
         super().__init__(parent)

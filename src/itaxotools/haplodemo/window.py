@@ -38,6 +38,7 @@ class Window(QtWidgets.QWidget):
         settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
 
         scene = GraphicsScene(settings)
+        scene.setBoundary(0, 70, 300, 320)
         # scene.addManyNodes(8, 32)
         # scene.addBezier()
         scene.addNodes()
