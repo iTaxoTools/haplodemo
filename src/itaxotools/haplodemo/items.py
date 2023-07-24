@@ -21,7 +21,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from enum import Enum, auto
 from math import log
 
-from itaxotools.common.utility import override
+from itaxotools.common.utility import override, AttrDict
 
 from .utility import shapeFromPath
 
@@ -156,8 +156,155 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
             self.addControls()
 
 
+class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
+    minimum = 20
+    size = 8
+
+    def __init__(self, parent, horizontal, vertical):
+
+        super().__init__(parent)
+
+        self.horizontal = horizontal
+        self.vertical = vertical
+
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+        self.setAcceptHoverEvents(True)
+        self.setBrush(QtCore.Qt.green)
+
+        if horizontal == 'center':
+            self.setCursor(QtCore.Qt.SizeVerCursor)
+        elif vertical == 'center':
+            self.setCursor(QtCore.Qt.SizeHorCursor)
+        else:
+            self.setCursor(QtCore.Qt.SizeAllCursor)
+
+
+        self.adjustRect()
+
+        self.locked_pos = QtCore.QPointF()
+        self.locked_rect = self.rect()
+
+    def adjustRect(self):
+        parent = self.parentItem()
+        width = self.size
+        height = self.size
+        x = 0
+        y = 0
+
+        match self.horizontal:
+            case 'right':
+                x = parent.rect().right()
+            case 'left':
+                x = parent.rect().left() - self.size
+            case 'center':
+                width = parent.rect().width()
+                x = parent.rect().left()
+
+        match self.vertical:
+            case 'top':
+                y = parent.rect().top() - self.size
+            case 'bottom':
+                y = parent.rect().bottom()
+            case 'center':
+                height = parent.rect().height()
+                y = parent.rect().top()
+
+        rect = QtCore.QRect(x, y, width, height)
+        self.prepareGeometryChange()
+        self.setRect(rect)
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        self.locked_rect = self.rect()
+        self.locked_pos = event.scenePos()
+
+    def mouseMoveEvent(self, event):
+        pos = event.scenePos()
+        diff_x = pos.x() - self.locked_pos.x()
+        diff_y = pos.y() - self.locked_pos.y()
+
+        if self.vertical == 'center':
+            diff_y = 0
+        elif self.horizontal == 'center':
+            diff_x = 0
+
+        rect = self.locked_rect.translated(diff_x, diff_y)
+
+        if self.horizontal == 'right':
+            limit = self.parentItem().rect().left() + self.minimum
+            if rect.left() < limit:
+                rect.moveLeft(limit)
+            self.parentItem().setRight(rect.left())
+
+        if self.horizontal == 'left':
+            limit = self.parentItem().rect().right() - self.minimum
+            if rect.right() > limit:
+                rect.moveRight(limit)
+            self.parentItem().setLeft(rect.right())
+
+        if self.vertical == 'top':
+            limit = self.parentItem().rect().bottom() - self.minimum
+            if rect.bottom() > limit:
+                rect.moveBottom(limit)
+            self.parentItem().setTop(rect.bottom())
+
+        if self.vertical == 'bottom':
+            limit = self.parentItem().rect().top() + self.minimum
+            if rect.top() < limit:
+                rect.moveTop(limit)
+            self.parentItem().setBottom(rect.top())
+
+    def paint(self, painter, option, widget=None):
+        # super().paint(painter, option, widget)
+        pass
+
+
 class BoundaryRect(QtWidgets.QGraphicsRectItem):
-    pass
+    def __init__(self, x, y, w, h):
+        super().__init__(x, y, w, h)
+        self.handles = AttrDict()
+        self.handles.right = BoundaryEdgeHandle(self, 'right', 'center')
+        self.handles.left = BoundaryEdgeHandle(self, 'left', 'center')
+        self.handles.top = BoundaryEdgeHandle(self, 'center', 'top')
+        self.handles.bottom = BoundaryEdgeHandle(self, 'center', 'bottom')
+        self.handles.top_right = BoundaryEdgeHandle(self, 'right', 'top')
+        self.handles.right_bottom = BoundaryEdgeHandle(self, 'right', 'bottom')
+        self.handles.top_left = BoundaryEdgeHandle(self, 'left', 'top')
+        self.handles.bottom_left = BoundaryEdgeHandle(self, 'left', 'bottom')
+        self.setBrush(QtCore.Qt.white)
+        self.setZValue(-99)
+
+    def setRight(self, x):
+        self.prepareGeometryChange()
+        rect = self.rect()
+        rect.setRight(x)
+        self.setRect(rect)
+        for handle in self.handles:
+            handle.adjustRect()
+
+    def setLeft(self, x):
+        self.prepareGeometryChange()
+        rect = self.rect()
+        rect.setLeft(x)
+        self.setRect(rect)
+        for handle in self.handles:
+            handle.adjustRect()
+
+    def setTop(self, x):
+        self.prepareGeometryChange()
+        rect = self.rect()
+        rect.setTop(x)
+        self.setRect(rect)
+        for handle in self.handles:
+            handle.adjustRect()
+
+    def setBottom(self, x):
+        self.prepareGeometryChange()
+        rect = self.rect()
+        rect.setBottom(x)
+        self.setRect(rect)
+        for handle in self.handles:
+            handle.adjustRect()
 
 
 class Label(QtWidgets.QGraphicsItem):

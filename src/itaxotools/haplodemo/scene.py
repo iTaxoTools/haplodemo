@@ -141,7 +141,7 @@ class Settings(PropertyObject):
 class GraphicsScene(QtWidgets.QGraphicsScene):
     def __init__(self, settings, parent=None):
         super().__init__(parent)
-        self.setBackgroundBrush(QtGui.QBrush(QtGui.QColor(QtCore.Qt.white)))
+        self.setBackgroundBrush(QtWidgets.QApplication.instance().palette().mid())
         self.settings = settings
         self.hovered_item = None
         self.binder = Binder()
@@ -166,6 +166,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
                 item.mousePressEvent(event)
                 item.grabMouse()
                 event.accept()
+            else:
+                super().mousePressEvent(event)
         self.mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
@@ -204,6 +206,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.hovered_item = item
         if item:
             item.hoverEnterEvent(hover)
+        else:
+            super().mouseMoveEvent(event)
 
     def _hoverEventFromMouseEvent(self, mouse):
         hover = QtWidgets.QGraphicsSceneHoverEvent()
@@ -460,13 +464,13 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
-        if event.button() == QtCore.Qt.LeftButton:
-            self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)
+        # if event.button() == QtCore.Qt.LeftButton:
+        #     self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)
 
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
-        if event.button() == QtCore.Qt.LeftButton:
-            self.viewport().setCursor(QtCore.Qt.ArrowCursor)
+        # if event.button() == QtCore.Qt.LeftButton:
+        #     self.viewport().setCursor(QtCore.Qt.ArrowCursor)
 
     def resizeEvent(self, event):
         self.fitInView(self.scene().sceneRect(), QtCore.Qt.KeepAspectRatio)

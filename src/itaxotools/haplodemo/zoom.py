@@ -63,17 +63,17 @@ class ZoomButton(QtWidgets.QPushButton):
         self.setStyleSheet("""
             ZoomButton {
                 font: 14px;
-                color: Palette(Mid);
+                color: Palette(Shadow);
                 background: transparent;
                 border: none;
             }
             ZoomButton:hover {
                 font: bold 18px;
-                color: Palette(Shadow);
+                color: Palette(Text);
             }
             ZoomButton:pressed {
                 font: bold 18px;
-                color: Palette(Dark);
+                color: Palette(Shadow);
             }
 
         """)
