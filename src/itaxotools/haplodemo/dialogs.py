@@ -31,6 +31,11 @@ class OptionsDialog(QtWidgets.QDialog):
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.MSWindowsFixedSizeDialogHint)
         self.binder = Binder()
 
+    def hintedResize(self, width, height):
+        size = self.sizeHint()
+        size.setWidth(max(width, size.width()))
+        size.setHeight(max(height, size.height()))
+
     def draw_dialog(self, contents):
         ok = QtWidgets.QPushButton('OK')
         cancel = QtWidgets.QPushButton('Cancel')
@@ -92,7 +97,7 @@ class EdgeStyleDialog(OptionsDialog):
     def __init__(self, parent, scene):
         super().__init__(parent)
         self.setWindowTitle('Haplodemo - Edge style')
-        self.resize(280, 0)
+        self.hintedResize(280, 0)
 
         self.scene = scene
         self.settings = EdgeStyleSettings()
@@ -256,7 +261,7 @@ class LabelFormatDialog(BoundOptionsDialog):
     def __init__(self, parent, scene, global_settings):
         super().__init__(parent, LabelFormatSettings(), global_settings)
         self.setWindowTitle('Haplodemo - Label format')
-        self.resize(340, 0)
+        self.hintedResize(340, 0)
 
         self.scene = scene
 
