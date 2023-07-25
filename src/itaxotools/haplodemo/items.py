@@ -255,13 +255,28 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
             self.parentItem().setBottom(rect.top())
 
     def paint(self, painter, option, widget=None):
-        # super().paint(painter, option, widget)
-        pass
+        """Do not paint handles"""
+
+
+class BoundaryOutline(QtWidgets.QGraphicsRectItem):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setPen(QtGui.QPen(QtCore.Qt.black, 1, QtCore.Qt.PenStyle.DashLine))
+        self.adjustRect()
+
+    def adjustRect(self):
+        m = self.parentItem().margin
+        rect = self.parentItem().rect()
+        rect.adjust(-m, -m, m, m)
+        self.prepareGeometryChange()
+        self.setRect(rect)
 
 
 class BoundaryRect(QtWidgets.QGraphicsRectItem):
     def __init__(self, x, y, w, h):
         super().__init__(x, y, w, h)
+        self.margin = 8
+
         self.handles = AttrDict()
         self.handles.right = BoundaryEdgeHandle(self, 'right', 'center')
         self.handles.left = BoundaryEdgeHandle(self, 'left', 'center')
@@ -271,6 +286,7 @@ class BoundaryRect(QtWidgets.QGraphicsRectItem):
         self.handles.right_bottom = BoundaryEdgeHandle(self, 'right', 'bottom')
         self.handles.top_left = BoundaryEdgeHandle(self, 'left', 'top')
         self.handles.bottom_left = BoundaryEdgeHandle(self, 'left', 'bottom')
+        self.outline = BoundaryOutline(self)
         self.setBrush(QtCore.Qt.white)
         self.setZValue(-99)
 
@@ -279,6 +295,7 @@ class BoundaryRect(QtWidgets.QGraphicsRectItem):
         rect = self.rect()
         rect.setRight(x)
         self.setRect(rect)
+        self.outline.adjustRect()
         for handle in self.handles:
             handle.adjustRect()
 
@@ -287,6 +304,7 @@ class BoundaryRect(QtWidgets.QGraphicsRectItem):
         rect = self.rect()
         rect.setLeft(x)
         self.setRect(rect)
+        self.outline.adjustRect()
         for handle in self.handles:
             handle.adjustRect()
 
@@ -295,6 +313,7 @@ class BoundaryRect(QtWidgets.QGraphicsRectItem):
         rect = self.rect()
         rect.setTop(x)
         self.setRect(rect)
+        self.outline.adjustRect()
         for handle in self.handles:
             handle.adjustRect()
 
@@ -303,6 +322,7 @@ class BoundaryRect(QtWidgets.QGraphicsRectItem):
         rect = self.rect()
         rect.setBottom(x)
         self.setRect(rect)
+        self.outline.adjustRect()
         for handle in self.handles:
             handle.adjustRect()
 
