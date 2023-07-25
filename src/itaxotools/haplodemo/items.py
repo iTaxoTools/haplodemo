@@ -22,7 +22,7 @@ from enum import Enum, auto
 from itertools import product
 from math import log
 
-from itaxotools.common.utility import override, AttrDict
+from itaxotools.common.utility import override
 
 from .utility import shapeFromPath
 
@@ -168,6 +168,7 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
 
         self.locked_pos = QtCore.QPointF()
         self.locked_rect = self.rect()
+        self.item_block = False
 
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setAcceptHoverEvents(True)
@@ -225,11 +226,19 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
         self.setRect(rect)
 
     def mousePressEvent(self, event):
+        if self.scene().getItemAtPos(event.scenePos()):
+            self.item_block = True
+            return
+        self.item_block = False
+
         super().mousePressEvent(event)
         self.locked_rect = self.rect()
         self.locked_pos = event.scenePos()
 
     def mouseMoveEvent(self, event):
+        if self.item_block:
+            return
+
         pos = event.scenePos()
         diff_x = pos.x() - self.locked_pos.x()
         diff_y = pos.y() - self.locked_pos.y()

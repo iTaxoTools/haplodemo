@@ -25,7 +25,9 @@ from dataclasses import dataclass
 from itaxotools.common.bindings import (
     Binder, Instance, Property, PropertyObject)
 
-from .items import BezierCurve, Edge, EdgeStyle, Label, Node, Vertex, BoundaryRect
+from .items import (
+    BezierCurve, BoundaryEdgeHandle, BoundaryRect, Edge, EdgeStyle, Label,
+    Node, Vertex)
 from .palettes import Palette
 
 
@@ -223,7 +225,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         hover.setAccepted(mouse.isAccepted())
         return hover
 
-    def getItemAtPos(self, pos, ignore_edges=False, ignore_labels=None):
+    def getItemAtPos(self, pos, ignore_edges=False, ignore_labels=None, ignore_boundary_handles=True):
         if ignore_labels is None:
             ignore_labels = not self.settings.label_movement
 
@@ -246,6 +248,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
                 if distance < closest_edge_distance:
                     closest_edge_distance = distance
                     closest_edge_item = item
+            if isinstance(item, BoundaryEdgeHandle) and not ignore_boundary_handles:
+                return item
         if closest_edge_item:
             return closest_edge_item
         return None
@@ -389,17 +393,19 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def __init__(self, scene=None, opengl=False, parent=None):
         super().__init__(scene, parent)
+
+        self.zoom_factor = 1.10
+        self.zoom_maximum = 4.0
+        self.zoom_minimum = 0.1
+
         self.setRenderHints(QtGui.QPainter.TextAntialiasing)
         self.setRenderHints(QtGui.QPainter.Antialiasing)
         self.setSceneRect(-5000, -5000, 10000, 10000)
-        self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+        self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
-        self.zoom_factor = 1.10
-        self.zoom_maximum = 4.0
-        self.zoom_minimum = 0.1
 
         if opengl:
             self.enable_opengl()
@@ -459,19 +465,19 @@ class GraphicsView(QtWidgets.QGraphicsView):
         yy = self.verticalScrollBar().value()
         self.verticalScrollBar().setValue(yy - event.angleDelta().y())
 
-    def enterEvent(self, event):
-        super().enterEvent(event)
-        self.viewport().setCursor(QtCore.Qt.ArrowCursor)
-
     def mousePressEvent(self, event):
+        pos = self.mapToScene(event.pos())
+        item = self.scene().getItemAtPos(pos, ignore_boundary_handles=False)
+        if not item and event.button() == QtCore.Qt.LeftButton:
+            self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+
         super().mousePressEvent(event)
-        # if event.button() == QtCore.Qt.LeftButton:
-        #     self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)
 
     def mouseReleaseEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
+
         super().mouseReleaseEvent(event)
-        # if event.button() == QtCore.Qt.LeftButton:
-        #     self.viewport().setCursor(QtCore.Qt.ArrowCursor)
 
     def resizeEvent(self, event):
         self.fitInView(self.scene().sceneRect(), QtCore.Qt.KeepAspectRatio)
