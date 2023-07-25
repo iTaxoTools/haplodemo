@@ -19,6 +19,7 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from enum import Enum, auto
+from itertools import product
 from math import log
 
 from itaxotools.common.utility import override, AttrDict
@@ -157,32 +158,42 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
 
 
 class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
-    minimum = 20
-    size = 8
 
-    def __init__(self, parent, horizontal, vertical):
-
+    def __init__(self, parent, horizontal, vertical, size):
         super().__init__(parent)
 
         self.horizontal = horizontal
         self.vertical = vertical
+        self.size = size
+
+        self.locked_pos = QtCore.QPointF()
+        self.locked_rect = self.rect()
 
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setAcceptHoverEvents(True)
         self.setBrush(QtCore.Qt.green)
+        self.setPen(QtCore.Qt.NoPen)
 
-        if horizontal == 'center':
-            self.setCursor(QtCore.Qt.SizeVerCursor)
-        elif vertical == 'center':
-            self.setCursor(QtCore.Qt.SizeHorCursor)
-        else:
-            self.setCursor(QtCore.Qt.SizeAllCursor)
-
-
+        self.adjustCursor()
         self.adjustRect()
 
-        self.locked_pos = QtCore.QPointF()
-        self.locked_rect = self.rect()
+    def adjustCursor(self):
+        match self.horizontal, self.vertical:
+            case 'center', _:
+                cursor = QtCore.Qt.SizeVerCursor
+            case _, 'center':
+                cursor = QtCore.Qt.SizeHorCursor
+            case 'left', 'top':
+                cursor = QtCore.Qt.SizeFDiagCursor
+            case 'left', 'bottom':
+                cursor = QtCore.Qt.SizeBDiagCursor
+            case 'right', 'top':
+                cursor = QtCore.Qt.SizeBDiagCursor
+            case 'right', 'bottom':
+                cursor = QtCore.Qt.SizeFDiagCursor
+            case _, _:
+                cursor = QtCore.Qt.SizeAllCursor
+        self.setCursor(cursor)
 
     def adjustRect(self):
         parent = self.parentItem()
@@ -229,33 +240,34 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
             diff_x = 0
 
         rect = self.locked_rect.translated(diff_x, diff_y)
+        parent = self.parentItem()
 
         if self.horizontal == 'right':
-            limit = self.parentItem().rect().left() + self.minimum
+            limit = parent.rect().left() + parent.minimum_size
             if rect.left() < limit:
                 rect.moveLeft(limit)
-            self.parentItem().setRight(rect.left())
+            parent.setEdge(QtCore.QRectF.setRight, rect.left())
 
         if self.horizontal == 'left':
-            limit = self.parentItem().rect().right() - self.minimum
+            limit = parent.rect().right() - parent.minimum_size
             if rect.right() > limit:
                 rect.moveRight(limit)
-            self.parentItem().setLeft(rect.right())
+            parent.setEdge(QtCore.QRectF.setLeft, rect.right())
 
         if self.vertical == 'top':
-            limit = self.parentItem().rect().bottom() - self.minimum
+            limit = parent.rect().bottom() - parent.minimum_size
             if rect.bottom() > limit:
                 rect.moveBottom(limit)
-            self.parentItem().setTop(rect.bottom())
+            parent.setEdge(QtCore.QRectF.setTop, rect.bottom())
 
         if self.vertical == 'bottom':
-            limit = self.parentItem().rect().top() + self.minimum
+            limit = parent.rect().top() + parent.minimum_size
             if rect.top() < limit:
                 rect.moveTop(limit)
-            self.parentItem().setBottom(rect.top())
+            parent.setEdge(QtCore.QRectF.setBottom, rect.top())
 
     def paint(self, painter, option, widget=None):
-        """Do not paint handles"""
+        """Do not paint"""
 
 
 class BoundaryOutline(QtWidgets.QGraphicsRectItem):
@@ -275,53 +287,29 @@ class BoundaryOutline(QtWidgets.QGraphicsRectItem):
 class BoundaryRect(QtWidgets.QGraphicsRectItem):
     def __init__(self, x, y, w, h):
         super().__init__(x, y, w, h)
+        self.minimum_size = 32
         self.margin = 8
 
-        self.handles = AttrDict()
-        self.handles.right = BoundaryEdgeHandle(self, 'right', 'center')
-        self.handles.left = BoundaryEdgeHandle(self, 'left', 'center')
-        self.handles.top = BoundaryEdgeHandle(self, 'center', 'top')
-        self.handles.bottom = BoundaryEdgeHandle(self, 'center', 'bottom')
-        self.handles.top_right = BoundaryEdgeHandle(self, 'right', 'top')
-        self.handles.right_bottom = BoundaryEdgeHandle(self, 'right', 'bottom')
-        self.handles.top_left = BoundaryEdgeHandle(self, 'left', 'top')
-        self.handles.bottom_left = BoundaryEdgeHandle(self, 'left', 'bottom')
-        self.outline = BoundaryOutline(self)
         self.setBrush(QtCore.Qt.white)
         self.setZValue(-99)
 
-    def setRight(self, x):
-        self.prepareGeometryChange()
-        rect = self.rect()
-        rect.setRight(x)
-        self.setRect(rect)
-        self.outline.adjustRect()
-        for handle in self.handles:
-            handle.adjustRect()
+        handles = list(product(
+            ['left', 'center', 'right'],
+            ['top', 'center', 'bottom']))
+        handles.remove(('center', 'center'))
 
-    def setLeft(self, x):
-        self.prepareGeometryChange()
-        rect = self.rect()
-        rect.setLeft(x)
-        self.setRect(rect)
-        self.outline.adjustRect()
-        for handle in self.handles:
-            handle.adjustRect()
+        self.handles = [
+            BoundaryEdgeHandle(self, horizontal, vertical, self.margin)
+            for horizontal, vertical in handles]
+        self.outline = BoundaryOutline(self)
 
-    def setTop(self, x):
-        self.prepareGeometryChange()
-        rect = self.rect()
-        rect.setTop(x)
-        self.setRect(rect)
-        self.outline.adjustRect()
-        for handle in self.handles:
-            handle.adjustRect()
+    def setEdge(self, method, value):
+        rect = QtCore.QRectF(self.rect())
+        method(rect, value)
 
-    def setBottom(self, x):
         self.prepareGeometryChange()
-        rect = self.rect()
-        rect.setBottom(x)
         self.setRect(rect)
+
         self.outline.adjustRect()
         for handle in self.handles:
             handle.adjustRect()
