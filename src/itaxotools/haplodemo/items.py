@@ -1098,14 +1098,14 @@ class Node(Vertex):
         return e * x + f
 
 
-class LegendColor(QtWidgets.QGraphicsEllipseItem):
+class LegendBubble(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, r, color, parent=None):
         super().__init__(-r, -r, r * 2, r * 2, parent)
         self.setBrush(color)
         self.setPos(x, y)
 
 
-class LegendText(QtWidgets.QGraphicsSimpleTextItem):
+class LegendLabel(QtWidgets.QGraphicsSimpleTextItem):
     def __init__(self, x, y, text, parent=None):
         super().__init__(text, parent)
         self.setPos(x, y - self.boundingRect().height() / 2)
@@ -1118,18 +1118,23 @@ class LegendText(QtWidgets.QGraphicsSimpleTextItem):
 
 
 class LegendItem(QtWidgets.QGraphicsItem):
-    def __init__(self, x, y, radius, color, text, parent=None):
+    def __init__(self, x, y, radius, color, key, parent=None):
         super().__init__(parent)
         self.setPos(x, y)
+        self.key = key
 
-        self.color = LegendColor(0, 0, radius, color, parent=self)
-        self.text = LegendText(20, 0, text, parent=self)
+        self.bubble = LegendBubble(0, 0, radius, color, parent=self)
+        self.text = LegendLabel(20, 0, key, parent=self)
 
     def boundingRect(self):
         return QtCore.QRect(0, 0, 0, 0)
 
     def paint(self, painter, options, widget=None):
         pass
+
+    def update_color(self, color_map):
+        color = QtGui.QColor(color_map[self.key])
+        self.bubble.setBrush(color)
 
 
 class Legend(QtWidgets.QGraphicsRectItem):
@@ -1156,3 +1161,7 @@ class Legend(QtWidgets.QGraphicsRectItem):
         width = 66
         height = len(self.divisions) * 40
         self.setRect(0, 0, width, height)
+
+    def update_colors(self, color_map):
+        for item in self.childItems():
+            item.update_color(color_map)
