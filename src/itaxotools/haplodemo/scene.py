@@ -145,9 +145,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         super().__init__(parent)
         mid = QtWidgets.QApplication.instance().palette().mid()
         self.setBackgroundBrush(mid)
+        self.binder = Binder()
         self.settings = settings
         self.hovered_item = None
-        self.binder = Binder()
         self.boundary = None
 
     def event(self, event):
@@ -392,7 +392,8 @@ class GraphicsView(QtWidgets.QGraphicsView):
     scaled = QtCore.Signal(float)
 
     def __init__(self, scene=None, opengl=False, parent=None):
-        super().__init__(scene, parent)
+        super().__init__(parent)
+        self.setScene(scene)
 
         self.zoom_factor = 1.10
         self.zoom_maximum = 4.0
@@ -400,7 +401,6 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
         self.setRenderHints(QtGui.QPainter.TextAntialiasing)
         self.setRenderHints(QtGui.QPainter.Antialiasing)
-        self.setSceneRect(-5000, -5000, 10000, 10000)
         self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
@@ -409,6 +409,22 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
         if opengl:
             self.enable_opengl()
+
+    def setScene(self, scene):
+        super().setScene(scene)
+        self.adjustSceneRect()
+
+    def adjustSceneRect(self):
+        if not self.scene().boundary:
+            return
+        rect = self.scene().boundary.rect()
+        rect.adjust(
+            - 2 * rect.width(),
+            - 2 * rect.height(),
+            + 2 * rect.width(),
+            + 2 * rect.height(),
+        )
+        self.setSceneRect(rect)
 
     def setScale(self, scale):
         current_scale = self.transform().m11()
@@ -476,6 +492,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
+            self.adjustSceneRect()
 
         super().mouseReleaseEvent(event)
 
