@@ -281,6 +281,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         if not self.legend:
             self.legend = Legend(self.settings.divisions.all())
             self.binder.bind(self.settings.divisions.colorMapChanged, self.legend.update_colors)
+            self.binder.bind(self.settings.properties.highlight_color, self.legend.set_highlight_color)
             self.addItem(self.legend)
         self.legend.setVisible(value)
 

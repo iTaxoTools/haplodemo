@@ -225,6 +225,7 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
         self.prepareGeometryChange()
         self.setRect(rect)
 
+    @override
     def mousePressEvent(self, event):
         if self.scene().getItemAtPos(event.scenePos()):
             self.item_block = True
@@ -235,6 +236,7 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
         self.locked_rect = self.rect()
         self.locked_pos = event.scenePos()
 
+    @override
     def mouseMoveEvent(self, event):
         if self.item_block:
             return
@@ -275,6 +277,7 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
                 rect.moveTop(limit)
             parent.setEdge(QtCore.QRectF.setBottom, rect.top())
 
+    @override
     def paint(self, painter, option, widget=None):
         """Do not paint"""
 
@@ -1084,6 +1087,9 @@ class Node(Vertex):
             span = int(5760 * weight / total_weight)
             self.pies[color] = span
 
+    def set_highlight_color(self, value):
+        self._highlight_color = value
+
     def adjust_radius(self, a=10, b=2, c=0.4, d=1, e=0, f=0):
         r = self.radius_from_size(self.weight, a, b, c, d, e, f)
         self.radius = r
@@ -1126,9 +1132,11 @@ class LegendItem(QtWidgets.QGraphicsItem):
         self.bubble = LegendBubble(0, 0, radius, color, parent=self)
         self.text = LegendLabel(20, 0, key, parent=self)
 
+    @override
     def boundingRect(self):
         return QtCore.QRect(0, 0, 0, 0)
 
+    @override
     def paint(self, painter, options, widget=None):
         pass
 
@@ -1141,6 +1149,8 @@ class Legend(QtWidgets.QGraphicsRectItem):
 
     def __init__(self, divisions, parent=None):
         super().__init__(parent)
+
+        self._highlight_color = QtCore.Qt.magenta
 
         self.divisions = divisions
         self.radius = 10
@@ -1157,6 +1167,18 @@ class Legend(QtWidgets.QGraphicsRectItem):
         self.setZValue(50)
         self.adjustRect()
 
+    @override
+    def hoverEnterEvent(self, event):
+        super().hoverEnterEvent(event)
+        self.setPen(QtGui.QPen(self._highlight_color, 4))
+        self.update()
+
+    @override
+    def hoverLeaveEvent(self, event):
+        super().hoverLeaveEvent(event)
+        self.setPen(QtGui.QPen(QtCore.Qt.black, 1))
+        self.update()
+
     def adjustRect(self):
         width = 66
         height = len(self.divisions) * 40
@@ -1165,3 +1187,6 @@ class Legend(QtWidgets.QGraphicsRectItem):
     def update_colors(self, color_map):
         for item in self.childItems():
             item.update_color(color_map)
+
+    def set_highlight_color(self, value):
+        self._highlight_color = value
