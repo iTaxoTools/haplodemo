@@ -1096,3 +1096,63 @@ class Node(Vertex):
         if a and b and c:
             return a * log(c * x + d, b) + e * x + f
         return e * x + f
+
+
+class LegendColor(QtWidgets.QGraphicsEllipseItem):
+    def __init__(self, x, y, r, color, parent=None):
+        super().__init__(-r, -r, r * 2, r * 2, parent)
+        self.setBrush(color)
+        self.setPos(x, y)
+
+
+class LegendText(QtWidgets.QGraphicsSimpleTextItem):
+    def __init__(self, x, y, text, parent=None):
+        super().__init__(text, parent)
+        self.setPos(x, y - self.boundingRect().height() / 2)
+
+        font = QtGui.QFont()
+        font.setPixelSize(16)
+        font.setFamily('Arial')
+        font.setHintingPreference(QtGui.QFont.PreferNoHinting)
+        self.setFont(font)
+
+
+class LegendItem(QtWidgets.QGraphicsItem):
+    def __init__(self, x, y, radius, color, text, parent=None):
+        super().__init__(parent)
+        self.setPos(x, y)
+
+        self.color = LegendColor(0, 0, radius, color, parent=self)
+        self.text = LegendText(20, 0, text, parent=self)
+
+    def boundingRect(self):
+        return QtCore.QRect(0, 0, 0, 0)
+
+    def paint(self, painter, options, widget=None):
+        pass
+
+
+class Legend(QtWidgets.QGraphicsRectItem):
+
+    def __init__(self, divisions, parent=None):
+        super().__init__(parent)
+
+        self.divisions = divisions
+        self.radius = 10
+
+        for index, division in enumerate(divisions):
+            LegendItem(
+                20, 30 * (index + 1),
+                self.radius, QtGui.QColor(division.color),
+                division.key, parent=self)
+
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+        self.setAcceptHoverEvents(True)
+        self.setBrush(QtCore.Qt.white)
+        self.setZValue(50)
+        self.adjustRect()
+
+    def adjustRect(self):
+        width = 66
+        height = len(self.divisions) * 40
+        self.setRect(0, 0, width, height)

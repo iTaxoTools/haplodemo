@@ -31,14 +31,16 @@ class Window(QtWidgets.QWidget):
     def __init__(self, opengl=False):
         super().__init__()
         self.setWindowFlags(QtCore.Qt.Window)
-        self.resize(680, 480)
+        self.resize(760, 480)
         self.setWindowTitle('Haplodemo')
 
         settings = Settings()
         settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
 
         scene = GraphicsScene(settings)
-        scene.setBoundary(0, 70, 300, 320)
+        scene.showLegend()
+        scene.legend.setPos(320, 85)
+        scene.setBoundary(0, 70, 400, 320)
         # scene.addManyNodes(8, 32)
         # scene.addBezier()
         scene.addNodes()

@@ -26,7 +26,7 @@ from itaxotools.common.bindings import (
     Binder, Instance, Property, PropertyObject)
 
 from .items import (
-    BezierCurve, BoundaryEdgeHandle, BoundaryRect, Edge, EdgeStyle, Label,
+    BezierCurve, BoundaryEdgeHandle, BoundaryRect, Edge, EdgeStyle, Label, Legend,
     Node, Vertex)
 from .palettes import Palette
 
@@ -114,6 +114,9 @@ class DivisionListModel(QtCore.QAbstractListModel):
     def flags(self, index):
         return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
+    def all(self):
+        return list(self._divisions)
+
 
 class Settings(PropertyObject):
     palette = Property(Palette, Palette.Spring())
@@ -149,6 +152,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.settings = settings
         self.hovered_item = None
         self.boundary = None
+        self.legend = None
 
     def event(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneLeave:
@@ -165,7 +169,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             item = self.getItemAtPos(event.scenePos(), ignore_edges=True)
-            if item:
+            if item and not isinstance(item, Legend):
                 item.mousePressEvent(event)
                 item.grabMouse()
                 event.accept()
@@ -225,7 +229,13 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         hover.setAccepted(mouse.isAccepted())
         return hover
 
-    def getItemAtPos(self, pos, ignore_edges=False, ignore_labels=None, ignore_boundary_handles=True):
+    def getItemAtPos(
+            self, pos,
+            ignore_edges=False,
+            ignore_labels=None,
+            ignore_boundary_handles=True,
+            ignore_legend=False,
+    ):
         if ignore_labels is None:
             ignore_labels = not self.settings.label_movement
 
@@ -233,6 +243,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         closest_edge_item = None
         closest_edge_distance = float('inf')
         for item in super().items(pos):
+            if isinstance(item, Legend) and not ignore_legend:
+                return item
             if isinstance(item, Vertex):
                 return item
             if isinstance(item, Label):
@@ -264,6 +276,12 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.boundary = None
             return
         self.boundary.setRect(x, y, w, h)
+
+    def showLegend(self, value=True):
+        if not self.legend:
+            self.legend = Legend(self.settings.divisions.all())
+            self.addItem(self.legend)
+        self.legend.setVisible(value)
 
     def addBezier(self):
         item = BezierCurve(QtCore.QPointF(0, 0), QtCore.QPointF(200, 0))
