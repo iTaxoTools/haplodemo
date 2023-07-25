@@ -141,7 +141,8 @@ class Settings(PropertyObject):
 class GraphicsScene(QtWidgets.QGraphicsScene):
     def __init__(self, settings, parent=None):
         super().__init__(parent)
-        self.setBackgroundBrush(QtWidgets.QApplication.instance().palette().mid())
+        mid = QtWidgets.QApplication.instance().palette().mid()
+        self.setBackgroundBrush(mid)
         self.settings = settings
         self.hovered_item = None
         self.binder = Binder()
@@ -495,6 +496,9 @@ class GraphicsView(QtWidgets.QGraphicsView):
         event = QtWidgets.QGraphicsSceneEvent(QtCore.QEvent.GraphicsSceneLeave)
         self.scene().mouseLeaveEvent(event)
 
+        white = QtCore.Qt.white
+        self.scene().setBackgroundBrush(white)
+
         if self.scene().boundary:
             self.scene().boundary.setVisible(False)
 
@@ -502,6 +506,9 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
         if self.scene().boundary:
             self.scene().boundary.setVisible(True)
+
+        mid = QtWidgets.QApplication.instance().palette().mid()
+        self.scene().setBackgroundBrush(mid)
 
     def get_render_rects(self) -> tuple[QtCore.QRect, QtCore.QRect]:
         """Return a tuple of rects for rendering: (target, source)"""
