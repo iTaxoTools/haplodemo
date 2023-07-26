@@ -281,11 +281,18 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
     def showLegend(self, value=True):
         if not self.legend:
             self.legend = Legend(self.settings.divisions.all())
+            self.addItem(self.legend)
             self.binder.bind(self.settings.divisions.colorMapChanged, self.legend.update_colors)
             self.binder.bind(self.settings.properties.highlight_color, self.legend.set_highlight_color)
             self.binder.bind(self.settings.properties.font, self.legend.set_label_font)
-            self.addItem(self.legend)
         self.legend.setVisible(value)
+        if self.boundary:
+            bounds = self.boundary.rect()
+            width = self.legend.rect().width()
+            margin = + self.legend.margin
+            self.legend.setPos(
+                    bounds.x() + bounds.width() - width - margin,
+                    bounds.y() + margin)
 
     def addBezier(self):
         item = BezierCurve(QtCore.QPointF(0, 0), QtCore.QPointF(200, 0))
@@ -293,7 +300,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         item.setPos(60, 160)
 
     def addNodes(self):
-        node1 = self.create_node(85, 140, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
+        node1 = self.create_node(85, 70, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
         self.addItem(node1)
 
         node2 = self.create_node(node1.pos().x() + 95, node1.pos().y() - 30, 20, 'Beta', {'X': 4, 'Z': 2})

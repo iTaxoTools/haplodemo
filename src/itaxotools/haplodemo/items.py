@@ -1126,7 +1126,7 @@ class LegendBubble(QtWidgets.QGraphicsEllipseItem):
 class LegendLabel(QtWidgets.QGraphicsSimpleTextItem):
     def __init__(self, x, y, text, parent=None):
         super().__init__(text, parent)
-        self.setPos(x, y - self.boundingRect().height() / 2)
+        self.setPos(x, y)
 
         font = QtGui.QFont()
         font.setPixelSize(16)
@@ -1142,7 +1142,7 @@ class LegendItem(QtWidgets.QGraphicsItem):
         self.key = key
 
         self.bubble = LegendBubble(0, 0, radius, color, parent=self)
-        self.label = LegendLabel(20, 0, key, parent=self)
+        self.label = LegendLabel(radius * 2, -radius, key, parent=self)
 
     @override
     def boundingRect(self):
@@ -1168,6 +1168,9 @@ class Legend(QtWidgets.QGraphicsRectItem):
         self._highlight_color = QtCore.Qt.magenta
 
         self.divisions = divisions
+        self.longest = 64
+        self.padding = 8
+        self.margin = 16
         self.radius = 8
 
         for index, division in enumerate(divisions):
@@ -1195,17 +1198,46 @@ class Legend(QtWidgets.QGraphicsRectItem):
         self.update()
 
     def adjustRect(self):
-        width = 66
-        height = len(self.divisions) * 40
+        width = 2 * self.margin + self.longest
+        width += 3 * self.radius
+        height = 2 * self.margin
+        height += len(self.divisions) * 2 * self.radius
+        height += (len(self.divisions) - 1) * self.padding
+
         self.setRect(0, 0, width, height)
 
     def update_colors(self, color_map):
         for item in self.childItems():
             item.update_color(color_map)
 
-    def set_highlight_color(self, value):
-        self._highlight_color = value
+    def set_highlight_color(self, color):
+        self._highlight_color = color
 
-    def set_label_font(self, value):
+    def set_label_font(self, font):
+        metric = QtGui.QFontMetrics(font)
+        height = metric.height()
+
+        self.radius = height / 2
+        self.padding = height / 2
+        self.margin = height
+
+        self.longest = max(
+            metric.horizontalAdvance(division.key)
+            for division in self.divisions)
+
+        self.adjustRect()
+        self.populate()
+
         for item in self.childItems():
-            item.set_label_font(value)
+            item.set_label_font(font)
+
+    def populate(self):
+        for item in self.childItems():
+            self.scene().removeItem(item)
+
+        for index, division in enumerate(self.divisions):
+            LegendItem(
+                self.margin + self.radius,
+                self.margin + self.radius + index * (self.radius * 2 + self.padding),
+                self.radius, QtGui.QColor(division.color),
+                division.key, parent=self)
