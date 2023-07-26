@@ -27,18 +27,40 @@ class Scale(QtWidgets.QGraphicsItem):
     def __init__(self, settings, sizes, parent=None):
         super().__init__(parent)
         self.settings = settings
+        self.sizes = sizes
+        self.state_hovered = False
+        self.highlight_color = QtCore.Qt.magenta
         self.radius = 0
         self.radii = []
 
         self.setSizes(sizes)
 
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+        self.setAcceptHoverEvents(True)
+        self.setZValue(70)
+
     @override
     def boundingRect(self):
         return QtCore.QRect(0, 0, self.radius * 2, self.radius)
 
+    def shape(self):
+        rect = QtCore.QRect(0, 0, self.radius * 2, self.radius * 2)
+        path = QtGui.QPainterPath()
+        path.arcMoveTo(rect, 0)
+        path.arcTo(rect, 0, 180)
+        return path
+
     @override
     def paint(self, painter, options, widget=None):
-        # painter.setPen(QtGui.QPen(QtCore.Qt.black, 2))
+
+        if self.state_hovered:
+            painter.setPen(QtGui.QPen(self.highlight_color, 6))
+            self.paint_radii(painter)
+
+        painter.setPen(QtGui.QPen(QtCore.Qt.black, 2))
+        self.paint_radii(painter)
+
+    def paint_radii(self, painter):
         bottom_left = self.boundingRect().bottomLeft()
 
         for radius in self.radii:
@@ -49,6 +71,24 @@ class Scale(QtWidgets.QGraphicsItem):
             path.arcMoveTo(rect, 0)
             path.arcTo(rect, 0, 180)
             painter.drawPath(path)
+
+    @override
+    def hoverEnterEvent(self, event):
+        super().hoverEnterEvent(event)
+        self.set_hovered(True)
+
+    @override
+    def hoverLeaveEvent(self, event):
+        super().hoverLeaveEvent(event)
+        self.set_hovered(False)
+
+    def set_hovered(self, value):
+        self.state_hovered = value
+        self.update()
+
+    def set_highlight_color(self, value):
+        self.highlight_color = value
+        self.update()
 
     def setSizes(self, sizes: list[int]):
         args = self.settings.get_all_node_args()

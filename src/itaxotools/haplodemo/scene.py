@@ -186,7 +186,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             item = self.getItemAtPos(event.scenePos(), ignore_edges=True)
-            if item and not isinstance(item, Legend):
+            if item and not isinstance(item, Legend) and not isinstance(item, Scale):
                 item.mousePressEvent(event)
                 item.grabMouse()
                 event.accept()
@@ -252,6 +252,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             ignore_labels=None,
             ignore_boundary_handles=True,
             ignore_legend=False,
+            ignore_scale=False,
     ):
         if ignore_labels is None:
             ignore_labels = not self.settings.label_movement
@@ -260,7 +261,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         closest_edge_item = None
         closest_edge_distance = float('inf')
         for item in super().items(pos):
-            if isinstance(item, Legend) and not ignore_legend:
+            if isinstance(item, Scale) and not ignore_legend:
+                return item
+            if isinstance(item, Legend) and not ignore_scale:
                 return item
             if isinstance(item, Vertex):
                 return item
@@ -314,6 +317,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         if not self.scale:
             self.scale = Scale(self.settings, [5, 20, 50])
             self.addItem(self.scale)
+            self.binder.bind(self.settings.properties.highlight_color, self.scale.set_highlight_color)
         self.scale.setVisible(value)
         if self.scale:
             bounds = self.boundary.rect()
