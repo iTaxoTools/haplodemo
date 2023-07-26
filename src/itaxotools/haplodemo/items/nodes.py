@@ -94,7 +94,7 @@ class Label(QtWidgets.QGraphicsItem):
 
     @override
     def boundingRect(self):
-        return self.rect
+        return QtCore.QRect(self.rect)
 
     @override
     def shape(self):

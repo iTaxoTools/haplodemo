@@ -318,10 +318,11 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.scale = Scale(self.settings, [5, 20, 50])
             self.addItem(self.scale)
             self.binder.bind(self.settings.properties.highlight_color, self.scale.set_highlight_color)
+            self.binder.bind(self.settings.properties.font, self.scale.set_label_font)
         self.scale.setVisible(value)
         if self.scale:
             bounds = self.boundary.rect()
-            scale = self.scale.boundingRect()
+            scale = self.scale.get_extended_rect()
             margin = self.legend.margin
             self.scale.setPos(
                 bounds.x() + bounds.width() - scale.width() - margin,

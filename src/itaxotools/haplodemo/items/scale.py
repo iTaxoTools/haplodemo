@@ -20,18 +20,21 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import override
 
-from .nodes import Node
+from .nodes import Node, Label
 
 
 class Scale(QtWidgets.QGraphicsItem):
     def __init__(self, settings, sizes, parent=None):
         super().__init__(parent)
         self.settings = settings
-        self.sizes = sizes
         self.state_hovered = False
         self.highlight_color = QtCore.Qt.magenta
+        self.font_height = 16
+        self.padding = 8
         self.radius = 0
         self.radii = []
+        self.sizes = []
+        self.labels = []
 
         self.setSizes(sizes)
 
@@ -43,6 +46,7 @@ class Scale(QtWidgets.QGraphicsItem):
     def boundingRect(self):
         return QtCore.QRect(0, 0, self.radius * 2, self.radius)
 
+    @override
     def shape(self):
         rect = QtCore.QRect(0, 0, self.radius * 2, self.radius * 2)
         path = QtGui.QPainterPath()
@@ -52,7 +56,6 @@ class Scale(QtWidgets.QGraphicsItem):
 
     @override
     def paint(self, painter, options, widget=None):
-
         if self.state_hovered:
             painter.setPen(QtGui.QPen(self.highlight_color, 6))
             self.paint_radii(painter)
@@ -61,7 +64,7 @@ class Scale(QtWidgets.QGraphicsItem):
         self.paint_radii(painter)
 
     def paint_radii(self, painter):
-        bottom_left = self.boundingRect().bottomLeft()
+        bottom_left = QtCore.QPoint(0, self.radius)
 
         for radius in self.radii:
             rect = QtCore.QRect(0, 0, radius * 2, radius * 2)
@@ -84,14 +87,50 @@ class Scale(QtWidgets.QGraphicsItem):
 
     def set_hovered(self, value):
         self.state_hovered = value
+        for label in self.labels:
+            label.set_hovered(value)
         self.update()
 
     def set_highlight_color(self, value):
         self.highlight_color = value
+        for label in self.labels:
+            label.set_highlight_color(value)
         self.update()
+
+    def set_label_font(self, font):
+        metric = QtGui.QFontMetrics(font)
+        self.font_height = metric.height()
+        self.padding = metric.height() / 4
+        self.placeLabels()
+
+        for label in self.labels:
+            label.set_font(font)
+
+    def get_extended_rect(self):
+        rect = self.boundingRect()
+        for label in self.labels:
+            label_rect = label.boundingRect()
+            label_rect.translate(label.pos().toPoint())
+            rect = rect.united(label_rect)
+        return rect
 
     def setSizes(self, sizes: list[int]):
         args = self.settings.get_all_node_args()
         radii = [Node.radius_from_size(size, *args) for size in sizes]
+        self.sizes = sizes
         self.radii = radii
         self.radius = max(radii)
+        self.placeLabels()
+
+    def placeLabels(self):
+        for item in self.labels:
+            self.scene().removeItem(item)
+        self.labels = []
+
+        for size, radius in [(0, 0), *zip(self.sizes, self.radii)]:
+            label = Label(str(size), self)
+            label.set_highlight_color(self.highlight_color)
+            label.setPos(radius * 2, self.radius + self.padding + self.font_height / 2)
+            label.recenter()
+            self.labels.append(label)
+
