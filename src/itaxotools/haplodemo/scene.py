@@ -25,9 +25,10 @@ from dataclasses import dataclass
 from itaxotools.common.bindings import (
     Binder, Instance, Property, PropertyObject)
 
-from .items import (
-    BezierCurve, BoundaryEdgeHandle, BoundaryRect, Edge, EdgeStyle, Label, Legend,
-    Node, Vertex)
+from .items.bezier import BezierCurve
+from .items.boundary import BoundaryEdgeHandle, BoundaryRect
+from .items.legend import Legend
+from .items.nodes import Edge, EdgeStyle, Label, Node, Vertex
 from .palettes import Palette
 
 
@@ -291,8 +292,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             width = self.legend.rect().width()
             margin = + self.legend.margin
             self.legend.setPos(
-                    bounds.x() + bounds.width() - width - margin,
-                    bounds.y() + margin)
+                bounds.x() + bounds.width() - width - margin,
+                bounds.y() + margin)
 
     def addBezier(self):
         item = BezierCurve(QtCore.QPointF(0, 0), QtCore.QPointF(200, 0))

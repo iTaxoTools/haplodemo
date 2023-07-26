@@ -21,7 +21,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from itaxotools.common.bindings import Binder, Property, PropertyObject
 from itaxotools.common.utility import AttrDict, type_convert
 
-from .items import EdgeStyle
+from .items.types import EdgeStyle
 from .widgets import GLineEdit, RadioButtonGroup
 
 
