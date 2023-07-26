@@ -36,6 +36,7 @@ class Window(QtWidgets.QWidget):
 
         settings = Settings()
         settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
+        settings.font = QtGui.QFont('Arial', 16)
 
         scene = GraphicsScene(settings)
         scene.showLegend()
@@ -64,6 +65,9 @@ class Window(QtWidgets.QWidget):
         mass_format_labels = QtWidgets.QPushButton('Set label format')
         mass_format_labels.clicked.connect(self.show_label_format_dialog)
 
+        select_font = QtWidgets.QPushButton('Set font')
+        select_font.clicked.connect(self.show_font_dialog)
+
         division_view = DivisionView(settings.divisions)
 
         button_svg = QtWidgets.QPushButton('Export as SVG')
@@ -84,6 +88,7 @@ class Window(QtWidgets.QWidget):
         dialogs.addWidget(mass_style_edges)
         dialogs.addWidget(mass_resize_nodes)
         dialogs.addWidget(mass_format_labels)
+        dialogs.addWidget(select_font)
 
         buttons = QtWidgets.QVBoxLayout()
         buttons.addWidget(button_svg)
@@ -170,6 +175,12 @@ class Window(QtWidgets.QWidget):
 
     def show_label_format_dialog(self):
         self.label_format_dialog.show()
+
+    def show_font_dialog(self):
+        _, font = QtWidgets.QFontDialog.getFont(
+            self.settings.font, self, 'Set Font',
+            QtWidgets.QFontDialog.FontDialogOptions.DontUseNativeDialog)
+        self.settings.font = font
 
     def quick_save(self):
         self.export_svg('graph.svg')

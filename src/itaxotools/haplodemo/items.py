@@ -449,6 +449,17 @@ class Label(QtWidgets.QGraphicsItem):
         self.state_hovered = value
         self.update()
 
+    def set_font(self, font):
+        if font is None:
+            return
+        center = self.rect.center()
+        font.setHintingPreference(QtGui.QFont.PreferNoHinting)
+        self.font = font
+        self.outline = self.getTextOutline()
+        rect = self.getCenteredRect()
+        rect.moveCenter(center)
+        self.setRect(rect)
+
     def setRect(self, rect):
         self.prepareGeometryChange()
         self.rect = rect
@@ -696,6 +707,9 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
     def set_highlight_color(self, value):
         self._highlight_color = value
+
+    def set_label_font(self, value):
+        self.label.set_font(value)
 
     def resetLabelPosition(self, offset: bool | None):
         if not offset:
@@ -1015,11 +1029,6 @@ class Node(Vertex):
         self.pies = dict()
         self.name = name
 
-        font = QtGui.QFont()
-        font.setPixelSize(16)
-        font.setFamily('Arial')
-        self.font = font
-
         self.label = Label(name, self)
         self.adjust_radius()
 
@@ -1090,6 +1099,9 @@ class Node(Vertex):
     def set_highlight_color(self, value):
         self._highlight_color = value
 
+    def set_label_font(self, value):
+        self.label.set_font(value)
+
     def adjust_radius(self, a=10, b=2, c=0.4, d=1, e=0, f=0):
         r = self.radius_from_size(self.weight, a, b, c, d, e, f)
         self.radius = r
@@ -1130,7 +1142,7 @@ class LegendItem(QtWidgets.QGraphicsItem):
         self.key = key
 
         self.bubble = LegendBubble(0, 0, radius, color, parent=self)
-        self.text = LegendLabel(20, 0, key, parent=self)
+        self.label = LegendLabel(20, 0, key, parent=self)
 
     @override
     def boundingRect(self):
@@ -1144,6 +1156,9 @@ class LegendItem(QtWidgets.QGraphicsItem):
         color = QtGui.QColor(color_map[self.key])
         self.bubble.setBrush(color)
 
+    def set_label_font(self, font):
+        self.label.setFont(font)
+
 
 class Legend(QtWidgets.QGraphicsRectItem):
 
@@ -1153,7 +1168,7 @@ class Legend(QtWidgets.QGraphicsRectItem):
         self._highlight_color = QtCore.Qt.magenta
 
         self.divisions = divisions
-        self.radius = 10
+        self.radius = 8
 
         for index, division in enumerate(divisions):
             LegendItem(
@@ -1190,3 +1205,7 @@ class Legend(QtWidgets.QGraphicsRectItem):
 
     def set_highlight_color(self, value):
         self._highlight_color = value
+
+    def set_label_font(self, value):
+        for item in self.childItems():
+            item.set_label_font(value)

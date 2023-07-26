@@ -122,6 +122,7 @@ class Settings(PropertyObject):
     palette = Property(Palette, Palette.Spring())
     divisions = Property(DivisionListModel, Instance)
     highlight_color = Property(QtGui.QColor, QtCore.Qt.magenta)
+    font = Property(QtGui.QFont, None)
     rotational_movement = Property(bool, True)
     recursive_movement = Property(bool, True)
     label_movement = Property(bool, False)
@@ -282,6 +283,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.legend = Legend(self.settings.divisions.all())
             self.binder.bind(self.settings.divisions.colorMapChanged, self.legend.update_colors)
             self.binder.bind(self.settings.properties.highlight_color, self.legend.set_highlight_color)
+            self.binder.bind(self.settings.properties.font, self.legend.set_label_font)
             self.addItem(self.legend)
         self.legend.setVisible(value)
 
@@ -380,6 +382,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
         self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
+        self.binder.bind(self.settings.properties.font, item.set_label_font)
         return item
 
     def create_edge(self, *args, **kwargs):
@@ -387,6 +390,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
         self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
         self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
+        self.binder.bind(self.settings.properties.font, item.set_label_font)
         return item
 
     def add_child(self, parent, child, segments=1):

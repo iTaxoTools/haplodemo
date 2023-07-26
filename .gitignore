@@ -10,6 +10,7 @@ __pycache__/
 *~
 
 .DS_Store
+.vscode
 
 # due to using tox and pytest
 .tox
