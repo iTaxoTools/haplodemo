@@ -29,6 +29,7 @@ from .items.bezier import BezierCurve
 from .items.boundary import BoundaryEdgeHandle, BoundaryRect
 from .items.legend import Legend
 from .items.nodes import Edge, EdgeStyle, Label, Node, Vertex
+from .items.scale import Scale
 from .palettes import Palette
 
 
@@ -144,6 +145,19 @@ class Settings(PropertyObject):
         self.binder.bind(self.properties.palette, self.divisions.set_palette)
         self.binder.bind(self.properties.palette, self.properties.highlight_color, lambda x: x.highlight)
 
+    def get_all_node_properties(self):
+        return [
+            self.properties.node_a,
+            self.properties.node_b,
+            self.properties.node_c,
+            self.properties.node_d,
+            self.properties.node_e,
+            self.properties.node_f,
+        ]
+
+    def get_all_node_args(self):
+        return [property.value for property in self.get_all_node_properties()]
+
 
 class GraphicsScene(QtWidgets.QGraphicsScene):
     def __init__(self, settings, parent=None):
@@ -155,6 +169,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.hovered_item = None
         self.boundary = None
         self.legend = None
+        self.scale = None
 
     def event(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneLeave:
@@ -290,10 +305,23 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         if self.boundary:
             bounds = self.boundary.rect()
             width = self.legend.rect().width()
-            margin = + self.legend.margin
+            margin = self.legend.margin
             self.legend.setPos(
                 bounds.x() + bounds.width() - width - margin,
                 bounds.y() + margin)
+
+    def showScale(self, value=True):
+        if not self.scale:
+            self.scale = Scale(self.settings, [5, 20, 50])
+            self.addItem(self.scale)
+        self.scale.setVisible(value)
+        if self.scale:
+            bounds = self.boundary.rect()
+            scale = self.scale.boundingRect()
+            margin = self.legend.margin
+            self.scale.setPos(
+                bounds.x() + bounds.width() - scale.width() - margin,
+                bounds.y() + bounds.height() - scale.height() - margin)
 
     def addBezier(self):
         item = BezierCurve(QtCore.QPointF(0, 0), QtCore.QPointF(200, 0))

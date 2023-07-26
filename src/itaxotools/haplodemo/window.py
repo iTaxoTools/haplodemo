@@ -41,6 +41,7 @@ class Window(QtWidgets.QWidget):
         scene = GraphicsScene(settings)
         scene.setBoundary(0, 0, 400, 320)
         scene.showLegend()
+        scene.showScale()
         # scene.addManyNodes(8, 32)
         # scene.addBezier()
         scene.addNodes()
