@@ -29,6 +29,7 @@ class Scale(QtWidgets.QGraphicsItem):
         self.settings = settings
         self.state_hovered = False
         self.highlight_color = QtCore.Qt.magenta
+        self.font = QtGui.QFont()
         self.font_height = 16
         self.padding = 8
         self.radius = 0
@@ -36,7 +37,7 @@ class Scale(QtWidgets.QGraphicsItem):
         self.sizes = []
         self.labels = []
 
-        self.setSizes(sizes)
+        self.set_sizes(sizes)
 
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setAcceptHoverEvents(True)
@@ -98,10 +99,11 @@ class Scale(QtWidgets.QGraphicsItem):
         self.update()
 
     def set_label_font(self, font):
+        self.font = font
         metric = QtGui.QFontMetrics(font)
         self.font_height = metric.height()
         self.padding = metric.height() / 4
-        self.placeLabels()
+        self.place_labels()
 
         for label in self.labels:
             label.set_font(font)
@@ -114,15 +116,19 @@ class Scale(QtWidgets.QGraphicsItem):
             rect = rect.united(label_rect)
         return rect
 
-    def setSizes(self, sizes: list[int]):
-        args = self.settings.node_sizes.get_all_values()
-        radii = [Node.radius_from_size(size, *args) for size in sizes]
+    def set_sizes(self, sizes: list[int]):
         self.sizes = sizes
+        self.update_radii()
+
+    def update_radii(self):
+        values = self.settings.node_sizes.get_all_values()
+        radii = [Node.radius_from_size(size, *values) for size in self.sizes]
         self.radii = radii
         self.radius = max(radii)
-        self.placeLabels()
+        self.place_labels()
+        self.update()
 
-    def placeLabels(self):
+    def place_labels(self):
         for item in self.labels:
             self.scene().removeItem(item)
         self.labels = []
@@ -132,5 +138,6 @@ class Scale(QtWidgets.QGraphicsItem):
             label.set_highlight_color(self.highlight_color)
             label.set_alignment('right')
             label.setPos(radius * 2, self.radius + self.padding + self.font_height / 2)
+            label.set_font(self.font)
             label.recenter()
             self.labels.append(label)

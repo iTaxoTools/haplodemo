@@ -128,9 +128,6 @@ class NodeSizeSettings(PropertyObject):
     e = Property(float, 0)
     f = Property(float, 0)
 
-    def get_all_properties(self):
-        return [property for property in self.properties]
-
     def get_all_values(self):
         return [property.value for property in self.properties]
 
@@ -316,6 +313,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.addItem(self.scale)
             self.binder.bind(self.settings.properties.highlight_color, self.scale.set_highlight_color)
             self.binder.bind(self.settings.properties.font, self.scale.set_label_font)
+            for property in self.settings.node_sizes.properties:
+                self.binder.bind(property, self.scale.update_radii)
         self.scale.setVisible(value)
         if self.scale:
             bounds = self.boundary.rect()
