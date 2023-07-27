@@ -131,7 +131,7 @@ class Window(QtWidgets.QWidget):
         self.edge_style_dialog = EdgeStyleDialog(self, self.scene)
         self.edge_style_dialog.apply()
 
-        self.node_size_dialog = NodeSizeDialog(self, self.scene, self.settings)
+        self.node_size_dialog = NodeSizeDialog(self, self.scene, self.settings.node_sizes)
         self.node_size_dialog.apply()
 
         self.label_format_dialog = LabelFormatDialog(self, self.scene, self.settings)

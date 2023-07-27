@@ -22,6 +22,7 @@ from itaxotools.common.bindings import Binder, Property, PropertyObject
 from itaxotools.common.utility import AttrDict, type_convert
 
 from .items.types import EdgeStyle
+from .scene import NodeSizeSettings
 from .widgets import GLineEdit, RadioButtonGroup
 
 
@@ -163,15 +164,6 @@ class EdgeStyleDialog(OptionsDialog):
         self.scene.styleEdges(self.settings.style, self.settings.cutoff)
 
 
-class NodeSizeSettings(PropertyObject):
-    node_a = Property(float, None)
-    node_b = Property(float, None)
-    node_c = Property(float, None)
-    node_d = Property(float, None)
-    node_e = Property(float, None)
-    node_f = Property(float, None)
-
-
 class NodeSizeDialog(BoundOptionsDialog):
     def __init__(self, parent, scene, global_settings):
         super().__init__(parent, NodeSizeSettings(), global_settings)
@@ -203,7 +195,7 @@ class NodeSizeDialog(BoundOptionsDialog):
             field.setMaximum(float('inf'))
             field.setSingleStep(1)
             field.setDecimals(2)
-            property = self.settings.properties[f'node_{x}']
+            property = self.settings.properties[x]
             self.binder.bind(field.valueChanged, property, lambda x: type_convert(x, float, None))
             self.binder.bind(property, field.setValue, lambda x: type_convert(x, float, 0))
             fields[x] = field
@@ -240,15 +232,7 @@ class NodeSizeDialog(BoundOptionsDialog):
         return layout
 
     def apply(self):
-        settings = self.settings
-        self.scene.styleNodes(
-            settings.node_a,
-            settings.node_b,
-            settings.node_c,
-            settings.node_d,
-            settings.node_e,
-            settings.node_f,
-        )
+        self.scene.styleNodes(*self.settings.get_all_values())
         self.push()
 
 

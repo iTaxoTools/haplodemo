@@ -20,7 +20,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import override
 
-from .nodes import Node, Label
+from .nodes import Label, Node
 
 
 class Scale(QtWidgets.QGraphicsItem):
@@ -115,7 +115,7 @@ class Scale(QtWidgets.QGraphicsItem):
         return rect
 
     def setSizes(self, sizes: list[int]):
-        args = self.settings.get_all_node_args()
+        args = self.settings.node_sizes.get_all_values()
         radii = [Node.radius_from_size(size, *args) for size in sizes]
         self.sizes = sizes
         self.radii = radii
@@ -134,4 +134,3 @@ class Scale(QtWidgets.QGraphicsItem):
             label.setPos(radius * 2, self.radius + self.padding + self.font_height / 2)
             label.recenter()
             self.labels.append(label)
-

@@ -120,6 +120,21 @@ class DivisionListModel(QtCore.QAbstractListModel):
         return list(self._divisions)
 
 
+class NodeSizeSettings(PropertyObject):
+    a = Property(float, 10)
+    b = Property(float, 2)
+    c = Property(float, 0.2)
+    d = Property(float, 1)
+    e = Property(float, 0)
+    f = Property(float, 0)
+
+    def get_all_properties(self):
+        return [property for property in self.properties]
+
+    def get_all_values(self):
+        return [property.value for property in self.properties]
+
+
 class Settings(PropertyObject):
     palette = Property(Palette, Palette.Spring())
     divisions = Property(DivisionListModel, Instance)
@@ -129,12 +144,7 @@ class Settings(PropertyObject):
     recursive_movement = Property(bool, True)
     label_movement = Property(bool, False)
 
-    node_a = Property(float, 10)
-    node_b = Property(float, 2)
-    node_c = Property(float, 0.2)
-    node_d = Property(float, 1)
-    node_e = Property(float, 0)
-    node_f = Property(float, 0)
+    node_sizes = Property(NodeSizeSettings, Instance)
 
     node_label_template = Property(str, 'NAME')
     edge_label_template = Property(str, '(WEIGHT)')
@@ -144,19 +154,6 @@ class Settings(PropertyObject):
         self.binder = Binder()
         self.binder.bind(self.properties.palette, self.divisions.set_palette)
         self.binder.bind(self.properties.palette, self.properties.highlight_color, lambda x: x.highlight)
-
-    def get_all_node_properties(self):
-        return [
-            self.properties.node_a,
-            self.properties.node_b,
-            self.properties.node_c,
-            self.properties.node_d,
-            self.properties.node_e,
-            self.properties.node_f,
-        ]
-
-    def get_all_node_args(self):
-        return [property.value for property in self.get_all_node_properties()]
 
 
 class GraphicsScene(QtWidgets.QGraphicsScene):
