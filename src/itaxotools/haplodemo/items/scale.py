@@ -127,9 +127,10 @@ class Scale(QtWidgets.QGraphicsItem):
             self.scene().removeItem(item)
         self.labels = []
 
-        for size, radius in [(0, 0), *zip(self.sizes, self.radii)]:
+        for size, radius in zip(self.sizes, self.radii):
             label = Label(str(size), self)
             label.set_highlight_color(self.highlight_color)
+            label.set_alignment('right')
             label.setPos(radius * 2, self.radius + self.padding + self.font_height / 2)
             label.recenter()
             self.labels.append(label)

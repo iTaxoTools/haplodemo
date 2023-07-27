@@ -35,6 +35,7 @@ class Label(QtWidgets.QGraphicsItem):
 
         self._highlight_color = QtCore.Qt.magenta
         self._white_outline = False
+        self._alignment = 'center'
 
         font = QtGui.QFont()
         font.setPixelSize(16)
@@ -43,7 +44,7 @@ class Label(QtWidgets.QGraphicsItem):
         self.font = font
 
         self.text = text
-        self.rect = self.getCenteredRect()
+        self.rect = self.getTextRect()
         self.outline = self.getTextOutline()
 
         self.state_hovered = False
@@ -151,13 +152,13 @@ class Label(QtWidgets.QGraphicsItem):
     def set_font(self, font):
         if font is None:
             return
-        center = self.rect.center()
         font.setHintingPreference(QtGui.QFont.PreferNoHinting)
         self.font = font
         self.outline = self.getTextOutline()
-        rect = self.getCenteredRect()
-        rect.moveCenter(center)
-        self.setRect(rect)
+        self.recenter()
+
+    def set_alignment(self, value):
+        self._alignment = value
 
     def setRect(self, rect):
         self.prepareGeometryChange()
@@ -170,9 +171,30 @@ class Label(QtWidgets.QGraphicsItem):
             return True
         return False
 
+    def getTextRect(self):
+        match self._alignment:
+            case 'center':
+                return self.getCenteredRect()
+            case 'left':
+                return self.getLeftRect()
+            case 'right':
+                return self.getRightRect()
+
     def getCenteredRect(self):
         rect = QtGui.QFontMetrics(self.font).tightBoundingRect(self.text)
         rect = rect.translated(-rect.center())
+        rect = rect.adjusted(-3, -3, 3, 3)
+        return rect
+
+    def getLeftRect(self):
+        rect = QtGui.QFontMetrics(self.font).tightBoundingRect(self.text)
+        rect = rect.translated(0, -rect.center().y())
+        rect = rect.adjusted(-3, -3, 3, 3)
+        return rect
+
+    def getRightRect(self):
+        rect = QtGui.QFontMetrics(self.font).tightBoundingRect(self.text)
+        rect = rect.translated(-rect.width(), -rect.center().y())
         rect = rect.adjusted(-3, -3, 3, 3)
         return rect
 
@@ -183,15 +205,13 @@ class Label(QtWidgets.QGraphicsItem):
         return path
 
     def recenter(self):
-        rect = self.getCenteredRect()
+        rect = self.getTextRect()
         self.setRect(rect)
 
     def setText(self, text):
-        center = self.rect.center()
         self.text = text
         self.outline = self.getTextOutline()
-        rect = self.getCenteredRect()
-        rect.moveCenter(center)
+        rect = self.getTextRect()
         self.setRect(rect)
 
 
