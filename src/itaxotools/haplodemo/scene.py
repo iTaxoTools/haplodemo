@@ -141,6 +141,9 @@ class Settings(PropertyObject):
     recursive_movement = Property(bool, True)
     label_movement = Property(bool, False)
 
+    show_legend = Property(bool, True)
+    show_scale = Property(bool, True)
+
     node_sizes = Property(NodeSizeSettings, Instance)
 
     node_label_template = Property(str, 'NAME')
@@ -158,12 +161,16 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         super().__init__(parent)
         mid = QtWidgets.QApplication.instance().palette().mid()
         self.setBackgroundBrush(mid)
-        self.binder = Binder()
-        self.settings = settings
+
         self.hovered_item = None
         self.boundary = None
         self.legend = None
         self.scale = None
+
+        self.binder = Binder()
+        self.settings = settings
+        self.binder.bind(settings.properties.show_legend, self.show_legend)
+        self.binder.bind(settings.properties.show_scale, self.show_scale)
 
     def event(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneLeave:
@@ -280,7 +287,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             return closest_edge_item
         return None
 
-    def setBoundary(self, x=0, y=0, w=0, h=0):
+    def set_boundary(self, x=0, y=0, w=0, h=0):
         if not self.boundary:
             self.boundary = BoundaryRect(x, y, w, h)
             self.addItem(self.boundary)
@@ -290,8 +297,10 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.boundary = None
             return
         self.boundary.setRect(x, y, w, h)
+        self.position_legend()
+        self.position_scale()
 
-    def showLegend(self, value=True):
+    def show_legend(self, value=True):
         if not self.legend:
             self.legend = Legend(self.settings.divisions.all())
             self.addItem(self.legend)
@@ -299,15 +308,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.binder.bind(self.settings.properties.highlight_color, self.legend.set_highlight_color)
             self.binder.bind(self.settings.properties.font, self.legend.set_label_font)
         self.legend.setVisible(value)
-        if self.boundary:
-            bounds = self.boundary.rect()
-            width = self.legend.rect().width()
-            margin = self.legend.margin
-            self.legend.setPos(
-                bounds.x() + bounds.width() - width - margin,
-                bounds.y() + margin)
+        self.position_legend()
 
-    def showScale(self, value=True):
+    def show_scale(self, value=True):
         if not self.scale:
             self.scale = Scale(self.settings, [5, 20, 50])
             self.addItem(self.scale)
@@ -316,13 +319,27 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             for property in self.settings.node_sizes.properties:
                 self.binder.bind(property, self.scale.update_radii)
         self.scale.setVisible(value)
-        if self.scale:
-            bounds = self.boundary.rect()
-            scale = self.scale.get_extended_rect()
-            margin = self.legend.margin
-            self.scale.setPos(
-                bounds.x() + bounds.width() - scale.width() - margin,
-                bounds.y() + bounds.height() - scale.height() - margin)
+        self.position_scale()
+
+    def position_legend(self):
+        if not self.boundary:
+            return
+        bounds = self.boundary.rect()
+        width = self.legend.rect().width()
+        margin = self.legend.margin
+        self.legend.setPos(
+            bounds.x() + bounds.width() - width - margin,
+            bounds.y() + margin)
+
+    def position_scale(self):
+        if not self.boundary:
+            return
+        bounds = self.boundary.rect()
+        scale = self.scale.get_extended_rect()
+        margin = self.legend.margin
+        self.scale.setPos(
+            bounds.x() + bounds.width() - scale.width() - margin,
+            bounds.y() + bounds.height() - scale.height() - margin)
 
     def addBezier(self):
         item = BezierCurve(QtCore.QPointF(0, 0), QtCore.QPointF(200, 0))

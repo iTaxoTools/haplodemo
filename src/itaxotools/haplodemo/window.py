@@ -39,9 +39,9 @@ class Window(QtWidgets.QWidget):
         settings.font = QtGui.QFont('Arial', 16)
 
         scene = GraphicsScene(settings)
-        scene.setBoundary(0, 0, 400, 320)
-        scene.showLegend()
-        scene.showScale()
+        scene.set_boundary(0, 0, 400, 320)
+        # scene.showLegend()
+        # scene.showScale()
         # scene.addManyNodes(8, 32)
         # scene.addBezier()
         scene.addNodes()
@@ -52,9 +52,14 @@ class Window(QtWidgets.QWidget):
 
         palette_selector = PaletteSelector()
 
-        toggle_rotation = ToggleButton('Rotate nodes')
-        toggle_recursive = ToggleButton('Move children')
-        toggle_labels = ToggleButton('Lock labels')
+        button_svg = QtWidgets.QPushButton('Export as SVG')
+        button_svg.clicked.connect(lambda: self.export_svg())
+
+        button_pdf = QtWidgets.QPushButton('Export as PDF')
+        button_pdf.clicked.connect(lambda: self.export_pdf())
+
+        button_png = QtWidgets.QPushButton('Export as PNG')
+        button_png.clicked.connect(lambda: self.export_png())
 
         mass_style_edges = QtWidgets.QPushButton('Set edge style')
         mass_style_edges.clicked.connect(self.show_edge_style_dialog)
@@ -68,21 +73,18 @@ class Window(QtWidgets.QWidget):
         select_font = QtWidgets.QPushButton('Set font')
         select_font.clicked.connect(self.show_font_dialog)
 
+        toggle_rotation = ToggleButton('Rotate nodes')
+        toggle_recursive = ToggleButton('Move children')
+        toggle_labels = ToggleButton('Lock labels')
+        toggle_legend = ToggleButton('Show legend')
+        toggle_scale = ToggleButton('Show scale')
+
         division_view = DivisionView(settings.divisions)
 
-        button_svg = QtWidgets.QPushButton('Export as SVG')
-        button_svg.clicked.connect(lambda: self.export_svg())
-
-        button_pdf = QtWidgets.QPushButton('Export as PDF')
-        button_pdf.clicked.connect(lambda: self.export_pdf())
-
-        button_png = QtWidgets.QPushButton('Export as PNG')
-        button_png.clicked.connect(lambda: self.export_png())
-
-        options = QtWidgets.QVBoxLayout()
-        options.addWidget(toggle_rotation)
-        options.addWidget(toggle_recursive)
-        options.addWidget(toggle_labels)
+        exports = QtWidgets.QVBoxLayout()
+        exports.addWidget(button_svg)
+        exports.addWidget(button_pdf)
+        exports.addWidget(button_png)
 
         dialogs = QtWidgets.QVBoxLayout()
         dialogs.addWidget(mass_style_edges)
@@ -90,14 +92,16 @@ class Window(QtWidgets.QWidget):
         dialogs.addWidget(mass_format_labels)
         dialogs.addWidget(select_font)
 
-        buttons = QtWidgets.QVBoxLayout()
-        buttons.addWidget(button_svg)
-        buttons.addWidget(button_pdf)
-        buttons.addWidget(button_png)
+        toggles = QtWidgets.QVBoxLayout()
+        toggles.addWidget(toggle_rotation)
+        toggles.addWidget(toggle_recursive)
+        toggles.addWidget(toggle_labels)
+        toggles.addWidget(toggle_legend)
+        toggles.addWidget(toggle_scale)
 
         sidebar = QtWidgets.QVBoxLayout()
         sidebar.setContentsMargins(0, 0, 0, 0)
-        sidebar.addLayout(buttons)
+        sidebar.addLayout(exports)
         sidebar.addSpacing(4)
         sidebar.addWidget(HLineSeparator(1))
         sidebar.addSpacing(4)
@@ -105,7 +109,7 @@ class Window(QtWidgets.QWidget):
         sidebar.addSpacing(4)
         sidebar.addWidget(HLineSeparator(1))
         sidebar.addSpacing(4)
-        sidebar.addLayout(options)
+        sidebar.addLayout(toggles)
         sidebar.addSpacing(4)
         sidebar.addWidget(HLineSeparator(1))
         sidebar.addSpacing(4)
@@ -151,6 +155,12 @@ class Window(QtWidgets.QWidget):
 
         self.binder.bind(settings.properties.label_movement, toggle_labels.setChecked, lambda x: not x)
         self.binder.bind(toggle_labels.toggled, settings.properties.label_movement, lambda x: not x)
+
+        self.binder.bind(settings.properties.show_legend, toggle_legend.setChecked)
+        self.binder.bind(toggle_legend.toggled, settings.properties.show_legend)
+
+        self.binder.bind(settings.properties.show_scale, toggle_scale.setChecked)
+        self.binder.bind(toggle_scale.toggled, settings.properties.show_scale)
 
         action = QtGui.QAction()
         action.setShortcut(QtGui.QKeySequence.Save)
