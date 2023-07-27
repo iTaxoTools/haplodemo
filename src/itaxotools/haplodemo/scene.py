@@ -132,6 +132,10 @@ class NodeSizeSettings(PropertyObject):
         return [property.value for property in self.properties]
 
 
+class ScaleSettings(PropertyObject):
+    marks = Property(list, [5, 10, 20])
+
+
 class Settings(PropertyObject):
     palette = Property(Palette, Palette.Spring())
     divisions = Property(DivisionListModel, Instance)
@@ -145,6 +149,7 @@ class Settings(PropertyObject):
     show_scale = Property(bool, True)
 
     node_sizes = Property(NodeSizeSettings, Instance)
+    scale = Property(ScaleSettings, Instance)
 
     node_label_template = Property(str, 'NAME')
     edge_label_template = Property(str, '(WEIGHT)')
@@ -312,8 +317,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
     def show_scale(self, value=True):
         if not self.scale:
-            self.scale = Scale(self.settings, [5, 20, 50])
+            self.scale = Scale(self.settings)
             self.addItem(self.scale)
+            self.binder.bind(self.settings.scale.properties.marks, self.scale.set_marks)
             self.binder.bind(self.settings.properties.highlight_color, self.scale.set_highlight_color)
             self.binder.bind(self.settings.properties.font, self.scale.set_label_font)
             for property in self.settings.node_sizes.properties:

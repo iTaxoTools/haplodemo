@@ -36,6 +36,7 @@ class Label(QtWidgets.QGraphicsItem):
         self._highlight_color = QtCore.Qt.magenta
         self._white_outline = False
         self._anchor = Direction.Center
+        self._debug = False
 
         font = QtGui.QFont()
         font.setPixelSize(16)
@@ -115,6 +116,12 @@ class Label(QtWidgets.QGraphicsItem):
         self.paint_text(painter)
 
         painter.restore()
+
+        if self._debug:
+            painter.setPen(QtCore.Qt.green)
+            painter.drawRect(self.boundingRect())
+            painter.drawLine(-4, 0, 4, 0)
+            painter.drawLine(0, -4, 0, 4)
 
     def paint_outline(self, painter):
         if self.isHighlighted():

@@ -21,7 +21,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from itaxotools.common.bindings import Binder
 from itaxotools.common.widgets import HLineSeparator
 
-from .dialogs import EdgeStyleDialog, LabelFormatDialog, NodeSizeDialog
+from .dialogs import (
+    EdgeStyleDialog, LabelFormatDialog, NodeSizeDialog, ScaleMarksDialog)
 from .scene import GraphicsScene, GraphicsView, Settings
 from .widgets import ColorDelegate, DivisionView, PaletteSelector, ToggleButton
 from .zoom import ZoomControl
@@ -37,6 +38,7 @@ class Window(QtWidgets.QWidget):
         settings = Settings()
         settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
         settings.font = QtGui.QFont('Arial', 16)
+        settings.scale.marks = [2, 10, 30]
 
         scene = GraphicsScene(settings)
         scene.set_boundary(0, 0, 400, 320)
@@ -52,6 +54,18 @@ class Window(QtWidgets.QWidget):
 
         palette_selector = PaletteSelector()
 
+        self.edge_style_dialog = EdgeStyleDialog(self, scene)
+        self.edge_style_dialog.apply()
+
+        self.node_size_dialog = NodeSizeDialog(self, scene, settings.node_sizes)
+        self.node_size_dialog.apply()
+
+        self.scale_style_dialog = ScaleMarksDialog(self, scene, settings.scale)
+        self.scale_style_dialog.apply()
+
+        self.label_format_dialog = LabelFormatDialog(self, scene, settings)
+        self.label_format_dialog.apply()
+
         button_svg = QtWidgets.QPushButton('Export as SVG')
         button_svg.clicked.connect(lambda: self.export_svg())
 
@@ -62,13 +76,16 @@ class Window(QtWidgets.QWidget):
         button_png.clicked.connect(lambda: self.export_png())
 
         mass_style_edges = QtWidgets.QPushButton('Set edge style')
-        mass_style_edges.clicked.connect(self.show_edge_style_dialog)
+        mass_style_edges.clicked.connect(self.edge_style_dialog.show)
 
         mass_resize_nodes = QtWidgets.QPushButton('Set node size')
-        mass_resize_nodes.clicked.connect(self.show_node_resize_dialog)
+        mass_resize_nodes.clicked.connect(self.node_size_dialog.show)
+
+        style_scale = QtWidgets.QPushButton('Set scale marks')
+        style_scale.clicked.connect(self.scale_style_dialog.show)
 
         mass_format_labels = QtWidgets.QPushButton('Set label format')
-        mass_format_labels.clicked.connect(self.show_label_format_dialog)
+        mass_format_labels.clicked.connect(self.label_format_dialog.show)
 
         select_font = QtWidgets.QPushButton('Set font')
         select_font.clicked.connect(self.show_font_dialog)
@@ -89,6 +106,7 @@ class Window(QtWidgets.QWidget):
         dialogs = QtWidgets.QVBoxLayout()
         dialogs.addWidget(mass_style_edges)
         dialogs.addWidget(mass_resize_nodes)
+        dialogs.addWidget(style_scale)
         dialogs.addWidget(mass_format_labels)
         dialogs.addWidget(select_font)
 
@@ -132,15 +150,6 @@ class Window(QtWidgets.QWidget):
         self.zoom_control = zoom_control
         self.settings = settings
 
-        self.edge_style_dialog = EdgeStyleDialog(self, self.scene)
-        self.edge_style_dialog.apply()
-
-        self.node_size_dialog = NodeSizeDialog(self, self.scene, self.settings.node_sizes)
-        self.node_size_dialog.apply()
-
-        self.label_format_dialog = LabelFormatDialog(self, self.scene, self.settings)
-        self.label_format_dialog.apply()
-
         self.binder = Binder()
 
         self.binder.bind(palette_selector.currentValueChanged, settings.properties.palette)
@@ -176,15 +185,6 @@ class Window(QtWidgets.QWidget):
             gg.bottomRight().y() - self.zoom_control.height() - 16,
         ))
         self.zoom_control.setGeometry(gg)
-
-    def show_edge_style_dialog(self):
-        self.edge_style_dialog.show()
-
-    def show_node_resize_dialog(self):
-        self.node_size_dialog.show()
-
-    def show_label_format_dialog(self):
-        self.label_format_dialog.show()
 
     def show_font_dialog(self):
         _, font = QtWidgets.QFontDialog.getFont(

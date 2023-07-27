@@ -22,7 +22,7 @@ from itaxotools.common.bindings import Binder, Property, PropertyObject
 from itaxotools.common.utility import AttrDict, type_convert
 
 from .items.types import EdgeStyle
-from .scene import NodeSizeSettings
+from .scene import NodeSizeSettings, ScaleSettings
 from .widgets import GLineEdit, RadioButtonGroup
 
 
@@ -293,4 +293,64 @@ class LabelFormatDialog(BoundOptionsDialog):
             settings.node_label_template,
             settings.edge_label_template,
         )
+        self.push()
+
+
+class ScaleMarksDialog(BoundOptionsDialog):
+    def __init__(self, parent, scene, global_settings):
+        super().__init__(parent, ScaleSettings(), global_settings)
+        self.setWindowTitle('Haplodemo - Scale marks')
+        # self.hintedResize(340, 0)
+
+        self.scene = scene
+
+        contents = self.draw_contents()
+        self.draw_dialog(contents)
+
+    def draw_contents(self):
+        label_info = QtWidgets.QLabel('Define what node sizes are marked on the scale in the form of a comma separated list.')
+        label_info.setWordWrap(True)
+
+        self.marks = GLineEdit()
+        self.marks.setTextMargins(2, 0, 2, 0)
+
+        self.binder.bind(self.marks.textEditedSafe, self.update_text_color)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(label_info, 1)
+        layout.addWidget(self.marks, 1)
+        layout.setSpacing(16)
+        return layout
+
+    def show(self):
+        super().show()
+        text = self.get_text_from_marks(self.settings.marks)
+        self.marks.setText(text)
+
+    def update_text_color(self, text):
+        try:
+            self.get_marks_from_text(text)
+        except Exception:
+            color = 'red'
+        else:
+            color = 'black'
+        self.marks.setStyleSheet(f"color: {color};")
+
+    def get_text_from_marks(self, marks: list[int]) -> str:
+        text = ', '.join(str(mark) for mark in marks)
+        return text
+
+    def get_marks_from_text(self, text: str) -> list[int]:
+        marks = text.split(',')
+        marks = [mark.strip() for mark in marks]
+        marks = [int(mark) for mark in marks]
+        return sorted(set(marks))
+
+    def apply(self):
+        try:
+            text = self.marks.text()
+            marks = self.get_marks_from_text(text)
+        except Exception:
+            return
+        self.settings.marks = marks
         self.push()

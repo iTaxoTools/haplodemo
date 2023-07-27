@@ -25,7 +25,7 @@ from .types import Direction
 
 
 class Scale(QtWidgets.QGraphicsItem):
-    def __init__(self, settings, sizes, parent=None):
+    def __init__(self, settings, marks=[1, 10, 100], parent=None):
         super().__init__(parent)
         self.settings = settings
         self.state_hovered = False
@@ -35,10 +35,10 @@ class Scale(QtWidgets.QGraphicsItem):
         self.padding = 8
         self.radius = 0
         self.radii = []
-        self.sizes = []
+        self.marks = []
         self.labels = []
 
-        self.set_sizes(sizes)
+        self.set_marks(marks)
 
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setAcceptHoverEvents(True)
@@ -60,12 +60,12 @@ class Scale(QtWidgets.QGraphicsItem):
     def paint(self, painter, options, widget=None):
         if self.state_hovered:
             painter.setPen(QtGui.QPen(self.highlight_color, 6))
-            self.paint_radii(painter)
+            self.paint_marks(painter)
 
         painter.setPen(QtGui.QPen(QtCore.Qt.black, 2))
-        self.paint_radii(painter)
+        self.paint_marks(painter)
 
-    def paint_radii(self, painter):
+    def paint_marks(self, painter):
         bottom_left = QtCore.QPoint(0, self.radius)
 
         for radius in self.radii:
@@ -117,13 +117,13 @@ class Scale(QtWidgets.QGraphicsItem):
             rect = rect.united(label_rect)
         return rect
 
-    def set_sizes(self, sizes: list[int]):
-        self.sizes = sizes
+    def set_marks(self, marks: list[int]):
+        self.marks = marks
         self.update_radii()
 
     def update_radii(self):
         values = self.settings.node_sizes.get_all_values()
-        radii = [Node.radius_from_size(size, *values) for size in self.sizes]
+        radii = [Node.radius_from_size(size, *values) for size in self.marks]
         self.radii = radii
         self.radius = max(radii)
         self.place_labels()
@@ -134,7 +134,7 @@ class Scale(QtWidgets.QGraphicsItem):
             self.scene().removeItem(item)
         self.labels = []
 
-        for size, radius in zip(self.sizes, self.radii):
+        for size, radius in zip(self.marks, self.radii):
             label = Label(str(size), self)
             label.set_highlight_color(self.highlight_color)
             label.set_anchor(Direction.Right)
