@@ -23,7 +23,7 @@ from math import log
 from itaxotools.common.utility import override
 
 from ..utility import shapeFromPath
-from .types import EdgeDecoration, EdgeStyle
+from .types import Direction, EdgeDecoration, EdgeStyle
 
 
 class Label(QtWidgets.QGraphicsItem):
@@ -35,7 +35,7 @@ class Label(QtWidgets.QGraphicsItem):
 
         self._highlight_color = QtCore.Qt.magenta
         self._white_outline = False
-        self._alignment = 'center'
+        self._anchor = Direction.Center
 
         font = QtGui.QFont()
         font.setPixelSize(16)
@@ -111,12 +111,12 @@ class Label(QtWidgets.QGraphicsItem):
         pos -= self.rect.center()
         painter.translate(-pos)
 
-        self.paintOutline(painter)
-        self.paintText(painter)
+        self.paint_outline(painter)
+        self.paint_text(painter)
 
         painter.restore()
 
-    def paintOutline(self, painter):
+    def paint_outline(self, painter):
         if self.isHighlighted():
             color = self._highlight_color
         elif self._white_outline:
@@ -128,7 +128,7 @@ class Label(QtWidgets.QGraphicsItem):
         painter.setBrush(QtGui.QBrush(color))
         painter.drawPath(self.outline)
 
-    def paintText(self, painter):
+    def paint_text(self, painter):
         pen = QtGui.QPen(QtGui.QColor('black'))
         painter.setPen(pen)
         painter.setBrush(QtCore.Qt.NoBrush)
@@ -157,8 +157,8 @@ class Label(QtWidgets.QGraphicsItem):
         self.outline = self.getTextOutline()
         self.recenter()
 
-    def set_alignment(self, value):
-        self._alignment = value
+    def set_anchor(self, value):
+        self._anchor = value
 
     def setRect(self, rect):
         self.prepareGeometryChange()
@@ -172,27 +172,27 @@ class Label(QtWidgets.QGraphicsItem):
         return False
 
     def getTextRect(self):
-        match self._alignment:
-            case 'center':
-                return self.getCenteredRect()
-            case 'left':
-                return self.getLeftRect()
-            case 'right':
-                return self.getRightRect()
+        match self._anchor:
+            case Direction.Center:
+                return self.get_center_rect()
+            case Direction.Left:
+                return self.get_left_rect()
+            case Direction.Right:
+                return self.get_right_rect()
 
-    def getCenteredRect(self):
+    def get_center_rect(self):
         rect = QtGui.QFontMetrics(self.font).tightBoundingRect(self.text)
         rect = rect.translated(-rect.center())
         rect = rect.adjusted(-3, -3, 3, 3)
         return rect
 
-    def getLeftRect(self):
+    def get_left_rect(self):
         rect = QtGui.QFontMetrics(self.font).tightBoundingRect(self.text)
         rect = rect.translated(0, -rect.center().y())
         rect = rect.adjusted(-3, -3, 3, 3)
         return rect
 
-    def getRightRect(self):
+    def get_right_rect(self):
         rect = QtGui.QFontMetrics(self.font).tightBoundingRect(self.text)
         rect = rect.translated(-rect.width(), -rect.center().y())
         rect = rect.adjusted(-3, -3, 3, 3)

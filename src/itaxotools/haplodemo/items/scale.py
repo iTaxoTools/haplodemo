@@ -21,6 +21,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from itaxotools.common.utility import override
 
 from .nodes import Label, Node
+from .types import Direction
 
 
 class Scale(QtWidgets.QGraphicsItem):
@@ -136,7 +137,7 @@ class Scale(QtWidgets.QGraphicsItem):
         for size, radius in zip(self.sizes, self.radii):
             label = Label(str(size), self)
             label.set_highlight_color(self.highlight_color)
-            label.set_alignment('right')
+            label.set_anchor(Direction.Right)
             label.setPos(radius * 2, self.radius + self.padding + self.font_height / 2)
             label.set_font(self.font)
             label.recenter()

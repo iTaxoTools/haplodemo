@@ -57,3 +57,11 @@ class EdgeStyle(Enum):
 
     def __str__(self):
         return self.label
+
+
+class Direction(Enum):
+    Center = auto()
+    Left = auto()
+    Right = auto()
+    Top = auto()
+    Bottom = auto()

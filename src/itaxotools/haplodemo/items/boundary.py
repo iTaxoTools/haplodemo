@@ -22,6 +22,8 @@ from itertools import product
 
 from itaxotools.common.utility import override
 
+from .types import Direction
+
 
 class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
 
@@ -46,17 +48,17 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
 
     def adjustCursor(self):
         match self.horizontal, self.vertical:
-            case 'center', _:
+            case Direction.Center, _:
                 cursor = QtCore.Qt.SizeVerCursor
-            case _, 'center':
+            case _, Direction.Center:
                 cursor = QtCore.Qt.SizeHorCursor
-            case 'left', 'top':
+            case Direction.Left, Direction.Top:
                 cursor = QtCore.Qt.SizeFDiagCursor
-            case 'left', 'bottom':
+            case Direction.Left, Direction.Bottom:
                 cursor = QtCore.Qt.SizeBDiagCursor
-            case 'right', 'top':
+            case Direction.Right, Direction.Top:
                 cursor = QtCore.Qt.SizeBDiagCursor
-            case 'right', 'bottom':
+            case Direction.Right, Direction.Bottom:
                 cursor = QtCore.Qt.SizeFDiagCursor
             case _, _:
                 cursor = QtCore.Qt.SizeAllCursor
@@ -70,20 +72,20 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
         y = 0
 
         match self.horizontal:
-            case 'right':
+            case Direction.Right:
                 x = parent.rect().right()
-            case 'left':
+            case Direction.Left:
                 x = parent.rect().left() - self.size
-            case 'center':
+            case Direction.Center:
                 width = parent.rect().width()
                 x = parent.rect().left()
 
         match self.vertical:
-            case 'top':
+            case Direction.Top:
                 y = parent.rect().top() - self.size
-            case 'bottom':
+            case Direction.Bottom:
                 y = parent.rect().bottom()
-            case 'center':
+            case Direction.Center:
                 height = parent.rect().height()
                 y = parent.rect().top()
 
@@ -111,33 +113,33 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
         diff_x = pos.x() - self.locked_pos.x()
         diff_y = pos.y() - self.locked_pos.y()
 
-        if self.vertical == 'center':
+        if self.vertical == Direction.Center:
             diff_y = 0
-        elif self.horizontal == 'center':
+        elif self.horizontal == Direction.Center:
             diff_x = 0
 
         rect = self.locked_rect.translated(diff_x, diff_y)
         parent = self.parentItem()
 
-        if self.horizontal == 'right':
+        if self.horizontal == Direction.Right:
             limit = parent.rect().left() + parent.minimum_size
             if rect.left() < limit:
                 rect.moveLeft(limit)
             parent.setEdge(QtCore.QRectF.setRight, rect.left())
 
-        if self.horizontal == 'left':
+        if self.horizontal == Direction.Left:
             limit = parent.rect().right() - parent.minimum_size
             if rect.right() > limit:
                 rect.moveRight(limit)
             parent.setEdge(QtCore.QRectF.setLeft, rect.right())
 
-        if self.vertical == 'top':
+        if self.vertical == Direction.Top:
             limit = parent.rect().bottom() - parent.minimum_size
             if rect.bottom() > limit:
                 rect.moveBottom(limit)
             parent.setEdge(QtCore.QRectF.setTop, rect.bottom())
 
-        if self.vertical == 'bottom':
+        if self.vertical == Direction.Bottom:
             limit = parent.rect().top() + parent.minimum_size
             if rect.top() < limit:
                 rect.moveTop(limit)
@@ -172,9 +174,9 @@ class BoundaryRect(QtWidgets.QGraphicsRectItem):
         self.setZValue(-99)
 
         handles = list(product(
-            ['left', 'center', 'right'],
-            ['top', 'center', 'bottom']))
-        handles.remove(('center', 'center'))
+            [Direction.Left, Direction.Center, Direction.Right],
+            [Direction.Top, Direction.Center, Direction.Bottom]))
+        handles.remove((Direction.Center, Direction.Center))
 
         self.handles = [
             BoundaryEdgeHandle(self, horizontal, vertical, self.margin)
