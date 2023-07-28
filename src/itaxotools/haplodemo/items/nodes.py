@@ -236,7 +236,12 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.state_hovered = False
         self.locked_label_pos = None
         self.locked_label_rect_pos = None
+
         self._highlight_color = QtCore.Qt.magenta
+        self._pen = QtGui.QPen(QtCore.Qt.black, 2)
+        self._pen_high = QtGui.QPen(self._highlight_color, 4)
+        self._pen_high_increment = 4
+        self._pen_width = 2
 
         self.label = Label(str(weight), self)
         self.label.set_white_outline(True)
@@ -275,25 +280,14 @@ class Edge(QtWidgets.QGraphicsLineItem):
         return super().boundingRect().adjusted(-5, -5, 5, 5)
 
     @override
-    def pen(self):
-        cap = QtCore.Qt.SquareCap
-        style = QtCore.Qt.SolidLine
-        if self.style.has_dots:
-            cap = QtCore.Qt.FlatCap
-            style = QtCore.Qt.DotLine
-        return QtGui.QPen(QtCore.Qt.black, 2, style, cap)
-
-    @override
     def paint(self, painter, options, widget=None):
         painter.save()
 
         if self.state_hovered:
             self.paintHoverLine(painter)
 
-        pen = self.pen()
-
-        painter.setPen(pen)
-        painter.setBrush(pen.color())
+        painter.setPen(self._pen)
+        painter.setBrush(QtCore.Qt.black)
 
         painter.drawLine(self.line())
 
@@ -308,8 +302,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
     def paintHoverLine(self, painter):
         painter.save()
-        pen = QtGui.QPen(self._highlight_color, 6)
-        painter.setPen(pen)
+        painter.setPen(self._pen_high)
         painter.drawLine(self.line())
         painter.restore()
 
@@ -319,22 +312,28 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
         line = self.line()
 
-        if (self.segments - 1) * 6 > line.length():
+        radius = self._pen_width * 1.5
+        radius_high = radius + self._pen_high_increment
+
+        if (self.segments - 1) * radius_high > line.length():
             self.paintError(painter)
             return
 
         for dot in range(1, self.segments):
             point = line.pointAt(dot / self.segments)
-            self.paintBubble(painter, point)
+            point = QtCore.QPointF(point)
+            # Unless we use QPointF, bubble size isn't right
+            self.paintBubble(painter, point, radius, radius_high)
 
-    def paintBubble(self, painter, point):
+    def paintBubble(self, painter, point, r=2.5, h=6):
+        painter.setPen(QtCore.Qt.NoPen)
         if self.state_hovered:
             painter.save()
-            painter.setPen(QtCore.Qt.NoPen)
             painter.setBrush(self._highlight_color)
-            painter.drawEllipse(point, 6, 6)
+            painter.drawEllipse(point, h, h)
             painter.restore()
-        painter.drawEllipse(point, 2.5, 2.5)
+        painter.setBrush(QtCore.Qt.black)
+        painter.drawEllipse(point, r, r)
 
     def paintBars(self, painter):
         if self.segments == 0:
@@ -343,8 +342,8 @@ class Edge(QtWidgets.QGraphicsLineItem):
         bars = self.segments
         line = self.line()
 
-        length = 12
-        spacing = 6
+        length = 10 + self._pen_width
+        spacing = 4 + self._pen_width
         offset = (bars - 1) * spacing / 2
 
         if offset * 2 > line.length():
@@ -369,11 +368,11 @@ class Edge(QtWidgets.QGraphicsLineItem):
         strikes = 2
         line = self.line()
 
-        length = 12
-        spacing = 6
+        length = 10 + self._pen_width
+        spacing = 4 + self._pen_width
         offset = (strikes - 1) * spacing / 2
 
-        if offset * 2 > line.length():
+        if offset * 4 > line.length():
             self.paintError(painter)
             return
 
@@ -404,13 +403,16 @@ class Edge(QtWidgets.QGraphicsLineItem):
         painter.drawLine(bar)
 
     def paintError(self, painter):
+        radius = self._pen_width * 2 + 0.5
+        radius_high = radius + self._pen_high_increment
+
         painter.save()
         line = self.line()
         if self.state_hovered:
-            pen = QtGui.QPen(self._highlight_color, 20, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap)
+            pen = QtGui.QPen(self._highlight_color, radius_high, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap)
             painter.setPen(pen)
             painter.drawLine(line)
-        pen = QtGui.QPen(QtCore.Qt.black, 12, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap)
+        pen = QtGui.QPen(QtCore.Qt.black, radius, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap)
         painter.setPen(pen)
         painter.drawLine(line)
 
@@ -420,7 +422,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.style = style
         self.label.setVisible(self.style.has_text)
         self.resetLabelPosition(style.text_offset)
-        self.update()
+        self.update_pens()
 
     def set_hovered(self, value):
         self.state_hovered = value
@@ -431,11 +433,27 @@ class Edge(QtWidgets.QGraphicsLineItem):
             self.setZValue(-10)
         self.update()
 
-    def set_highlight_color(self, value):
-        self._highlight_color = value
-
     def set_label_font(self, value):
         self.label.set_font(value)
+
+    def set_highlight_color(self, value):
+        self._highlight_color = value
+        self.update_pens()
+
+    def set_pen_width(self, value):
+        self._pen_width = value
+        self.update_pens()
+
+    def update_pens(self):
+        cap = QtCore.Qt.SquareCap
+        style = QtCore.Qt.SolidLine
+        if self.style.has_dots:
+            cap = QtCore.Qt.FlatCap
+            style = QtCore.Qt.DotLine
+
+        self._pen = QtGui.QPen(QtCore.Qt.black, self._pen_width, style, cap)
+        self._pen_high = QtGui.QPen(self._highlight_color, self._pen_width + self._pen_high_increment)
+        self.update()
 
     def resetLabelPosition(self, offset: bool | None):
         if not offset:
@@ -493,10 +511,10 @@ class Edge(QtWidgets.QGraphicsLineItem):
             return
         self.show()
 
-        line.setLength(length - rad1 - rad2)
+        line.setLength(length - rad1 - rad2 + 2)
 
         unit = line.unitVector()
-        unit.setLength(rad1)
+        unit.setLength(rad1 - 1)
         unit.translate(-unit.x1(), -unit.y1())
 
         line.translate(unit.x2(), unit.y2())
@@ -533,9 +551,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self._rotational_setting = None
         self._recursive_setting = None
         self._highlight_color = QtCore.Qt.magenta
-        self._pen = QtGui.QPen(QtCore.Qt.black, 2)
-        self._pen_high = QtGui.QPen(self._highlight_color, 4)
-        self._pen_high_increment = 2
+        self._pen_high_increment = 4
         self._pen_width = 2
 
         self.setZValue(10)
@@ -548,15 +564,15 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
     @override
     def paint(self, painter, options, widget=None):
-        painter.save()
-        painter.setPen(self.get_border_pen())
-        painter.setBrush(self.brush())
-        rect = self.rect()
-        if self.is_highlighted():
-            r = self.radius
-            rect = rect.adjusted(-r, -r, r, r)
-        painter.drawEllipse(rect)
-        painter.restore()
+        painter.setPen(QtCore.Qt.NoPen)
+        center = QtCore.QPoint(0, 0)
+
+        radius = self._pen_width * 1.5
+        radius_high = radius + self._pen_high_increment
+
+        center = QtCore.QPointF(0, 0)
+        # Unless we use QPointF, bubble size isn't right
+        Edge.paintBubble(self, painter, center, radius, radius_high)
 
     @override
     def boundingRect(self):
@@ -622,11 +638,6 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
             return True
         return False
 
-    def get_border_pen(self):
-        if self.is_highlighted():
-            return self._pen_high
-        return self._pen
-
     def addChild(self, item, edge):
         item.parent = self
         item.edges[self] = edge
@@ -663,15 +674,12 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
     def set_highlight_color(self, value):
         self._highlight_color = value
-        self.update_pens()
 
     def set_pen_width(self, value):
+        r = value
         self._pen_width = value
-        self.update_pens()
-
-    def update_pens(self):
-        self._pen = QtGui.QPen(QtCore.Qt.black, self._pen_width)
-        self._pen_high = QtGui.QPen(self._highlight_color, self._pen_width + self._pen_high_increment)
+        self.prepareGeometryChange()
+        self.setRect(-r, -r, 2 * r, 2 * r)
 
     def isMovementRotational(self):
         if not self._rotational_setting:
@@ -768,6 +776,11 @@ class Node(Vertex):
         self.pies = dict()
         self.name = name
 
+        self._pen = QtGui.QPen(QtCore.Qt.black, 2)
+        self._pen_high = QtGui.QPen(self._highlight_color, 4)
+        self._pen_high_increment = 2
+        self._pen_width = 2
+
         self.label = Label(name, self)
         self.adjust_radius()
 
@@ -835,8 +848,23 @@ class Node(Vertex):
             span = int(5760 * weight / total_weight)
             self.pies[color] = span
 
+    def get_border_pen(self):
+        if self.is_highlighted():
+            return self._pen_high
+        return self._pen
+
     def set_highlight_color(self, value):
         self._highlight_color = value
+        self.update_pens()
+
+    def set_pen_width(self, value):
+        self._pen_width = value
+        self.update_pens()
+
+    def update_pens(self):
+        self._pen = QtGui.QPen(QtCore.Qt.black, self._pen_width)
+        self._pen_high = QtGui.QPen(self._highlight_color, self._pen_width + self._pen_high_increment)
+        self.update()
 
     def set_label_font(self, value):
         self.label.set_font(value)

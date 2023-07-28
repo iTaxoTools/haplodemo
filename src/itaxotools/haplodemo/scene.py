@@ -151,8 +151,8 @@ class Settings(PropertyObject):
     node_sizes = Property(NodeSizeSettings, Instance)
     scale = Property(ScaleSettings, Instance)
 
-    pen_width_nodes = Property(float, 2)
-    pen_width_edges = Property(float, 2)
+    pen_width_nodes = Property(float, 1)
+    pen_width_edges = Property(float, 1)
 
     node_label_template = Property(str, 'NAME')
     edge_label_template = Property(str, '(WEIGHT)')
@@ -437,6 +437,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
         self.binder.bind(self.settings.properties.recursive_movement, item.set_recursive_setting)
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
+        self.binder.bind(self.settings.properties.pen_width_edges, item.set_pen_width)
         return item
 
     def create_node(self, *args, **kwargs):
@@ -456,6 +457,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
         self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
         self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
+        self.binder.bind(self.settings.properties.pen_width_edges, item.set_pen_width)
         self.binder.bind(self.settings.properties.font, item.set_label_font)
         return item
 
