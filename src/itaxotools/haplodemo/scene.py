@@ -152,7 +152,7 @@ class Settings(PropertyObject):
     scale = Property(ScaleSettings, Instance)
 
     pen_width_nodes = Property(float, 1)
-    pen_width_edges = Property(float, 1)
+    pen_width_edges = Property(float, 2)
 
     node_label_template = Property(str, 'NAME')
     edge_label_template = Property(str, '(WEIGHT)')
