@@ -29,7 +29,13 @@ class Scale(QtWidgets.QGraphicsItem):
         super().__init__(parent)
         self.settings = settings
         self.state_hovered = False
-        self.highlight_color = QtCore.Qt.magenta
+
+        self._highlight_color = QtCore.Qt.magenta
+        self._pen = QtGui.QPen(QtCore.Qt.black, 2)
+        self._pen_high = QtGui.QPen(self._highlight_color, 4)
+        self._pen_high_increment = 4
+        self._pen_width = 2
+
         self.font = QtGui.QFont()
         self.font_height = 16
         self.padding = 8
@@ -59,10 +65,10 @@ class Scale(QtWidgets.QGraphicsItem):
     @override
     def paint(self, painter, options, widget=None):
         if self.state_hovered:
-            painter.setPen(QtGui.QPen(self.highlight_color, 6))
+            painter.setPen(self._pen_high)
             self.paint_marks(painter)
 
-        painter.setPen(QtGui.QPen(QtCore.Qt.black, 2))
+        painter.setPen(self._pen)
         self.paint_marks(painter)
 
     def paint_marks(self, painter):
@@ -93,12 +99,6 @@ class Scale(QtWidgets.QGraphicsItem):
             label.set_hovered(value)
         self.update()
 
-    def set_highlight_color(self, value):
-        self.highlight_color = value
-        for label in self.labels:
-            label.set_highlight_color(value)
-        self.update()
-
     def set_label_font(self, font):
         self.font = font
         metric = QtGui.QFontMetrics(font)
@@ -108,6 +108,21 @@ class Scale(QtWidgets.QGraphicsItem):
 
         for label in self.labels:
             label.set_font(font)
+
+    def set_highlight_color(self, value):
+        self._highlight_color = value
+        self.update_pens()
+        for label in self.labels:
+            label.set_highlight_color(value)
+        self.update()
+
+    def set_pen_width(self, value):
+        self._pen_width = value
+        self.update_pens()
+
+    def update_pens(self):
+        self._pen = QtGui.QPen(QtCore.Qt.black, self._pen_width)
+        self._pen_high = QtGui.QPen(self._highlight_color, self._pen_width + self._pen_high_increment)
 
     def get_extended_rect(self):
         rect = self.boundingRect()
@@ -136,7 +151,7 @@ class Scale(QtWidgets.QGraphicsItem):
 
         for size, radius in zip(self.marks, self.radii):
             label = Label(str(size), self)
-            label.set_highlight_color(self.highlight_color)
+            label.set_highlight_color(self._highlight_color)
             label.set_anchor(Direction.Right)
             label.setPos(radius * 2, self.radius + self.padding + self.font_height / 2)
             label.set_font(self.font)

@@ -27,6 +27,9 @@ class LegendBubble(QtWidgets.QGraphicsEllipseItem):
         self.setBrush(color)
         self.setPos(x, y)
 
+    def mousePressEvent(self, event):
+        return super().mousePressEvent(event)
+
 
 class LegendLabel(QtWidgets.QGraphicsSimpleTextItem):
     def __init__(self, x, y, text, parent=None):
@@ -64,6 +67,9 @@ class LegendItem(QtWidgets.QGraphicsItem):
     def set_label_font(self, font):
         self.label.setFont(font)
 
+    def set_pen_width(self, value):
+        self.bubble.setPen(QtGui.QPen(QtCore.Qt.black, value))
+
 
 class Legend(QtWidgets.QGraphicsRectItem):
 
@@ -71,6 +77,7 @@ class Legend(QtWidgets.QGraphicsRectItem):
         super().__init__(parent)
 
         self._highlight_color = QtCore.Qt.magenta
+        self._pen_width = 1
 
         self.divisions = divisions
         self.longest = 64
@@ -118,6 +125,11 @@ class Legend(QtWidgets.QGraphicsRectItem):
     def set_highlight_color(self, color):
         self._highlight_color = color
 
+    def set_pen_width(self, value):
+        self._pen_width = value
+        for item in self.childItems():
+            item.set_pen_width(value)
+
     def set_label_font(self, font):
         metric = QtGui.QFontMetrics(font)
         height = metric.height()
@@ -141,8 +153,9 @@ class Legend(QtWidgets.QGraphicsRectItem):
             self.scene().removeItem(item)
 
         for index, division in enumerate(self.divisions):
-            LegendItem(
+            item = LegendItem(
                 self.margin + self.radius,
                 self.margin + self.radius + index * (self.radius * 2 + self.padding),
                 self.radius, QtGui.QColor(division.color),
                 division.key, parent=self)
+            item.set_pen_width(self._pen_width)

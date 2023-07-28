@@ -519,18 +519,6 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.siblings = list()
         self.edges = dict()
 
-        self.setZValue(10)
-        self.setAcceptHoverEvents(True)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
-        self.setPen(QtGui.QPen(QtCore.Qt.black, 2))
-        self.setBrush(self.pen().color())
-        self.setPos(x, y)
-
-        self._rotational_setting = None
-        self._recursive_setting = None
-        self._highlight_color = QtCore.Qt.magenta
-
         self.weight = r
         self.radius = r
 
@@ -542,13 +530,29 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.state_hovered = False
         self.state_pressed = False
 
+        self._rotational_setting = None
+        self._recursive_setting = None
+        self._highlight_color = QtCore.Qt.magenta
+        self._pen = QtGui.QPen(QtCore.Qt.black, 2)
+        self._pen_high = QtGui.QPen(self._highlight_color, 4)
+        self._pen_high_increment = 2
+        self._pen_width = 2
+
+        self.setZValue(10)
+        self.setAcceptHoverEvents(True)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
+        self.setPen(QtCore.Qt.NoPen)
+        self.setBrush(self.pen().color())
+        self.setPos(x, y)
+
     @override
     def paint(self, painter, options, widget=None):
         painter.save()
-        painter.setPen(self.getBorderPen())
+        painter.setPen(self.get_border_pen())
         painter.setBrush(self.brush())
         rect = self.rect()
-        if self.isHighlighted():
+        if self.is_highlighted():
             r = self.radius
             rect = rect.adjusted(-r, -r, r, r)
         painter.drawEllipse(rect)
@@ -611,17 +615,17 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
             return self.moveRotationally(event)
         return self.moveOrthogonally(event)
 
-    def isHighlighted(self):
+    def is_highlighted(self):
         if self.state_pressed:
             return True
         if self.state_hovered:
             return True
         return False
 
-    def getBorderPen(self):
-        if self.isHighlighted():
-            return QtGui.QPen(self._highlight_color, 4)
-        return self.pen()
+    def get_border_pen(self):
+        if self.is_highlighted():
+            return self._pen_high
+        return self._pen
 
     def addChild(self, item, edge):
         item.parent = self
@@ -659,6 +663,15 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
     def set_highlight_color(self, value):
         self._highlight_color = value
+        self.update_pens()
+
+    def set_pen_width(self, value):
+        self._pen_width = value
+        self.update_pens()
+
+    def update_pens(self):
+        self._pen = QtGui.QPen(QtCore.Qt.black, self._pen_width)
+        self._pen_high = QtGui.QPen(self._highlight_color, self._pen_width + self._pen_high_increment)
 
     def isMovementRotational(self):
         if not self._rotational_setting:
@@ -785,7 +798,7 @@ class Node(Vertex):
         if self.pies:
             painter.setPen(QtCore.Qt.NoPen)
         else:
-            painter.setPen(self.getBorderPen())
+            painter.setPen(self.get_border_pen())
         painter.setBrush(self.brush())
         painter.drawEllipse(self.rect())
         painter.restore()
@@ -804,7 +817,7 @@ class Node(Vertex):
             starting_angle += span
 
         painter.setBrush(QtCore.Qt.NoBrush)
-        painter.setPen(self.getBorderPen())
+        painter.setPen(self.get_border_pen())
         painter.drawEllipse(self.rect())
         painter.restore()
 

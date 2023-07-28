@@ -151,6 +151,9 @@ class Settings(PropertyObject):
     node_sizes = Property(NodeSizeSettings, Instance)
     scale = Property(ScaleSettings, Instance)
 
+    pen_width_nodes = Property(float, 2)
+    pen_width_edges = Property(float, 2)
+
     node_label_template = Property(str, 'NAME')
     edge_label_template = Property(str, '(WEIGHT)')
 
@@ -311,6 +314,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.addItem(self.legend)
             self.binder.bind(self.settings.divisions.colorMapChanged, self.legend.update_colors)
             self.binder.bind(self.settings.properties.highlight_color, self.legend.set_highlight_color)
+            self.binder.bind(self.settings.properties.pen_width_nodes, self.legend.set_pen_width)
             self.binder.bind(self.settings.properties.font, self.legend.set_label_font)
         self.legend.setVisible(value)
         self.position_legend()
@@ -321,6 +325,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.addItem(self.scale)
             self.binder.bind(self.settings.scale.properties.marks, self.scale.set_marks)
             self.binder.bind(self.settings.properties.highlight_color, self.scale.set_highlight_color)
+            self.binder.bind(self.settings.properties.pen_width_nodes, self.scale.set_pen_width)
             self.binder.bind(self.settings.properties.font, self.scale.set_label_font)
             for property in self.settings.node_sizes.properties:
                 self.binder.bind(property, self.scale.update_radii)
@@ -442,6 +447,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
         self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
+        self.binder.bind(self.settings.properties.pen_width_nodes, item.set_pen_width)
         self.binder.bind(self.settings.properties.font, item.set_label_font)
         return item
 
