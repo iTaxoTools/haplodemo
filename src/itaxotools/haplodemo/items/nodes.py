@@ -312,7 +312,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
         line = self.line()
 
-        radius = self._pen_width * 1.5
+        radius = self._pen_width * 1.5 + 1
         radius_high = radius + self._pen_high_increment
 
         if (self.segments - 1) * radius_high > line.length():
@@ -567,7 +567,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         painter.setPen(QtCore.Qt.NoPen)
         center = QtCore.QPoint(0, 0)
 
-        radius = self._pen_width * 1.5
+        radius = self._pen_width * 1.5 + 1
         radius_high = radius + self._pen_high_increment
 
         center = QtCore.QPointF(0, 0)

@@ -22,7 +22,8 @@ from itaxotools.common.bindings import Binder
 from itaxotools.common.widgets import HLineSeparator
 
 from .dialogs import (
-    EdgeStyleDialog, LabelFormatDialog, NodeSizeDialog, ScaleMarksDialog)
+    EdgeStyleDialog, LabelFormatDialog, NodeSizeDialog, PenWidthDialog,
+    ScaleMarksDialog)
 from .scene import GraphicsScene, GraphicsView, Settings
 from .widgets import ColorDelegate, DivisionView, PaletteSelector, ToggleButton
 from .zoom import ZoomControl
@@ -32,7 +33,7 @@ class Window(QtWidgets.QWidget):
     def __init__(self, opengl=False):
         super().__init__()
         self.setWindowFlags(QtCore.Qt.Window)
-        self.resize(840, 520)
+        self.resize(960, 520)
         self.setWindowTitle('Haplodemo')
 
         settings = Settings()
@@ -63,6 +64,9 @@ class Window(QtWidgets.QWidget):
         self.scale_style_dialog = ScaleMarksDialog(self, scene, settings.scale)
         self.scale_style_dialog.apply()
 
+        self.pen_style_dialog = PenWidthDialog(self, scene, settings)
+        self.pen_style_dialog.apply()
+
         self.label_format_dialog = LabelFormatDialog(self, scene, settings)
         self.label_format_dialog.apply()
 
@@ -80,6 +84,9 @@ class Window(QtWidgets.QWidget):
 
         mass_resize_nodes = QtWidgets.QPushButton('Set node size')
         mass_resize_nodes.clicked.connect(self.node_size_dialog.show)
+
+        style_pens = QtWidgets.QPushButton('Set pen width')
+        style_pens.clicked.connect(self.pen_style_dialog.show)
 
         style_scale = QtWidgets.QPushButton('Set scale marks')
         style_scale.clicked.connect(self.scale_style_dialog.show)
@@ -106,6 +113,7 @@ class Window(QtWidgets.QWidget):
         dialogs = QtWidgets.QVBoxLayout()
         dialogs.addWidget(mass_style_edges)
         dialogs.addWidget(mass_resize_nodes)
+        dialogs.addWidget(style_pens)
         dialogs.addWidget(style_scale)
         dialogs.addWidget(mass_format_labels)
         dialogs.addWidget(select_font)
@@ -136,7 +144,7 @@ class Window(QtWidgets.QWidget):
         right_layout.addSpacing(4)
         right_layout.addWidget(HLineSeparator(1))
         right_layout.addStretch(1)
-        
+
         left_sidebar = QtWidgets.QWidget()
         left_sidebar.setLayout(left_layout)
         left_sidebar.setFixedWidth(160)
@@ -146,9 +154,9 @@ class Window(QtWidgets.QWidget):
         right_sidebar.setFixedWidth(160)
 
         layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(left_sidebar)
-        layout.addWidget(scene_view, 1)
         layout.addWidget(right_sidebar)
+        layout.addWidget(scene_view, 1)
+        layout.addWidget(left_sidebar)
         self.setLayout(layout)
 
         zoom_control = ZoomControl(scene_view, self)

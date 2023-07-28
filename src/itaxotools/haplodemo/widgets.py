@@ -152,3 +152,58 @@ class DivisionView(QtWidgets.QListView):
         super().__init__()
         self.setModel(divisions)
         self.setItemDelegate(ColorDelegate(self))
+
+
+class PenWidthSlider(QtWidgets.QSlider):
+    def __init__(self):
+        super().__init__(QtCore.Qt.Horizontal)
+        self.setTickPosition(QtWidgets.QSlider.TicksAbove)
+        self.setTickInterval(10)
+        self.setSingleStep(1)
+        self.setPageStep(10)
+        self.setMinimum(0)
+        self.setMaximum(40)
+
+
+class PenWidthField(GLineEdit):
+    valueChanged = QtCore.Signal(float)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setTextMargins(2, 0, 2, 0)
+        self.setFixedWidth(60)
+
+        self.textEditedSafe.connect(self.handleValueChanged)
+
+        validator = QtGui.QDoubleValidator()
+        validator.setNotation(QtGui.QDoubleValidator.StandardNotation)
+        validator.setDecimals(2)
+        validator.setBottom(0)
+        self.setValidator(validator)
+
+    def setValue(self, value):
+        text = self.text_from_value(value)
+        self.setText(text)
+
+    def handleValueChanged(self, text):
+        value = self.value_from_text(text)
+        self.valueChanged.emit(value)
+
+    @staticmethod
+    def text_from_value(value: float) -> str:
+        try:
+            locale = QtCore.QLocale.system()
+            return locale.toString(float(value), 'f', 2)
+        except Exception:
+            return ''
+
+    @staticmethod
+    def value_from_text(text: str) -> float:
+        try:
+            locale = QtCore.QLocale.system()
+            value, ok = locale.toFloat(text)
+            if not ok:
+                return 0.0
+            return value
+        except Exception:
+            return 0.0

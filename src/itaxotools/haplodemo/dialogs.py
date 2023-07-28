@@ -23,7 +23,7 @@ from itaxotools.common.utility import AttrDict, type_convert
 
 from .items.types import EdgeStyle
 from .scene import NodeSizeSettings, ScaleSettings
-from .widgets import GLineEdit, RadioButtonGroup
+from .widgets import GLineEdit, PenWidthField, PenWidthSlider, RadioButtonGroup
 
 
 class OptionsDialog(QtWidgets.QDialog):
@@ -34,8 +34,9 @@ class OptionsDialog(QtWidgets.QDialog):
 
     def hintedResize(self, width, height):
         size = self.sizeHint()
-        size.setWidth(max(width, size.width()))
-        size.setHeight(max(height, size.height()))
+        width = max(width, size.width())
+        height = max(height, size.height())
+        self.resize(width, height)
 
     def draw_dialog(self, contents):
         ok = QtWidgets.QPushButton('OK')
@@ -98,13 +99,13 @@ class EdgeStyleDialog(OptionsDialog):
     def __init__(self, parent, scene):
         super().__init__(parent)
         self.setWindowTitle('Haplodemo - Edge style')
-        self.hintedResize(280, 0)
 
         self.scene = scene
         self.settings = EdgeStyleSettings()
 
         contents = self.draw_contents()
         self.draw_dialog(contents)
+        self.hintedResize(280, 60)
 
     def draw_contents(self):
         label_info = QtWidgets.QLabel('Massively style all edges. To set the style for individual edges instead, double click them.')
@@ -245,12 +246,12 @@ class LabelFormatDialog(BoundOptionsDialog):
     def __init__(self, parent, scene, global_settings):
         super().__init__(parent, LabelFormatSettings(), global_settings)
         self.setWindowTitle('Haplodemo - Label format')
-        self.hintedResize(340, 0)
 
         self.scene = scene
 
         contents = self.draw_contents()
         self.draw_dialog(contents)
+        self.hintedResize(340, 0)
 
     def draw_contents(self):
         label_info = QtWidgets.QLabel('Set all labels from templates, where "NAME" and "WEIGHT" are replaced by the corresponding values.')
@@ -300,7 +301,6 @@ class ScaleMarksDialog(BoundOptionsDialog):
     def __init__(self, parent, scene, global_settings):
         super().__init__(parent, ScaleSettings(), global_settings)
         self.setWindowTitle('Haplodemo - Scale marks')
-        # self.hintedResize(340, 0)
 
         self.scene = scene
 
@@ -353,4 +353,73 @@ class ScaleMarksDialog(BoundOptionsDialog):
         except Exception:
             return
         self.settings.marks = marks
+        self.push()
+
+
+class PenWidthSettings(PropertyObject):
+    pen_width_nodes = Property(float, None)
+    pen_width_edges = Property(float, None)
+
+
+class PenWidthDialog(BoundOptionsDialog):
+    def __init__(self, parent, scene, global_settings):
+        super().__init__(parent, PenWidthSettings(), global_settings)
+        self.setWindowTitle('Haplodemo - Pen width')
+
+        self.scene = scene
+
+        contents = self.draw_contents()
+        self.draw_dialog(contents)
+        self.hintedResize(480, 190)
+
+    def draw_contents(self):
+        label_info = QtWidgets.QLabel('Set the pen width for drawing node outlines and edges:')
+        label_info.setWordWrap(True)
+
+        label_nodes = QtWidgets.QLabel('Nodes:')
+        label_edges = QtWidgets.QLabel('Edges:')
+
+        slide_nodes = PenWidthSlider()
+        slide_edges = PenWidthSlider()
+
+        field_nodes = PenWidthField()
+        field_edges = PenWidthField()
+
+        self.binder.bind(slide_nodes.valueChanged, self.settings.properties.pen_width_nodes, lambda x: x / 10)
+        self.binder.bind(self.settings.properties.pen_width_nodes, slide_nodes.setValue, lambda x: x * 10)
+
+        self.binder.bind(slide_edges.valueChanged, self.settings.properties.pen_width_edges, lambda x: x / 10)
+        self.binder.bind(self.settings.properties.pen_width_edges, slide_edges.setValue, lambda x: x * 10)
+
+        self.binder.bind(field_nodes.valueChanged, self.settings.properties.pen_width_nodes)
+        self.binder.bind(self.settings.properties.pen_width_nodes, field_nodes.setValue)
+
+        self.binder.bind(field_edges.valueChanged, self.settings.properties.pen_width_edges)
+        self.binder.bind(self.settings.properties.pen_width_edges, field_edges.setValue)
+
+        controls = QtWidgets.QGridLayout()
+        controls.setContentsMargins(8, 8, 8, 8)
+        controls.setColumnMinimumWidth(2, 8)
+        controls.setColumnStretch(1, 1)
+
+        controls.addWidget(label_nodes, 0, 0)
+        controls.addWidget(slide_nodes, 0, 1)
+        controls.addWidget(field_nodes, 0, 2)
+
+        controls.addWidget(label_edges, 1, 0)
+        controls.addWidget(slide_edges, 1, 1)
+        controls.addWidget(field_edges, 1, 2)
+
+        self.field_nodes = field_nodes
+        self.field_edges = field_edges
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(label_info, 1)
+        layout.addSpacing(8)
+        layout.addLayout(controls, 1)
+        return layout
+
+    def apply(self):
+        self.field_nodes.setValue(self.settings.pen_width_nodes)
+        self.field_edges.setValue(self.settings.pen_width_edges)
         self.push()
