@@ -3,9 +3,10 @@ import networkx as nx
 import numpy as np
 from networkx.utils import np_random_state
 from networkx.drawing.layout import rescale_layout, _process_params
+from random import randint
 
 np.set_printoptions(linewidth=np.inf)
-
+np.set_printoptions(threshold=np.inf)
 
 @np_random_state(11)
 def modified_spring_layout(
@@ -148,19 +149,50 @@ def _modified_fruchterman_reingold(
     print(distance)
     return pos
 
+def get_simple_graph():
+    # Create a graph with weighted edges
+    G = nx.Graph()
+    G.add_edge(1, 2, weight=1)
+    G.add_edge(2, 3, weight=1)
+    G.add_edge(3, 4, weight=1)
+    G.add_edge(4, 5, weight=2)
+    # G.add_edge(5,1,weight=5)
 
-# Create a graph with weighted edges
-G = nx.Graph()
-G.add_edge(1, 2, weight=1)
-G.add_edge(2, 3, weight=1)
-G.add_edge(3, 4, weight=1)
-G.add_edge(4, 5, weight=2)
-# G.add_edge(5,1,weight=5)
+    G.add_edge(5, 6, weight=3)
+    G.add_edge(6, 7, weight=3)
+    G.add_edge(7, 5, weight=3)
+    G.add_edge(5, 8, weight=2)
 
-G.add_edge(5, 6, weight=3)
-G.add_edge(6, 7, weight=3)
-G.add_edge(7, 5, weight=3)
-G.add_edge(5, 8, weight=2)
+    return G
+
+def get_random_graph(
+    depth = 2,
+    min_children = 1,
+    max_children = 4,
+    min_weight = 2,
+    max_weight = 6,
+):
+    # Create random weighted tree
+
+    def populate_graph(G, parent, depth):
+        if depth < 0:
+            return
+        
+        children = randint(min_children, max_children)
+
+        for i in range(children):
+            weight = randint(min_weight, max_weight)
+            child = f'{parent}/{i+1}'
+            G.add_edge(parent, child, weight=weight)
+            populate_graph(G, child, depth - 1)
+
+    G = nx.Graph()
+    populate_graph(G, '0', depth)
+    return G
+
+
+# G = get_simple_graph()
+G = get_random_graph()
 
 # Set the position of the nodes using the spring layout
 pos = modified_spring_layout(G, weight='weight')
@@ -174,8 +206,13 @@ pos = modified_spring_layout(G, weight='weight')
 # Draw the graph with the node labels and edge labels
 nx.draw_networkx_nodes(G, pos)
 nx.draw_networkx_edges(G, pos)
-nx.draw_networkx_labels(G, pos, font_size=12, font_family="sans-serif")
-nx.draw_networkx_edge_labels(G, pos, edge_labels={}, font_size=10, font_family="sans-serif")
+
+nx.draw_networkx_labels(
+    G, pos, font_size=12, font_family="sans-serif")
+
+nx.draw_networkx_edge_labels(
+    G, pos, font_size=8, font_family="sans-serif",
+    edge_labels=nx.get_edge_attributes(G, 'weight'))
 
 # Set the axis limits and turn off the axis labels
 plt.axis('equal')
