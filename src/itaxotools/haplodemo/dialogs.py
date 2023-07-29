@@ -29,7 +29,10 @@ from .widgets import GLineEdit, PenWidthField, PenWidthSlider, RadioButtonGroup
 class OptionsDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowFlags(self.windowFlags() | QtCore.Qt.MSWindowsFixedSizeDialogHint)
+        self.setWindowFlags(
+            self.windowFlags() |
+            QtCore.Qt.MSWindowsFixedSizeDialogHint |
+            QtCore.Qt.WindowStaysOnTopHint)
         self.binder = Binder()
 
     def hintedResize(self, width, height):
