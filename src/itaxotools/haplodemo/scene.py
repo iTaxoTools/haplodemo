@@ -31,6 +31,7 @@ from .items.legend import Legend
 from .items.nodes import Edge, EdgeStyle, Label, Node, Vertex
 from .items.scale import Scale
 from .palettes import Palette
+from .types import HaploNode
 
 
 @dataclass
@@ -126,7 +127,7 @@ class NodeSizeSettings(PropertyObject):
     c = Property(float, 0.2)
     d = Property(float, 1)
     e = Property(float, 0)
-    f = Property(float, 0)
+    f = Property(float, 5)
 
     def get_all_values(self):
         return [property.value for property in self.properties]
@@ -170,13 +171,15 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         mid = QtWidgets.QApplication.instance().palette().mid()
         self.setBackgroundBrush(mid)
 
+        self.settings = settings
+        self.graph = None
+
         self.hovered_item = None
         self.boundary = None
         self.legend = None
         self.scale = None
 
         self.binder = Binder()
-        self.settings = settings
         self.binder.bind(settings.properties.show_legend, self.show_legend)
         self.binder.bind(settings.properties.show_scale, self.show_scale)
 
@@ -362,32 +365,32 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.addItem(node1)
 
         node2 = self.create_node(node1.pos().x() + 95, node1.pos().y() - 30, 20, 'Beta', {'X': 4, 'Z': 2})
-        self.add_child(node1, node2, 2)
+        self.add_child_edge(node1, node2, 2)
 
         node3 = self.create_node(node1.pos().x() + 115, node1.pos().y() + 60, 25, 'C', {'Y': 6, 'Z': 2})
-        self.add_child(node1, node3, 3)
+        self.add_child_edge(node1, node3, 3)
 
         node4 = self.create_node(node3.pos().x() + 60, node3.pos().y() - 30, 15, 'D', {'Y': 1})
-        self.add_child(node3, node4, 1)
+        self.add_child_edge(node3, node4, 1)
 
         vertex1 = self.create_vertex(node3.pos().x() - 60, node3.pos().y() + 60)
-        self.add_child(node3, vertex1, 2)
+        self.add_child_edge(node3, vertex1, 2)
 
         node5 = self.create_node(vertex1.pos().x() - 80, vertex1.pos().y() + 40, 30, 'Error', {'?': 1})
-        self.add_child(vertex1, node5, 4)
+        self.add_child_edge(vertex1, node5, 4)
 
         node6 = self.create_node(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 20, 'R', {'Z': 1})
-        self.add_child(vertex1, node6, 1)
+        self.add_child_edge(vertex1, node6, 1)
 
         node7 = self.create_node(vertex1.pos().x() + 100, vertex1.pos().y() + 80, 10, 'S', {'Z': 1})
-        self.add_sibling(node6, node7, 2)
+        self.add_sibling_edge(node6, node7, 2)
 
         node8 = self.create_node(vertex1.pos().x() + 20, vertex1.pos().y() + 80, 40, 'T', {'Y': 1})
-        self.add_sibling(node6, node8, 1)
-        self.add_sibling(node7, node8, 1)
+        self.add_sibling_edge(node6, node8, 1)
+        self.add_sibling_edge(node7, node8, 1)
 
         node9 = self.create_node(node7.pos().x() + 20, node7.pos().y() - 40, 5, 'x', {'Z': 1})
-        self.add_child(node7, node9, 1)
+        self.add_child_edge(node7, node9, 1)
 
     def addManyNodes(self, dx, dy):
         for x in range(dx):
@@ -396,9 +399,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
             for y in range(dy):
                 nodey = self.create_node(nodex.pos().x() + 80 + 40 * y, nodex.pos().y() + 40, 15, f'y{y}', {'Y': 1})
-                self.add_child(nodex, nodey)
+                self.add_child_edge(nodex, nodey)
 
-    def styleEdges(self, style_default=EdgeStyle.Bubbles, cutoff=3):
+    def style_edges(self, style_default=EdgeStyle.Bubbles, cutoff=3):
         if not cutoff:
             cutoff = float('inf')
         style_cutoff = {
@@ -412,7 +415,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             style = style_default if edge.segments <= cutoff else style_cutoff
             edge.set_style(style)
 
-    def styleNodes(self, a=10, b=2, c=0.2, d=1, e=0, f=0):
+    def style_nodes(self, a=10, b=2, c=0.2, d=1, e=0, f=0):
         nodes = (item for item in self.items() if isinstance(item, Node))
         edges = (item for item in self.items() if isinstance(item, Edge))
         for node in nodes:
@@ -420,7 +423,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         for edge in edges:
             edge.adjustPosition()
 
-    def styleLabels(self, node_label_template, edge_label_template):
+    def style_labels(self, node_label_template, edge_label_template):
         node_label_format = node_label_template.replace('NAME', '{name}').replace('WEIGHT', '{weight}')
         edge_label_format = edge_label_template.replace('WEIGHT', '{weight}')
         nodes = (item for item in self.items() if isinstance(item, Node))
@@ -431,6 +434,26 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         for edge in edges:
             text = edge_label_format.format(weight=edge.weight)
             edge.label.setText(text)
+
+    def add_nodes_from_tree(self, tree: HaploNode):
+        self._add_nodes_from_tree_recursive(None, tree)
+        self.graph = ...
+
+    def _add_nodes_from_tree_recursive(self, parent: HaploNode, node: HaploNode):
+        x, y = 0, 0
+
+        if node.pops.total() > 0:
+            item = self.create_node(x, y, node.pops.total(), node.id, dict(node.pops))
+        else:
+            item = self.create_vertex(x, y)
+
+        if parent:
+            self.add_child_edge(parent, item, node.mutations)
+        else:
+            self.addItem(item)
+
+        for child in node.children:
+            self._add_nodes_from_tree_recursive(item, child)
 
     def create_vertex(self, *args, **kwargs):
         item = Vertex(*args, **kwargs)
@@ -461,19 +484,20 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.binder.bind(self.settings.properties.font, item.set_label_font)
         return item
 
-    def add_child(self, parent, child, segments=1):
+    def add_child_edge(self, parent, child, segments=1):
         edge = self.create_edge(parent, child, segments)
         parent.addChild(child, edge)
         self.addItem(edge)
         self.addItem(child)
+        return edge
 
-    def add_sibling(self, vertex, sibling, segments=1):
+    def add_sibling_edge(self, vertex, sibling, segments=1):
         edge = self.create_edge(vertex, sibling, segments)
         vertex.addSibling(sibling, edge)
         self.addItem(edge)
-
         if not sibling.scene():
             self.addItem(sibling)
+        return edge
 
     def clear(self):
         super().clear()

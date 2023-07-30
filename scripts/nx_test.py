@@ -1,12 +1,14 @@
+from random import randint
+
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+from networkx.drawing.layout import _process_params, rescale_layout
 from networkx.utils import np_random_state
-from networkx.drawing.layout import rescale_layout, _process_params
-from random import randint
 
 np.set_printoptions(linewidth=np.inf)
 np.set_printoptions(threshold=np.inf)
+
 
 @np_random_state(11)
 def modified_spring_layout(
@@ -149,6 +151,7 @@ def _modified_fruchterman_reingold(
     print(distance)
     return pos
 
+
 def get_simple_graph():
     # Create a graph with weighted edges
     G = nx.Graph()
@@ -165,6 +168,7 @@ def get_simple_graph():
 
     return G
 
+
 def get_random_graph(
     depth = 2,
     min_children = 1,
@@ -177,7 +181,7 @@ def get_random_graph(
     def populate_graph(G, parent, depth):
         if depth < 0:
             return
-        
+
         children = randint(min_children, max_children)
 
         for i in range(children):

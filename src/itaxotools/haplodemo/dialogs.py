@@ -165,7 +165,7 @@ class EdgeStyleDialog(OptionsDialog):
         super().accept()
 
     def apply(self):
-        self.scene.styleEdges(self.settings.style, self.settings.cutoff)
+        self.scene.style_edges(self.settings.style, self.settings.cutoff)
 
 
 class NodeSizeDialog(BoundOptionsDialog):
@@ -236,7 +236,7 @@ class NodeSizeDialog(BoundOptionsDialog):
         return layout
 
     def apply(self):
-        self.scene.styleNodes(*self.settings.get_all_values())
+        self.scene.style_nodes(*self.settings.get_all_values())
         self.push()
 
 
@@ -293,7 +293,7 @@ class LabelFormatDialog(BoundOptionsDialog):
 
     def apply(self):
         settings = self.settings
-        self.scene.styleLabels(
+        self.scene.style_labels(
             settings.node_label_template,
             settings.edge_label_template,
         )

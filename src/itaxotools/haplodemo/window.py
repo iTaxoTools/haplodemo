@@ -25,6 +25,7 @@ from .dialogs import (
     EdgeStyleDialog, LabelFormatDialog, NodeSizeDialog, PenWidthDialog,
     ScaleMarksDialog)
 from .scene import GraphicsScene, GraphicsView, Settings
+from .types import HaploNode
 from .widgets import ColorDelegate, DivisionView, PaletteSelector, ToggleButton
 from .zoom import ZoomControl
 
@@ -47,9 +48,9 @@ class Window(QtWidgets.QWidget):
         # scene.showScale()
         # scene.addManyNodes(8, 32)
         # scene.addBezier()
-        scene.addNodes()
+        # scene.addNodes()
 
-        scene.styleLabels(settings.node_label_template, settings.edge_label_template)
+        scene.style_labels(settings.node_label_template, settings.edge_label_template)
 
         scene_view = GraphicsView(scene, opengl)
 
@@ -192,6 +193,34 @@ class Window(QtWidgets.QWidget):
         action.triggered.connect(self.quick_save)
         self.quick_save_action = action
         self.addAction(action)
+
+        self.add_demo_tree()
+
+    def add_demo_tree(self):
+        tree = self.get_demo_tree()
+        self.scene.add_nodes_from_tree(tree)
+
+    def get_demo_tree(self) -> HaploNode:
+        root = HaploNode('root')
+        root.add_pops(['X'] * 3 + ['Y'] * 5)
+
+        a = HaploNode('a')
+        a.add_pops(['X'] * 1)
+        root.add_child(a)
+
+        b = HaploNode('b')
+        b.add_pops(['Y'] * 3)
+        root.add_child(b)
+
+        c = HaploNode('c')
+        c.add_pops(['Y'] * 1)
+        b.add_child(c)
+
+        d = HaploNode('d')
+        d.add_pops(['Z'] * 1)
+        b.add_child(d)
+
+        return root
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
