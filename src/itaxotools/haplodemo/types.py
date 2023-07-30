@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 from collections import Counter
+from enum import Enum, auto
 from sys import stdout
 
-"""Copied from the Fitchi repository"""
+
+class LayoutType(Enum):
+    ModifiedSpring = auto()
+    Spring = auto()
 
 
 class HaploNode:
-    """
+    """Copied from the Fitchi repository.
+
     Simplified datatype for the Haplotype genealogy graph produced by Fitchi.
     The tree hierarchy is contained in `self.parent` and `self.children`.
     The distance between a node and its parent is `self.mutations`.

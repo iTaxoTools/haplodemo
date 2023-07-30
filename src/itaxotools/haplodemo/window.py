@@ -206,19 +206,19 @@ class Window(QtWidgets.QWidget):
 
         a = HaploNode('a')
         a.add_pops(['X'] * 1)
-        root.add_child(a)
+        root.add_child(a, 1)
 
         b = HaploNode('b')
         b.add_pops(['Y'] * 3)
-        root.add_child(b)
+        root.add_child(b, 3)
 
         c = HaploNode('c')
         c.add_pops(['Y'] * 1)
-        b.add_child(c)
+        b.add_child(c, 1)
 
         d = HaploNode('d')
         d.add_pops(['Z'] * 1)
-        b.add_child(d)
+        b.add_child(d, 2)
 
         return root
 

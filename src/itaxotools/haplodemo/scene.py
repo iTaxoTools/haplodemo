@@ -23,7 +23,6 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 
 import networkx as nx
-
 from itaxotools.common.bindings import (
     Binder, Instance, Property, PropertyObject)
 
@@ -32,8 +31,9 @@ from .items.boundary import BoundaryEdgeHandle, BoundaryRect
 from .items.legend import Legend
 from .items.nodes import Edge, EdgeStyle, Label, Node, Vertex
 from .items.scale import Scale
+from .layout import modified_spring_layout
 from .palettes import Palette
-from .types import HaploNode
+from .types import HaploNode, LayoutType
 
 
 @dataclass
@@ -148,10 +148,12 @@ class Settings(PropertyObject):
     recursive_movement = Property(bool, True)
     label_movement = Property(bool, False)
 
-    show_legend = Property(bool, True)
-    show_scale = Property(bool, True)
+    show_legend = Property(bool, False)
+    show_scale = Property(bool, False)
 
-    edge_length = Property(float, 40)
+    layout = Property(LayoutType, LayoutType.ModifiedSpring)
+    edge_length = Property(float, 160)
+
     node_sizes = Property(NodeSizeSettings, Instance)
     scale = Property(ScaleSettings, Instance)
 
@@ -321,6 +323,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             if not isinstance(item, Node):
                 continue
             rect = QtCore.QRectF(item.rect())
+            rect.translate(item.pos())
             bounds = bounds.united(rect)
 
         bounds.adjust(
@@ -329,7 +332,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.boundary_margin,
             self.boundary_margin,
         )
-        
+
         self.set_boundary_rect(
             bounds.x(),
             bounds.y(),
@@ -468,7 +471,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
         self._add_nodes_from_tree_recursive(None, tree)
         self.style_nodes()
-        # self.set_boundary_rect(-50, -50, 100, 100)
+        self.layout_nodes()
         self.set_boundary_to_contents()
 
     def _add_nodes_from_tree_recursive(self, parent_id: str, node: HaploNode):
@@ -477,7 +480,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         size = node.pops.total()
         args = args = self.settings.node_sizes.get_all_values()
         radius = Node.radius_from_size(size, *args)
-        length = node.mutations * self.settings.edge_length
+        length = node.mutations
+        # radius * self.settings.edge_length
 
         if size > 0:
             item = self.create_node(x, y, size, id, dict(node.pops))
@@ -540,6 +544,22 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.addItem(sibling)
         return edge
 
+    def layout_nodes(self):
+        match self.settings.layout:
+            case LayoutType.Spring:
+                pos = nx.spring_layout(self.graph, weight='length')
+            case LayoutType.ModifiedSpring:
+                pos = modified_spring_layout(self.graph)
+            case _:
+                return
+        for id, attrs in self.graph.nodes.items():
+            x, y = pos[id]
+            x *= self.settings.edge_length
+            y *= self.settings.edge_length
+            item = attrs['item']
+            item.setPos(x, y)
+            item.update()
+
     def clear(self):
         super().clear()
         self.boundary = None
@@ -549,6 +569,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.binder.unbind_all()
         self.binder.bind(self.settings.properties.show_legend, self.show_legend)
         self.binder.bind(self.settings.properties.show_scale, self.show_scale)
+
 
 class GraphicsView(QtWidgets.QGraphicsView):
     scaled = QtCore.Signal(float)
