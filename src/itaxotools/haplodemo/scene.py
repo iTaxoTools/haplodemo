@@ -177,6 +177,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.settings = settings
         self.graph = None
 
+        self.boundary_margin = 16
         self.hovered_item = None
         self.boundary = None
         self.legend = None
@@ -301,7 +302,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             return closest_edge_item
         return None
 
-    def set_boundary(self, x=0, y=0, w=0, h=0):
+    def set_boundary_rect(self, x=0, y=0, w=0, h=0):
         if not self.boundary:
             self.boundary = BoundaryRect(x, y, w, h)
             self.addItem(self.boundary)
@@ -313,6 +314,28 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.boundary.setRect(x, y, w, h)
         self.position_legend()
         self.position_scale()
+
+    def set_boundary_to_contents(self):
+        bounds = QtCore.QRectF()
+        for item in self.items():
+            if not isinstance(item, Node):
+                continue
+            rect = QtCore.QRectF(item.rect())
+            bounds = bounds.united(rect)
+
+        bounds.adjust(
+            - self.boundary_margin,
+            - self.boundary_margin,
+            self.boundary_margin,
+            self.boundary_margin,
+        )
+        
+        self.set_boundary_rect(
+            bounds.x(),
+            bounds.y(),
+            bounds.width(),
+            bounds.height(),
+        )
 
     def show_legend(self, value=True):
         if not self.legend:
@@ -445,7 +468,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
         self._add_nodes_from_tree_recursive(None, tree)
         self.style_nodes()
-        self.set_boundary(-50, -50, 100, 100)
+        # self.set_boundary_rect(-50, -50, 100, 100)
+        self.set_boundary_to_contents()
 
     def _add_nodes_from_tree_recursive(self, parent_id: str, node: HaploNode):
         x, y = 0, 0

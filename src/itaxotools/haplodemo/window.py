@@ -43,7 +43,7 @@ class Window(QtWidgets.QWidget):
         settings.scale.marks = [2, 10, 30]
 
         scene = GraphicsScene(settings)
-        scene.set_boundary(0, 0, 400, 320)
+        scene.set_boundary_rect(0, 0, 400, 320)
         # scene.showLegend()
         # scene.showScale()
         # scene.addManyNodes(8, 32)
