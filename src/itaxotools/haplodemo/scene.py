@@ -22,6 +22,8 @@ from collections import defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass
 
+import networkx as nx
+
 from itaxotools.common.bindings import (
     Binder, Instance, Property, PropertyObject)
 
@@ -149,6 +151,7 @@ class Settings(PropertyObject):
     show_legend = Property(bool, True)
     show_scale = Property(bool, True)
 
+    edge_length = Property(float, 40)
     node_sizes = Property(NodeSizeSettings, Instance)
     scale = Property(ScaleSettings, Instance)
 
@@ -415,11 +418,12 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             style = style_default if edge.segments <= cutoff else style_cutoff
             edge.set_style(style)
 
-    def style_nodes(self, a=10, b=2, c=0.2, d=1, e=0, f=0):
+    def style_nodes(self):
+        args = self.settings.node_sizes.get_all_values()
         nodes = (item for item in self.items() if isinstance(item, Node))
         edges = (item for item in self.items() if isinstance(item, Edge))
         for node in nodes:
-            node.adjust_radius(a, b, c, d, e, f)
+            node.adjust_radius(*args)
         for edge in edges:
             edge.adjustPosition()
 
@@ -436,24 +440,36 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             edge.label.setText(text)
 
     def add_nodes_from_tree(self, tree: HaploNode):
+        self.graph = nx.Graph()
+        self.clear()
+
         self._add_nodes_from_tree_recursive(None, tree)
-        self.graph = ...
+        self.style_nodes()
+        self.set_boundary(-50, -50, 100, 100)
 
-    def _add_nodes_from_tree_recursive(self, parent: HaploNode, node: HaploNode):
+    def _add_nodes_from_tree_recursive(self, parent_id: str, node: HaploNode):
         x, y = 0, 0
+        id = node.id
+        size = node.pops.total()
+        args = args = self.settings.node_sizes.get_all_values()
+        radius = Node.radius_from_size(size, *args)
+        length = node.mutations * self.settings.edge_length
 
-        if node.pops.total() > 0:
-            item = self.create_node(x, y, node.pops.total(), node.id, dict(node.pops))
+        if size > 0:
+            item = self.create_node(x, y, size, id, dict(node.pops))
         else:
             item = self.create_vertex(x, y)
+        self.graph.add_node(id, radius=radius, item=item)
 
-        if parent:
-            self.add_child_edge(parent, item, node.mutations)
+        if parent_id:
+            parent_item = self.graph.nodes[parent_id]['item']
+            item = self.add_child_edge(parent_item, item, node.mutations)
+            self.graph.add_edge(parent_id, id, length=length)
         else:
             self.addItem(item)
 
         for child in node.children:
-            self._add_nodes_from_tree_recursive(item, child)
+            self._add_nodes_from_tree_recursive(id, child)
 
     def create_vertex(self, *args, **kwargs):
         item = Vertex(*args, **kwargs)
@@ -465,6 +481,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
     def create_node(self, *args, **kwargs):
         item = Node(*args, **kwargs)
+        item.update_colors(self.settings.divisions.get_color_map())
         self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
         self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
         self.binder.bind(self.settings.properties.recursive_movement, item.set_recursive_setting)
@@ -501,8 +518,13 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
     def clear(self):
         super().clear()
-        self.binder.unbind_all()
+        self.boundary = None
+        self.legend = None
+        self.scale = None
 
+        self.binder.unbind_all()
+        self.binder.bind(self.settings.properties.show_legend, self.show_legend)
+        self.binder.bind(self.settings.properties.show_scale, self.show_scale)
 
 class GraphicsView(QtWidgets.QGraphicsView):
     scaled = QtCore.Signal(float)

@@ -26,6 +26,7 @@ setup(
     install_requires=[
         'itaxotools-common==0.3.0',
         'pyside6>=6.1.1, <6.5',
+        'networkx',
     ],
     extras_require={
         'dev': [

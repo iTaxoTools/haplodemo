@@ -236,8 +236,8 @@ class NodeSizeDialog(BoundOptionsDialog):
         return layout
 
     def apply(self):
-        self.scene.style_nodes(*self.settings.get_all_values())
         self.push()
+        self.scene.style_nodes()
 
 
 class LabelFormatSettings(PropertyObject):
