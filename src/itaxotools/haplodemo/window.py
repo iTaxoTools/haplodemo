@@ -197,6 +197,12 @@ class Window(QtWidgets.QWidget):
         self.add_demo_tree()
 
     def add_demo_tree(self):
+        self.settings.node_sizes.a = 0
+        self.settings.node_sizes.b = 0
+        self.settings.node_sizes.c = 0
+        self.settings.node_sizes.d = 0
+        self.settings.node_sizes.e = 20
+        self.settings.node_sizes.f = 10
         tree = self.get_demo_tree()
         self.scene.add_nodes_from_tree(tree)
 
@@ -210,7 +216,7 @@ class Window(QtWidgets.QWidget):
 
         b = HaploNode('b')
         b.add_pops(['Y'] * 3)
-        root.add_child(b, 3)
+        root.add_child(b, 4)
 
         c = HaploNode('c')
         c.add_pops(['Y'] * 1)

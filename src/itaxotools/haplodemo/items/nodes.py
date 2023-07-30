@@ -553,6 +553,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self._highlight_color = QtCore.Qt.magenta
         self._pen_high_increment = 4
         self._pen_width = 2
+        self._debug = False
 
         self.setZValue(10)
         self.setAcceptHoverEvents(True)
@@ -573,6 +574,12 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         center = QtCore.QPointF(0, 0)
         # Unless we use QPointF, bubble size isn't right
         Edge.paintBubble(self, painter, center, radius, radius_high)
+
+        if self._debug:
+            painter.setPen(QtCore.Qt.green)
+            painter.drawRect(self.rect())
+            painter.drawLine(-4, 0, 4, 0)
+            painter.drawLine(0, -4, 0, 4)
 
     @override
     def boundingRect(self):
@@ -805,6 +812,12 @@ class Node(Vertex):
     def paint(self, painter, options, widget=None):
         self.paint_node(painter)
         self.paint_pies(painter)
+
+        if self._debug:
+            painter.setPen(QtCore.Qt.green)
+            painter.drawRect(self.rect())
+            painter.drawLine(-4, 0, 4, 0)
+            painter.drawLine(0, -4, 0, 4)
 
     def paint_node(self, painter):
         painter.save()

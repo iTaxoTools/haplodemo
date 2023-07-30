@@ -152,7 +152,8 @@ class Settings(PropertyObject):
     show_scale = Property(bool, False)
 
     layout = Property(LayoutType, LayoutType.ModifiedSpring)
-    edge_length = Property(float, 160)
+    layout_scale = Property(float, 3)
+    edge_length = Property(float, 100)
 
     node_sizes = Property(NodeSizeSettings, Instance)
     scale = Property(ScaleSettings, Instance)
@@ -478,10 +479,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         x, y = 0, 0
         id = node.id
         size = node.pops.total()
-        args = args = self.settings.node_sizes.get_all_values()
+        args = self.settings.node_sizes.get_all_values()
         radius = Node.radius_from_size(size, *args)
-        length = node.mutations
-        # radius * self.settings.edge_length
+        radius /= self.settings.edge_length
 
         if size > 0:
             item = self.create_node(x, y, size, id, dict(node.pops))
@@ -491,6 +491,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
         if parent_id:
             parent_item = self.graph.nodes[parent_id]['item']
+            parent_radius = self.graph.nodes[parent_id]['radius']
+            length = node.mutations + parent_radius + radius
             item = self.add_child_edge(parent_item, item, node.mutations)
             self.graph.add_edge(parent_id, id, length=length)
         else:
@@ -547,11 +549,19 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
     def layout_nodes(self):
         match self.settings.layout:
             case LayoutType.Spring:
-                pos = nx.spring_layout(self.graph, weight='length')
+                graph = nx.Graph()
+                for node, data in self.graph.nodes(data=True):
+                    graph.add_node(node, **data)
+                for u, v, data in self.graph.edges(data=True):
+                    weight = 1 / data['length']
+                    graph.add_edge(u, v, weight=weight, **data)
+                pos = nx.spring_layout(graph, weight='weight', scale=self.settings.layout_scale)
+                del graph
             case LayoutType.ModifiedSpring:
-                pos = modified_spring_layout(self.graph)
+                pos = modified_spring_layout(self.graph, scale=None)
             case _:
                 return
+
         for id, attrs in self.graph.nodes.items():
             x, y = pos[id]
             x *= self.settings.edge_length
