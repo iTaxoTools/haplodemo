@@ -420,47 +420,6 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.addItem(item)
         item.setPos(60, 160)
 
-    def addNodes(self):
-        node1 = self.create_node(85, 70, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
-        self.addItem(node1)
-
-        node2 = self.create_node(node1.pos().x() + 95, node1.pos().y() - 30, 20, 'Beta', {'X': 4, 'Z': 2})
-        self.add_child_edge(node1, node2, 2)
-
-        node3 = self.create_node(node1.pos().x() + 115, node1.pos().y() + 60, 25, 'C', {'Y': 6, 'Z': 2})
-        self.add_child_edge(node1, node3, 3)
-
-        node4 = self.create_node(node3.pos().x() + 60, node3.pos().y() - 30, 15, 'D', {'Y': 1})
-        self.add_child_edge(node3, node4, 1)
-
-        vertex1 = self.create_vertex(node3.pos().x() - 60, node3.pos().y() + 60)
-        self.add_child_edge(node3, vertex1, 2)
-
-        node5 = self.create_node(vertex1.pos().x() - 80, vertex1.pos().y() + 40, 30, 'Error', {'?': 1})
-        self.add_child_edge(vertex1, node5, 4)
-
-        node6 = self.create_node(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 20, 'R', {'Z': 1})
-        self.add_child_edge(vertex1, node6, 1)
-
-        node7 = self.create_node(vertex1.pos().x() + 100, vertex1.pos().y() + 80, 10, 'S', {'Z': 1})
-        self.add_sibling_edge(node6, node7, 2)
-
-        node8 = self.create_node(vertex1.pos().x() + 20, vertex1.pos().y() + 80, 40, 'T', {'Y': 1})
-        self.add_sibling_edge(node6, node8, 1)
-        self.add_sibling_edge(node7, node8, 1)
-
-        node9 = self.create_node(node7.pos().x() + 20, node7.pos().y() - 40, 5, 'x', {'Z': 1})
-        self.add_child_edge(node7, node9, 1)
-
-    def addManyNodes(self, dx, dy):
-        for x in range(dx):
-            nodex = self.create_node(20, 80 * x, 15, f'x{x}', {'X': 1})
-            self.addItem(nodex)
-
-            for y in range(dy):
-                nodey = self.create_node(nodex.pos().x() + 80 + 40 * y, nodex.pos().y() + 40, 15, f'y{y}', {'Y': 1})
-                self.add_child_edge(nodex, nodey)
-
     def style_edges(self, style_default=EdgeStyle.Bubbles, cutoff=3):
         if not cutoff:
             cutoff = float('inf')
