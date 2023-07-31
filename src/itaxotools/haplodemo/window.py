@@ -24,6 +24,7 @@ from itaxotools.common.widgets import HLineSeparator
 from .dialogs import (
     EdgeStyleDialog, LabelFormatDialog, NodeSizeDialog, PenWidthDialog,
     ScaleMarksDialog)
+from .items.types import EdgeStyle
 from .scene import GraphicsScene, GraphicsView, Settings
 from .types import HaploNode
 from .widgets import ColorDelegate, DivisionView, PaletteSelector, ToggleButton
@@ -38,9 +39,6 @@ class Window(QtWidgets.QWidget):
         self.setWindowTitle('Haplodemo')
 
         settings = Settings()
-        settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
-        settings.font = QtGui.QFont('Arial', 16)
-        settings.scale.marks = [2, 10, 30]
 
         scene = GraphicsScene(settings)
         # scene.addBezier()
@@ -60,11 +58,11 @@ class Window(QtWidgets.QWidget):
         button_demo_simple = QtWidgets.QPushButton('Load simple demo')
         button_demo_simple.clicked.connect(lambda: self.load_demo_simple())
 
-        button_demo_many = QtWidgets.QPushButton('Load many nodes')
-        button_demo_many.clicked.connect(lambda: self.load_demo_many())
-
         button_demo_tiny_tree = QtWidgets.QPushButton('Load tiny tree')
         button_demo_tiny_tree.clicked.connect(lambda: self.load_demo_tiny_tree())
+
+        button_demo_many = QtWidgets.QPushButton('Test performance')
+        button_demo_many.clicked.connect(lambda: self.load_demo_many())
 
         button_svg = QtWidgets.QPushButton('Export as SVG')
         button_svg.clicked.connect(lambda: self.export_svg())
@@ -108,8 +106,8 @@ class Window(QtWidgets.QWidget):
 
         demos = QtWidgets.QVBoxLayout()
         demos.addWidget(button_demo_simple)
-        demos.addWidget(button_demo_many)
         demos.addWidget(button_demo_tiny_tree)
+        demos.addWidget(button_demo_many)
 
         toggles = QtWidgets.QVBoxLayout()
         toggles.addWidget(toggle_rotation)
@@ -219,6 +217,8 @@ class Window(QtWidgets.QWidget):
     def load_demo_simple(self):
         self.scene.clear()
 
+        self.settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
+
         self.settings.node_sizes.a = 10
         self.settings.node_sizes.b = 2
         self.settings.node_sizes.c = 0.2
@@ -245,7 +245,8 @@ class Window(QtWidgets.QWidget):
         scene.add_child_edge(node1, node2, 2)
 
         node3 = scene.create_node(node1.pos().x() + 115, node1.pos().y() + 60, 25, 'C', {'Y': 6, 'Z': 2})
-        scene.add_child_edge(node1, node3, 3)
+        edge = scene.add_child_edge(node1, node3, 3)
+        edge.set_style(EdgeStyle.Bars)
 
         node4 = scene.create_node(node3.pos().x() + 60, node3.pos().y() - 30, 15, 'D', {'Y': 1})
         scene.add_child_edge(node3, node4, 1)
@@ -254,7 +255,8 @@ class Window(QtWidgets.QWidget):
         scene.add_child_edge(node3, vertex1, 2)
 
         node5 = scene.create_node(vertex1.pos().x() - 80, vertex1.pos().y() + 40, 30, 'Error', {'?': 1})
-        scene.add_child_edge(vertex1, node5, 4)
+        edge = scene.add_child_edge(vertex1, node5, 4)
+        edge.set_style(EdgeStyle.DotsWithText)
 
         node6 = scene.create_node(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 20, 'R', {'Z': 1})
         scene.add_child_edge(vertex1, node6, 1)
@@ -271,6 +273,8 @@ class Window(QtWidgets.QWidget):
 
     def load_demo_many(self):
         self.scene.clear()
+
+        self.settings.divisions.set_divisions_from_keys(['X', 'Y'])
 
         self.settings.node_sizes.a = 0
         self.settings.node_sizes.b = 0
@@ -299,6 +303,10 @@ class Window(QtWidgets.QWidget):
                 scene.add_child_edge(nodex, nodey)
 
     def load_demo_tiny_tree(self):
+        self.scene.clear()
+
+        self.settings.divisions.set_divisions_from_keys(['A', 'B', 'C'])
+
         self.settings.node_sizes.a = 0
         self.settings.node_sizes.b = 0
         self.settings.node_sizes.c = 0
@@ -310,32 +318,28 @@ class Window(QtWidgets.QWidget):
         self.settings.edge_length = 40
         self.settings.node_label_template = 'WEIGHT'
         self.settings.font = QtGui.QFont('Arial', 24)
+
         tree = self.get_tiny_tree()
         self.scene.add_nodes_from_tree(tree)
 
-        self.scene.style_labels(
-            self.settings.node_label_template,
-            self.settings.edge_label_template,
-        )
-
     def get_tiny_tree(self) -> HaploNode:
         root = HaploNode('root')
-        root.add_pops(['X'] * 3 + ['Y'] * 5)
+        root.add_pops(['A'] * 3 + ['B'] * 5)
 
         a = HaploNode('a')
-        a.add_pops(['X'] * 1)
+        a.add_pops(['A'] * 1)
         root.add_child(a, 1)
 
         b = HaploNode('b')
-        b.add_pops(['Y'] * 3)
+        b.add_pops(['B'] * 3)
         root.add_child(b, 4)
 
         c = HaploNode('c')
-        c.add_pops(['Y'] * 1)
+        c.add_pops(['B'] * 1)
         b.add_child(c, 1)
 
         d = HaploNode('d')
-        d.add_pops(['Z'] * 1)
+        d.add_pops(['C'] * 1)
         b.add_child(d, 2)
 
         return root

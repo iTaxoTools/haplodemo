@@ -44,6 +44,7 @@ class Division:
 
 class DivisionListModel(QtCore.QAbstractListModel):
     colorMapChanged = QtCore.Signal(object)
+    divisionsChanged = QtCore.Signal(object)
 
     def __init__(self, names=[], palette=Palette.Spring(), parent=None):
         super().__init__(parent)
@@ -61,6 +62,7 @@ class DivisionListModel(QtCore.QAbstractListModel):
         palette = self._palette
         self._divisions = [Division(keys[i], palette[i]) for i in range(len(keys))]
         self.endResetModel()
+        self.divisionsChanged.emit(self.all())
 
     def set_palette(self, palette):
         self.beginResetModel()
@@ -372,9 +374,10 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
     def show_legend(self, value=True):
         if not self.legend:
-            self.legend = Legend(self.settings.divisions.all())
+            self.legend = Legend()
             self.addItem(self.legend)
             self.binder.bind(self.settings.divisions.colorMapChanged, self.legend.update_colors)
+            self.binder.bind(self.settings.divisions.divisionsChanged, self.legend.set_divisions)
             self.binder.bind(self.settings.properties.highlight_color, self.legend.set_highlight_color)
             self.binder.bind(self.settings.properties.pen_width_nodes, self.legend.set_pen_width)
             self.binder.bind(self.settings.properties.font, self.legend.set_label_font)
@@ -457,10 +460,12 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
     def add_nodes_from_tree(self, tree: HaploNode):
         self.graph = nx.Graph()
-        self.clear()
 
         self._add_nodes_from_tree_recursive(None, tree)
         self.style_nodes()
+        self.style_labels(
+            self.settings.node_label_template,
+            self.settings.edge_label_template)
         self.layout_nodes()
         self.set_marks_from_nodes()
         self.set_boundary_to_contents()

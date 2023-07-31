@@ -73,29 +73,29 @@ class LegendItem(QtWidgets.QGraphicsItem):
 
 class Legend(QtWidgets.QGraphicsRectItem):
 
-    def __init__(self, divisions, parent=None):
+    def __init__(self, divisions=None, parent=None):
         super().__init__(parent)
-
-        self._highlight_color = QtCore.Qt.magenta
-        self._pen_width = 1
-
-        self.divisions = divisions
-        self.longest = 64
-        self.padding = 8
-        self.margin = 16
-        self.radius = 8
-
-        for index, division in enumerate(divisions):
-            LegendItem(
-                20, 30 * (index + 1),
-                self.radius, QtGui.QColor(division.color),
-                division.key, parent=self)
 
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setAcceptHoverEvents(True)
         self.setBrush(QtCore.Qt.white)
         self.setZValue(50)
-        self.adjustRect()
+
+        self.setRect(0, 0, 50, 50)
+
+        self._highlight_color = QtCore.Qt.magenta
+        self._pen_width = 1
+
+        self.font = QtGui.QFont()
+        self.divisions = []
+
+        self.longest = 64
+        self.padding = 8
+        self.margin = 16
+        self.radius = 8
+
+        if divisions is not None:
+            self.set_divisions(divisions)
 
     @override
     def hoverEnterEvent(self, event):
@@ -130,7 +130,13 @@ class Legend(QtWidgets.QGraphicsRectItem):
         for item in self.childItems():
             item.set_pen_width(value)
 
+    def set_divisions(self, divisions):
+        self.divisions = divisions
+        self.repopulate()
+
     def set_label_font(self, font):
+        self.font = font
+
         metric = QtGui.QFontMetrics(font)
         height = metric.height()
 
@@ -138,17 +144,20 @@ class Legend(QtWidgets.QGraphicsRectItem):
         self.padding = height / 2
         self.margin = height
 
+        if not self.divisions:
+            return
+
         self.longest = max(
             metric.horizontalAdvance(division.key)
             for division in self.divisions)
 
-        self.adjustRect()
-        self.populate()
-
         for item in self.childItems():
             item.set_label_font(font)
 
-    def populate(self):
+        self.adjustRect()
+        self.repopulate()
+
+    def repopulate(self):
         for item in self.childItems():
             self.scene().removeItem(item)
 
@@ -159,3 +168,4 @@ class Legend(QtWidgets.QGraphicsRectItem):
                 self.radius, QtGui.QColor(division.color),
                 division.key, parent=self)
             item.set_pen_width(self._pen_width)
+            item.set_label_font(self.font)
