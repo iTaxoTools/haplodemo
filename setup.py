@@ -27,6 +27,7 @@ setup(
         'itaxotools-common==0.3.0',
         'pyside6>=6.1.1, <6.5',
         'networkx',
+        'numpy',
     ],
     extras_require={
         'dev': [

@@ -205,7 +205,7 @@ class Window(QtWidgets.QWidget):
         self.settings.node_sizes.f = 10
         tree = self.get_demo_tree()
         self.scene.add_nodes_from_tree(tree)
-        # self.scene_view.adjustSceneRect()
+        self.scene.set_marks_from_nodes()
 
     def get_demo_tree(self) -> HaploNode:
         root = HaploNode('root')

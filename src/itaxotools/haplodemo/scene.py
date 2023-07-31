@@ -573,6 +573,25 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             item.setPos(x, y)
             item.update()
 
+    def get_marks_from_nodes(self):
+        weights = set()
+        nodes = (item for item in self.items() if isinstance(item, Node))
+        for node in nodes:
+            weights.add(node.weight)
+        if len(weights) < 3:
+            return list(sorted(weights))
+        weights = sorted(weights)
+        med = int(len(weights) / 2)
+        return [
+            weights[0],
+            weights[med],
+            weights[-1],
+        ]
+
+    def set_marks_from_nodes(self):
+        marks = self.get_marks_from_nodes()
+        self.settings.scale.marks = marks
+
     def clear(self):
         super().clear()
         self.boundary = None

@@ -309,6 +309,7 @@ class ScaleMarksDialog(BoundOptionsDialog):
 
         contents = self.draw_contents()
         self.draw_dialog(contents)
+        self.hintedResize(360, 1)
 
     def draw_contents(self):
         label_info = QtWidgets.QLabel('Define what node sizes are marked on the scale in the form of a comma separated list.')
@@ -317,11 +318,19 @@ class ScaleMarksDialog(BoundOptionsDialog):
         self.marks = GLineEdit()
         self.marks.setTextMargins(2, 0, 2, 0)
 
+        self.auto = QtWidgets.QPushButton('Auto')
+
         self.binder.bind(self.marks.textEditedSafe, self.update_text_color)
+        self.binder.bind(self.auto.clicked, self.get_auto_marks)
+
+        controls = QtWidgets.QHBoxLayout()
+        controls.addWidget(self.auto)
+        controls.addWidget(self.marks, 1)
+        controls.setSpacing(16)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(label_info, 1)
-        layout.addWidget(self.marks, 1)
+        layout.addLayout(controls, 1)
         layout.setSpacing(16)
         return layout
 
@@ -338,6 +347,11 @@ class ScaleMarksDialog(BoundOptionsDialog):
         else:
             color = 'black'
         self.marks.setStyleSheet(f"color: {color};")
+
+    def get_auto_marks(self):
+        marks = self.scene.get_marks_from_nodes()
+        text = self.get_text_from_marks(marks)
+        self.marks.setText(text)
 
     def get_text_from_marks(self, marks: list[int]) -> str:
         text = ', '.join(str(mark) for mark in marks)
