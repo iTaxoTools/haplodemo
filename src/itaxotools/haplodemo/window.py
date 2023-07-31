@@ -203,9 +203,12 @@ class Window(QtWidgets.QWidget):
         self.settings.node_sizes.d = 0
         self.settings.node_sizes.e = 20
         self.settings.node_sizes.f = 10
+        self.settings.show_legend = True
+        self.settings.show_scale = True
+        self.settings.edge_length = 100
+        self.settings.font = QtGui.QFont('Arial', 48)
         tree = self.get_demo_tree()
         self.scene.add_nodes_from_tree(tree)
-        self.scene.set_marks_from_nodes()
 
     def get_demo_tree(self) -> HaploNode:
         root = HaploNode('root')

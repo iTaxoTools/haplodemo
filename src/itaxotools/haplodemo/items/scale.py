@@ -134,6 +134,13 @@ class Scale(QtWidgets.QGraphicsItem):
             rect = rect.united(label_rect)
         return rect
 
+    def get_bottom_margin(self):
+        rect = self.get_extended_rect()
+        diff = rect.height() + rect.y()
+        if diff < 0:
+            return 0
+        return diff
+
     def set_marks(self, marks: list[int]):
         self.marks = marks
         self.update_radii()

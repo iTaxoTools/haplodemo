@@ -182,7 +182,6 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.settings = settings
         self.graph = None
 
-        self.boundary_margin = 16
         self.hovered_item = None
         self.boundary = None
         self.legend = None
@@ -321,7 +320,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.position_legend()
         self.position_scale()
 
-    def set_boundary_to_contents(self):
+    def get_item_boundary(self):
         bounds = QtCore.QRectF()
         for item in self.items():
             if not isinstance(item, Node):
@@ -330,12 +329,36 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             rect.translate(item.pos())
             bounds = bounds.united(rect)
 
-        bounds.adjust(
-            - self.boundary_margin,
-            - self.boundary_margin,
-            self.boundary_margin,
-            self.boundary_margin,
-        )
+        margin = max(bounds.width(), bounds.height()) / 10
+        margin = max(margin, 16)
+
+        return bounds, margin
+
+    def set_boundary_to_contents(self):
+        bounds, margin = self.get_item_boundary()
+
+        right_margin = 0
+        minimum_height = 2 * margin
+        if self.settings.show_legend:
+            width = self.legend.boundingRect().width()
+            height = self.legend.boundingRect().height()
+            right_margin = max(right_margin, 2 * margin + width)
+            minimum_height += height
+        if self.settings.show_scale:
+            width = self.scale.get_extended_rect().width()
+            height = self.scale.get_extended_rect().height()
+            right_margin = max(right_margin, 2 * margin + width)
+            minimum_height += height
+        if self.settings.show_legend and self.settings.show_scale:
+            minimum_height += margin
+        right_margin += margin
+
+        bounds.adjust(- margin, - margin, right_margin, margin)
+
+        if bounds.height() < minimum_height:
+            diff = minimum_height - bounds.height()
+            bounds.setHeight(minimum_height)
+            bounds.translate(0, - diff / 2)
 
         self.set_boundary_rect(
             bounds.x(),
@@ -343,6 +366,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             bounds.width(),
             bounds.height(),
         )
+
+        self.position_legend()
+        self.position_scale()
 
     def show_legend(self, value=True):
         if not self.legend:
@@ -368,12 +394,12 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.scale.setVisible(value)
         self.position_scale()
 
-    def position_legend(self):
+    def position_legend(self, margin=None):
         if not self.boundary:
             return
         bounds = self.boundary.rect()
         width = self.legend.rect().width()
-        margin = self.legend.margin
+        _, margin = self.get_item_boundary()
         self.legend.setPos(
             bounds.x() + bounds.width() - width - margin,
             bounds.y() + margin)
@@ -383,11 +409,11 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             return
         bounds = self.boundary.rect()
         scale = self.scale.get_extended_rect()
-        margin = self.legend.margin
-        extra_margin = self.scale.padding + self.scale.font_height
+        diff = self.scale.get_bottom_margin()
+        _, margin = self.get_item_boundary()
         self.scale.setPos(
             bounds.x() + bounds.width() - scale.width() - margin,
-            bounds.y() + bounds.height() - margin - extra_margin)
+            bounds.y() + bounds.height() - diff - margin)
 
     def addBezier(self):
         item = BezierCurve(QtCore.QPointF(0, 0), QtCore.QPointF(200, 0))
@@ -477,6 +503,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self._add_nodes_from_tree_recursive(None, tree)
         self.style_nodes()
         self.layout_nodes()
+        self.set_marks_from_nodes()
         self.set_boundary_to_contents()
 
     def _add_nodes_from_tree_recursive(self, parent_id: str, node: HaploNode):
