@@ -172,6 +172,8 @@ class Settings(PropertyObject):
 
 
 class GraphicsScene(QtWidgets.QGraphicsScene):
+    boundaryPlaced = QtCore.Signal()
+
     def __init__(self, settings, parent=None):
         super().__init__(parent)
         mid = QtWidgets.QApplication.instance().palette().mid()
@@ -309,12 +311,13 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         if not self.boundary:
             self.boundary = BoundaryRect(x, y, w, h)
             self.addItem(self.boundary)
-            return
-        if w == h == 0:
+        elif w == h == 0:
             self.removeItem(self.boundary)
             self.boundary = None
             return
-        self.boundary.setRect(x, y, w, h)
+        else:
+            self.boundary.setRect(x, y, w, h)
+        self.boundaryPlaced.emit()
         self.position_legend()
         self.position_scale()
 
@@ -586,11 +589,13 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def __init__(self, scene=None, opengl=False, parent=None):
         super().__init__(parent)
-        self.setScene(scene)
 
+        self.locked_center = None
         self.zoom_factor = 1.10
         self.zoom_maximum = 4.0
         self.zoom_minimum = 0.1
+
+        self.setScene(scene)
 
         self.setRenderHints(QtGui.QPainter.TextAntialiasing)
         self.setRenderHints(QtGui.QPainter.Antialiasing)
@@ -605,7 +610,21 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def setScene(self, scene):
         super().setScene(scene)
+        scene.boundaryPlaced.connect(self.initializeSceneRect)
         self.adjustSceneRect()
+        self.lock_center()
+
+    def initializeSceneRect(self):
+        self.adjustSceneRect()
+
+        rect = self.scene().boundary.rect()
+        m = max(rect.width(), rect.height())
+        m /= 10
+        rect.adjust(-m, -m, m, m)
+        self.fitInView(rect, QtCore.Qt.KeepAspectRatio)
+
+        scale = self.transform().m11()
+        self.scaled.emit(scale)
 
     def adjustSceneRect(self):
         if not self.scene().boundary:
@@ -686,11 +705,23 @@ class GraphicsView(QtWidgets.QGraphicsView):
         if event.button() == QtCore.Qt.LeftButton:
             self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
             self.adjustSceneRect()
+            self.lock_center()
 
         super().mouseReleaseEvent(event)
 
     def resizeEvent(self, event):
-        self.fitInView(self.scene().sceneRect(), QtCore.Qt.KeepAspectRatio)
+        if not event.oldSize().isValid():
+            return
+
+        if self.locked_center:
+            self.centerOn(self.locked_center)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.lock_center()
+
+    def lock_center(self):
+        self.locked_center = self.mapToScene(self.viewport().rect().center())
 
     def enable_opengl(self):
         format = QtGui.QSurfaceFormat()
