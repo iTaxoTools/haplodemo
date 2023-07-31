@@ -29,6 +29,7 @@ from .scene import GraphicsScene, GraphicsView, Settings
 from .types import HaploNode
 from .widgets import ColorDelegate, DivisionView, PaletteSelector, ToggleButton
 from .zoom import ZoomControl
+from .demos import DemoLoader
 
 
 class Window(QtWidgets.QWidget):
@@ -55,14 +56,23 @@ class Window(QtWidgets.QWidget):
         self.pen_style_dialog = PenWidthDialog(self, scene, settings)
         self.label_format_dialog = LabelFormatDialog(self, scene, settings)
 
+        self.demos = DemoLoader(scene, settings)
+
         button_demo_simple = QtWidgets.QPushButton('Load simple demo')
-        button_demo_simple.clicked.connect(lambda: self.load_demo_simple())
+        button_demo_simple.clicked.connect(lambda: self.demos.load_demo_simple())
 
         button_demo_tiny_tree = QtWidgets.QPushButton('Load tiny tree')
-        button_demo_tiny_tree.clicked.connect(lambda: self.load_demo_tiny_tree())
+        button_demo_tiny_tree.clicked.connect(lambda: self.demos.load_demo_tiny_tree())
+
+        button_demo_long_tree = QtWidgets.QPushButton('Load long tree')
+        button_demo_long_tree.clicked.connect(lambda: self.demos.load_demo_long_tree())
+
+        button_demo_heavy_tree = QtWidgets.QPushButton('Load heavy tree')
+        button_demo_heavy_tree.clicked.connect(lambda: self.demos.load_demo_heavy_tree())
 
         button_demo_many = QtWidgets.QPushButton('Test performance')
-        button_demo_many.clicked.connect(lambda: self.load_demo_many())
+        button_demo_many.clicked.connect(lambda: self.demos.load_demo_many())
+        button_demo_many.setStyleSheet('color: #A00;')
 
         button_svg = QtWidgets.QPushButton('Export as SVG')
         button_svg.clicked.connect(lambda: self.export_svg())
@@ -107,14 +117,16 @@ class Window(QtWidgets.QWidget):
         demos = QtWidgets.QVBoxLayout()
         demos.addWidget(button_demo_simple)
         demos.addWidget(button_demo_tiny_tree)
+        demos.addWidget(button_demo_long_tree)
+        demos.addWidget(button_demo_heavy_tree)
         demos.addWidget(button_demo_many)
 
         toggles = QtWidgets.QVBoxLayout()
+        toggles.addWidget(toggle_legend)
+        toggles.addWidget(toggle_scale)
         toggles.addWidget(toggle_rotation)
         toggles.addWidget(toggle_recursive)
         toggles.addWidget(toggle_labels)
-        toggles.addWidget(toggle_legend)
-        toggles.addWidget(toggle_scale)
 
         dialogs = QtWidgets.QVBoxLayout()
         dialogs.addWidget(mass_style_edges)
@@ -197,7 +209,7 @@ class Window(QtWidgets.QWidget):
         self.quick_save_action = action
         self.addAction(action)
 
-        self.load_demo_simple()
+        self.demos.load_demo_simple()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -213,136 +225,6 @@ class Window(QtWidgets.QWidget):
             self.settings.font, self, 'Set Font',
             QtWidgets.QFontDialog.FontDialogOptions.DontUseNativeDialog)
         self.settings.font = font
-
-    def load_demo_simple(self):
-        self.scene.clear()
-
-        self.settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
-
-        self.settings.node_sizes.a = 10
-        self.settings.node_sizes.b = 2
-        self.settings.node_sizes.c = 0.2
-        self.settings.node_sizes.d = 1
-        self.settings.node_sizes.e = 0
-        self.settings.node_sizes.f = 0
-        self.settings.show_legend = True
-        self.settings.show_scale = True
-        self.settings.scale.marks = [5, 40]
-        self.settings.font = QtGui.QFont('Arial', 16)
-
-        self.add_demo_nodes_simple()
-
-        self.scene.style_nodes()
-        self.scene.set_boundary_to_contents()
-
-    def add_demo_nodes_simple(self):
-        scene = self.scene
-
-        node1 = scene.create_node(85, 70, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
-        scene.addItem(node1)
-
-        node2 = scene.create_node(node1.pos().x() + 95, node1.pos().y() - 30, 20, 'Beta', {'X': 4, 'Z': 2})
-        scene.add_child_edge(node1, node2, 2)
-
-        node3 = scene.create_node(node1.pos().x() + 115, node1.pos().y() + 60, 25, 'C', {'Y': 6, 'Z': 2})
-        edge = scene.add_child_edge(node1, node3, 3)
-        edge.set_style(EdgeStyle.Bars)
-
-        node4 = scene.create_node(node3.pos().x() + 60, node3.pos().y() - 30, 15, 'D', {'Y': 1})
-        scene.add_child_edge(node3, node4, 1)
-
-        vertex1 = scene.create_vertex(node3.pos().x() - 60, node3.pos().y() + 60)
-        scene.add_child_edge(node3, vertex1, 2)
-
-        node5 = scene.create_node(vertex1.pos().x() - 80, vertex1.pos().y() + 40, 30, 'Error', {'?': 1})
-        edge = scene.add_child_edge(vertex1, node5, 4)
-        edge.set_style(EdgeStyle.DotsWithText)
-
-        node6 = scene.create_node(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 20, 'R', {'Z': 1})
-        scene.add_child_edge(vertex1, node6, 1)
-
-        node7 = scene.create_node(vertex1.pos().x() + 100, vertex1.pos().y() + 80, 10, 'S', {'Z': 1})
-        scene.add_sibling_edge(node6, node7, 2)
-
-        node8 = scene.create_node(vertex1.pos().x() + 20, vertex1.pos().y() + 80, 40, 'T', {'Y': 1})
-        scene.add_sibling_edge(node6, node8, 1)
-        scene.add_sibling_edge(node7, node8, 1)
-
-        node9 = scene.create_node(node7.pos().x() + 20, node7.pos().y() - 40, 5, 'x', {'Z': 1})
-        scene.add_child_edge(node7, node9, 1)
-
-    def load_demo_many(self):
-        self.scene.clear()
-
-        self.settings.divisions.set_divisions_from_keys(['X', 'Y'])
-
-        self.settings.node_sizes.a = 0
-        self.settings.node_sizes.b = 0
-        self.settings.node_sizes.c = 0
-        self.settings.node_sizes.d = 0
-        self.settings.node_sizes.e = 0
-        self.settings.node_sizes.f = 30
-        self.settings.show_legend = False
-        self.settings.show_scale = False
-        self.settings.font = QtGui.QFont('Arial', 16)
-
-        self.add_demo_nodes_many(8, 32)
-
-        self.scene.style_nodes()
-        self.scene.set_boundary_to_contents()
-
-    def add_demo_nodes_many(self, dx, dy):
-        scene = self.scene
-
-        for x in range(dx):
-            nodex = scene.create_node(20, 80 * x, 15, f'x{x}', {'X': 1})
-            scene.addItem(nodex)
-
-            for y in range(dy):
-                nodey = scene.create_node(nodex.pos().x() + 80 + 80 * y, nodex.pos().y() + 40, 15, f'y{y}', {'Y': 1})
-                scene.add_child_edge(nodex, nodey)
-
-    def load_demo_tiny_tree(self):
-        self.scene.clear()
-
-        self.settings.divisions.set_divisions_from_keys(['A', 'B', 'C'])
-
-        self.settings.node_sizes.a = 0
-        self.settings.node_sizes.b = 0
-        self.settings.node_sizes.c = 0
-        self.settings.node_sizes.d = 0
-        self.settings.node_sizes.e = 10
-        self.settings.node_sizes.f = 20
-        self.settings.show_legend = True
-        self.settings.show_scale = True
-        self.settings.edge_length = 40
-        self.settings.node_label_template = 'WEIGHT'
-        self.settings.font = QtGui.QFont('Arial', 24)
-
-        tree = self.get_tiny_tree()
-        self.scene.add_nodes_from_tree(tree)
-
-    def get_tiny_tree(self) -> HaploNode:
-        root = HaploNode('root')
-        root.add_pops(['A'] * 3 + ['B'] * 5)
-
-        a = HaploNode('a')
-        a.add_pops(['A'] * 1)
-        root.add_child(a, 1)
-
-        b = HaploNode('b')
-        b.add_pops(['B'] * 3)
-        root.add_child(b, 4)
-
-        c = HaploNode('c')
-        c.add_pops(['B'] * 1)
-        b.add_child(c, 1)
-
-        d = HaploNode('d')
-        d.add_pops(['C'] * 1)
-        b.add_child(d, 2)
-
-        return root
 
     def quick_save(self):
         self.export_svg('graph.svg')

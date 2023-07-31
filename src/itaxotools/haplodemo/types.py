@@ -30,7 +30,7 @@ class HaploNode:
         node.mutations = mutations
         node.parent = self
 
-    def add_pops(self, pops: list[str]):
+    def add_pops(self, pops: list[str] | dict[str, int]):
         self.pops.update(pops)
 
     def __str__(self):

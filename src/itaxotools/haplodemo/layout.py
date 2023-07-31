@@ -160,4 +160,5 @@ def _modified_fruchterman_reingold(
         t -= dt
         if (np.linalg.norm(delta_pos) / nnodes) < threshold:
             break
+    # print(f'{iteration=}')
     return pos
