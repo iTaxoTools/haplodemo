@@ -52,7 +52,7 @@ class Scale(QtWidgets.QGraphicsItem):
 
     @override
     def boundingRect(self):
-        return QtCore.QRect(0, 0, self.radius * 2, self.radius)
+        return QtCore.QRect(0, -self.radius, self.radius * 2, self.radius)
 
     @override
     def shape(self):
@@ -60,6 +60,7 @@ class Scale(QtWidgets.QGraphicsItem):
         path = QtGui.QPainterPath()
         path.arcMoveTo(rect, 0)
         path.arcTo(rect, 0, 180)
+        path.translate(0, -self.radius)
         return path
 
     @override
@@ -81,6 +82,7 @@ class Scale(QtWidgets.QGraphicsItem):
             path = QtGui.QPainterPath()
             path.arcMoveTo(rect, 0)
             path.arcTo(rect, 0, 180)
+            path.translate(0, -self.radius)
             painter.drawPath(path)
 
     @override
@@ -153,7 +155,7 @@ class Scale(QtWidgets.QGraphicsItem):
             label = Label(str(size), self)
             label.set_highlight_color(self._highlight_color)
             label.set_anchor(Direction.Right)
-            label.setPos(radius * 2, self.radius + self.padding + self.font_height / 2)
+            label.setPos(radius * 2, self.padding + self.font_height / 2)
             label.set_font(self.font)
             label.recenter()
             self.labels.append(label)

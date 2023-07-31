@@ -384,9 +384,10 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         bounds = self.boundary.rect()
         scale = self.scale.get_extended_rect()
         margin = self.legend.margin
+        extra_margin = self.scale.padding + self.scale.font_height
         self.scale.setPos(
             bounds.x() + bounds.width() - scale.width() - margin,
-            bounds.y() + bounds.height() - scale.height() - margin)
+            bounds.y() + bounds.height() - margin - extra_margin)
 
     def addBezier(self):
         item = BezierCurve(QtCore.QPointF(0, 0), QtCore.QPointF(200, 0))
