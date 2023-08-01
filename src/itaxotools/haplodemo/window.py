@@ -21,15 +21,13 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from itaxotools.common.bindings import Binder
 from itaxotools.common.widgets import HLineSeparator
 
+from .demos import DemoLoader
 from .dialogs import (
     EdgeStyleDialog, LabelFormatDialog, NodeSizeDialog, PenWidthDialog,
     ScaleMarksDialog)
-from .items.types import EdgeStyle
 from .scene import GraphicsScene, GraphicsView, Settings
-from .types import HaploNode
 from .widgets import ColorDelegate, DivisionView, PaletteSelector, ToggleButton
 from .zoom import ZoomControl
-from .demos import DemoLoader
 
 
 class Window(QtWidgets.QWidget):

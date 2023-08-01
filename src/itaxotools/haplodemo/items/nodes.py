@@ -16,6 +16,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from math import log
@@ -223,10 +225,9 @@ class Label(QtWidgets.QGraphicsItem):
 
 
 class Edge(QtWidgets.QGraphicsLineItem):
-    def __init__(self, node1, node2, weight=1):
+    def __init__(self, node1: Node, node2: Node, weight=1):
         super().__init__()
         self.setAcceptHoverEvents(True)
-        self.setZValue(-10)
         self.weight = weight
         self.segments = weight
         self.node1 = node1
@@ -247,6 +248,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.label.set_white_outline(True)
         self.set_style(EdgeStyle.Bubbles)
         self.lockLabelPosition()
+        self.update_z_value()
 
     @override
     def shape(self):
@@ -418,6 +420,10 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
         painter.restore()
 
+    def update_z_value(self, hover=False):
+        z = - 5 if hover else - 10
+        self.setZValue(z)
+
     def set_style(self, style):
         self.style = style
         self.label.setVisible(self.style.has_text)
@@ -427,10 +433,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
     def set_hovered(self, value):
         self.state_hovered = value
         self.label.set_hovered(value)
-        if value:
-            self.setZValue(-5)
-        else:
-            self.setZValue(-10)
+        self.update_z_value(value)
         self.update()
 
     def set_label_font(self, value):
@@ -555,7 +558,8 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self._pen_width = 2
         self._debug = False
 
-        self.setZValue(10)
+        self.update_z_value()
+
         self.setAcceptHoverEvents(True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
@@ -604,13 +608,11 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def hoverEnterEvent(self, event):
         super().hoverEnterEvent(event)
         self.set_hovered(True)
-        self.setZValue(15)
 
     @override
     def hoverLeaveEvent(self, event):
         super().hoverLeaveEvent(event)
         self.set_hovered(False)
-        self.setZValue(10)
 
     @override
     def mousePressEvent(self, event):
@@ -637,6 +639,13 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         if self.isMovementRotational():
             return self.moveRotationally(event)
         return self.moveOrthogonally(event)
+
+    def update_z_value(self, hover=False):
+        weight = self.weight
+        if hover:
+            weight -= 1
+        z = 1 / (weight + 2)
+        self.setZValue(z)
 
     def is_highlighted(self):
         if self.state_pressed:
@@ -665,6 +674,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
     def set_hovered(self, value):
         self.state_hovered = value
+        self.update_z_value(value)
         if self.parent and any((
             self.isMovementRotational(),
             self.isMovementRecursive())
