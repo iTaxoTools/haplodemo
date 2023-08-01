@@ -104,6 +104,7 @@ class Window(QtWidgets.QWidget):
         toggle_labels = ToggleButton('Lock labels')
         toggle_legend = ToggleButton('Show legend')
         toggle_scale = ToggleButton('Show scale')
+        toggle_scene_rotation = ToggleButton('Rotate scene')
 
         division_view = DivisionView(settings.divisions)
 
@@ -120,6 +121,7 @@ class Window(QtWidgets.QWidget):
         demos.addWidget(button_demo_many)
 
         toggles = QtWidgets.QVBoxLayout()
+        toggles.addWidget(toggle_scene_rotation)
         toggles.addWidget(toggle_legend)
         toggles.addWidget(toggle_scale)
         toggles.addWidget(toggle_rotation)
@@ -200,6 +202,9 @@ class Window(QtWidgets.QWidget):
 
         self.binder.bind(settings.properties.show_scale, toggle_scale.setChecked)
         self.binder.bind(toggle_scale.toggled, settings.properties.show_scale)
+
+        self.binder.bind(settings.properties.rotate_scene, toggle_scene_rotation.setChecked)
+        self.binder.bind(toggle_scene_rotation.toggled, settings.properties.rotate_scene)
 
         action = QtGui.QAction()
         action.setShortcut(QtGui.QKeySequence.Save)

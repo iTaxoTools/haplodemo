@@ -30,6 +30,7 @@ from .items.bezier import BezierCurve
 from .items.boundary import BoundaryEdgeHandle, BoundaryRect
 from .items.legend import Legend
 from .items.nodes import Edge, EdgeStyle, Label, Node, Vertex
+from .items.rotate import PivotHandle
 from .items.scale import Scale
 from .layout import modified_spring_layout
 from .palettes import Palette
@@ -150,6 +151,7 @@ class Settings(PropertyObject):
     recursive_movement = Property(bool, True)
     label_movement = Property(bool, False)
 
+    rotate_scene = Property(bool, False)
     show_legend = Property(bool, False)
     show_scale = Property(bool, False)
 
@@ -188,10 +190,12 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.boundary = None
         self.legend = None
         self.scale = None
+        self.pivot = None
+
+        self._view_scale = None
 
         self.binder = Binder()
-        self.binder.bind(settings.properties.show_legend, self.show_legend)
-        self.binder.bind(settings.properties.show_scale, self.show_scale)
+        self.reset_binder()
 
     def event(self, event):
         if event.type() == QtCore.QEvent.GraphicsSceneLeave:
@@ -397,6 +401,14 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.scale.setVisible(value)
         self.position_scale()
 
+    def show_pivot(self, value=True):
+        if not self.pivot:
+            self.pivot = PivotHandle()
+            self.addItem(self.pivot)
+            self.binder.bind(self.settings.properties.highlight_color, self.pivot.set_highlight_color)
+        self.pivot.setVisible(value)
+        self.position_pivot()
+
     def position_legend(self, margin=None):
         if not self.boundary:
             return
@@ -417,6 +429,14 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.scale.setPos(
             bounds.x() + bounds.width() - scale.width() - margin,
             bounds.y() + bounds.height() - diff - margin)
+
+    def position_pivot(self):
+        if not self.pivot or not self.boundary:
+            return
+        bounds = self.boundary.rect()
+        self.pivot.setPos(bounds.center())
+        scale = self._view_scale
+        self.pivot.adjust_scale(scale)
 
     def addBezier(self):
         item = BezierCurve(QtCore.QPointF(0, 0), QtCore.QPointF(200, 0))
@@ -584,15 +604,26 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         marks = self.get_marks_from_nodes()
         self.settings.scale.marks = marks
 
+    def handle_view_scaled(self, scale):
+        self._view_scale = scale
+        if self.pivot:
+            self.pivot.adjust_scale(scale)
+
+    def reset_binder(self):
+        self.binder.unbind_all()
+        self.binder.bind(self.settings.properties.rotate_scene, self.show_pivot)
+        self.binder.bind(self.settings.properties.show_legend, self.show_legend)
+        self.binder.bind(self.settings.properties.show_scale, self.show_scale)
+
     def clear(self):
         super().clear()
         self.boundary = None
         self.legend = None
         self.scale = None
+        self.pivot = None
+        self.reset_binder()
 
-        self.binder.unbind_all()
-        self.binder.bind(self.settings.properties.show_legend, self.show_legend)
-        self.binder.bind(self.settings.properties.show_scale, self.show_scale)
+        self.settings.rotate_scene = False
 
 
 class GraphicsView(QtWidgets.QGraphicsView):
@@ -622,6 +653,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
     def setScene(self, scene):
         super().setScene(scene)
         scene.boundaryPlaced.connect(self.initializeSceneRect)
+        self.scaled.connect(scene.handle_view_scaled)
         self.adjustSceneRect()
         self.lock_center()
 

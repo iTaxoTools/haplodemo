@@ -125,6 +125,7 @@ class Scale(QtWidgets.QGraphicsItem):
     def update_pens(self):
         self._pen = QtGui.QPen(QtCore.Qt.black, self._pen_width)
         self._pen_high = QtGui.QPen(self._highlight_color, self._pen_width + self._pen_high_increment)
+        self._pen_high.setCapStyle(QtCore.Qt.RoundCap)
 
     def get_extended_rect(self):
         rect = self.boundingRect()
