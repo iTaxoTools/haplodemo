@@ -194,7 +194,6 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.pivot = None
 
         self._view_scale = None
-        self._locked_cursor_pos = None
         self.rotating = False
 
         self.binder = Binder()
@@ -217,8 +216,12 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
-            item = self.getItemAtPos(event.scenePos(), ignore_edges=True)
-            if item and not isinstance(item, Legend) and not isinstance(item, Scale):
+            item = self.getItemAtPos(event.scenePos(), ignore_edges=True, ignore_pivot_handle=False)
+            if item and isinstance(item, PivotHandle):
+                item.mousePressEvent(event)
+                item.grabMouse()
+                event.accept()
+            elif item and not isinstance(item, Legend) and not isinstance(item, Scale):
                 item.mousePressEvent(event)
                 item.grabMouse()
                 event.accept()
@@ -251,7 +254,11 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         event.accept()
 
         hover = self._hoverEventFromMouseEvent(event)
-        item = self.getItemAtPos(event.scenePos())
+        item = self.getItemAtPos(event.scenePos(), ignore_pivot_handle=False)
+
+        if item and isinstance(item, PivotHandle):
+            item.hoverMoveEvent(hover)
+            return
 
         if self.hovered_item:
             if item == self.hovered_item:
@@ -274,27 +281,42 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             item = self.getItemAtPos(event.scenePos(), ignore_pivot_handle=False)
             if isinstance(item, PivotHandle):
                 self.pivot.set_hovered(True)
+                return super().event(event)
             else:
                 self.pivot.set_hovered(False)
-                return False
+                if self.rotating:
+                    vertices = (item for item in self.items() if isinstance(item, Vertex))
+                    for vertex in vertices:
+                        vertex.moveRotationally(event)
+
+                event.accept()
+                return True
 
         elif event.type() == QtCore.QEvent.GraphicsSceneMousePress:
             item = self.getItemAtPos(event.scenePos(), ignore_pivot_handle=False)
-            if isinstance(item, PivotHandle):
-                item.grabMouse()
-                # self.mousePressEvent(event)
+            if item and isinstance(item, PivotHandle):
+                return super().event(event)
             else:
+                center = self.pivot.pos()
+                vertices = (item for item in self.items() if isinstance(item, Vertex))
+                for vertex in vertices:
+                    vertex.lockPosition(event, center=center)
+                    vertex.in_scene_rotation = True
                 self.rotating = True
-                return False
+                event.accept()
+                return True
 
         elif event.type() == QtCore.QEvent.GraphicsSceneMouseRelease:
             item = self.getItemAtPos(event.scenePos(), ignore_pivot_handle=False)
-            if isinstance(item, PivotHandle):
-                item.ungrabMouse()
-                # self.mousePressEvent(event)
+            if item and isinstance(item, PivotHandle):
+                return super().event(event)
             else:
+                vertices = (item for item in self.items() if isinstance(item, Vertex))
+                for vertex in vertices:
+                    vertex.in_scene_rotation = False
                 self.rotating = False
-                return False
+                event.accept()
+                return True
 
         return super().event(event)
 
@@ -371,7 +393,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
     def get_item_boundary(self):
         bounds = QtCore.QRectF()
         for item in self.items():
-            if not isinstance(item, Node):
+            if not isinstance(item, Vertex):
                 continue
             rect = QtCore.QRectF(item.rect())
             rect.translate(item.pos())
@@ -473,11 +495,11 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             bounds.y() + bounds.height() - diff - margin)
 
     def position_pivot(self):
-        if not self.pivot or not self.boundary:
+        if not self.pivot:
             return
-        bounds = self.boundary.rect()
+        bounds, _ = self.get_item_boundary()
         self.pivot.setPos(bounds.center())
-        scale = self._view_scale
+        scale = self._view_scale or 1.0
         self.pivot.adjust_scale(scale)
 
     def addBezier(self):

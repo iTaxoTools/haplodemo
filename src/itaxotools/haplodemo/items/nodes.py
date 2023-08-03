@@ -553,6 +553,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
         self._rotational_setting = None
         self._recursive_setting = None
+        self.in_scene_rotation = False
         self._highlight_color = QtCore.Qt.magenta
         self._pen_high_increment = 4
         self._pen_width = 2
@@ -704,6 +705,8 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         return isinstance(self.parent, Vertex)
 
     def isMovementRecursive(self):
+        if self.in_scene_rotation:
+            return False
         return self._recursive_setting
 
     def _mapRecursive(
