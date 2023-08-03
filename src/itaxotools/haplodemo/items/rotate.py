@@ -32,6 +32,8 @@ class PivotHandle(QtWidgets.QGraphicsEllipseItem):
         self._pen = QtGui.QPen(QtCore.Qt.black, 1)
         self._pen_high = QtGui.QPen(self._highlight_color, 2)
 
+        self.locked_pos = None
+        self.locked_cursor = None
         self.state_hovered = False
         self.scale = 1.0
         self.radius = 10
@@ -78,6 +80,25 @@ class PivotHandle(QtWidgets.QGraphicsEllipseItem):
     def hoverLeaveEvent(self, event):
         super().hoverLeaveEvent(event)
         self.set_hovered(False)
+
+    @override
+    def mouseReleaseEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self.locked_pos = self.pos()
+        super().mouseReleaseEvent(event)
+
+    @override
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self.locked_pos = self.pos()
+            self.locked_cursor = event.scenePos()
+        super().mousePressEvent(event)
+
+    @override
+    def mouseMoveEvent(self, event):
+        epos = event.scenePos()
+        diff = (epos - self.locked_cursor).toPoint()
+        self.setPos(self.locked_pos + diff)
 
     def set_hovered(self, value):
         self.state_hovered = value

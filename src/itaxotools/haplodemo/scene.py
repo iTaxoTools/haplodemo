@@ -177,6 +177,7 @@ class Settings(PropertyObject):
 
 class GraphicsScene(QtWidgets.QGraphicsScene):
     boundaryPlaced = QtCore.Signal()
+    rotateModeChanged = QtCore.Signal(bool)
 
     def __init__(self, settings, parent=None):
         super().__init__(parent)
@@ -193,13 +194,17 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.pivot = None
 
         self._view_scale = None
+        self._locked_cursor_pos = None
+        self.rotating = False
 
         self.binder = Binder()
         self.reset_binder()
 
     def event(self, event):
+        if self.settings.rotate_scene:
+            return self.rotateEvent(event)
         if event.type() == QtCore.QEvent.GraphicsSceneLeave:
-            self.mouseLeaveEvent(event)
+            return self.mouseLeaveEvent(event)
         return super().event(event)
 
     def mouseLeaveEvent(self, event):
@@ -208,6 +213,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             # hover.type = lambda: event.type()
             self.hovered_item.hoverLeaveEvent(hover)
             self.hovered_item = None
+        return super().event(event)
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
@@ -259,6 +265,39 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         else:
             super().mouseMoveEvent(event)
 
+    def rotateEvent(self, event):
+        grabber = self.mouseGrabberItem()
+        if isinstance(grabber, PivotHandle):
+            return super().event(event)
+
+        if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
+            item = self.getItemAtPos(event.scenePos(), ignore_pivot_handle=False)
+            if isinstance(item, PivotHandle):
+                self.pivot.set_hovered(True)
+            else:
+                self.pivot.set_hovered(False)
+                return False
+
+        elif event.type() == QtCore.QEvent.GraphicsSceneMousePress:
+            item = self.getItemAtPos(event.scenePos(), ignore_pivot_handle=False)
+            if isinstance(item, PivotHandle):
+                item.grabMouse()
+                # self.mousePressEvent(event)
+            else:
+                self.rotating = True
+                return False
+
+        elif event.type() == QtCore.QEvent.GraphicsSceneMouseRelease:
+            item = self.getItemAtPos(event.scenePos(), ignore_pivot_handle=False)
+            if isinstance(item, PivotHandle):
+                item.ungrabMouse()
+                # self.mousePressEvent(event)
+            else:
+                self.rotating = False
+                return False
+
+        return super().event(event)
+
     def _hoverEventFromMouseEvent(self, mouse):
         hover = QtWidgets.QGraphicsSceneHoverEvent()
         # hover.widget = lambda: mouse.widget()
@@ -279,6 +318,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             ignore_boundary_handles=True,
             ignore_legend=False,
             ignore_scale=False,
+            ignore_pivot_handle=True
     ):
         if ignore_labels is None:
             ignore_labels = not self.settings.label_movement
@@ -287,6 +327,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         closest_edge_item = None
         closest_edge_distance = float('inf')
         for item in super().items(pos):
+            if isinstance(item, PivotHandle) and not ignore_pivot_handle:
+                return item
             if isinstance(item, Scale) and not ignore_legend:
                 return item
             if isinstance(item, Legend) and not ignore_scale:
@@ -612,6 +654,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
     def reset_binder(self):
         self.binder.unbind_all()
         self.binder.bind(self.settings.properties.rotate_scene, self.show_pivot)
+        self.binder.bind(self.settings.properties.rotate_scene, self.rotateModeChanged)
         self.binder.bind(self.settings.properties.show_legend, self.show_legend)
         self.binder.bind(self.settings.properties.show_scale, self.show_scale)
 
@@ -628,6 +671,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
 class GraphicsView(QtWidgets.QGraphicsView):
     scaled = QtCore.Signal(float)
+    rotating = QtCore.Signal(bool)
 
     def __init__(self, scene=None, opengl=False, parent=None):
         super().__init__(parent)
@@ -636,6 +680,8 @@ class GraphicsView(QtWidgets.QGraphicsView):
         self.zoom_factor = 1.10
         self.zoom_maximum = 4.0
         self.zoom_minimum = 0.1
+        self.rotate_mode = False
+        self.rotating = False
 
         self.setScene(scene)
 
@@ -646,6 +692,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOn)
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
         self.setTransformationAnchor(QtWidgets.QGraphicsView.AnchorUnderMouse)
+        # self.setMouseTracking(True)
 
         if opengl:
             self.enable_opengl()
@@ -653,6 +700,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
     def setScene(self, scene):
         super().setScene(scene)
         scene.boundaryPlaced.connect(self.initializeSceneRect)
+        scene.rotateModeChanged.connect(self.handle_rotate_mode_changed)
         self.scaled.connect(scene.handle_view_scaled)
         self.adjustSceneRect()
         self.lock_center()
@@ -739,18 +787,45 @@ class GraphicsView(QtWidgets.QGraphicsView):
     def mousePressEvent(self, event):
         pos = self.mapToScene(event.pos())
         item = self.scene().getItemAtPos(pos, ignore_boundary_handles=False)
-        if not item and event.button() == QtCore.Qt.LeftButton:
-            self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
+        if event.button() == QtCore.Qt.LeftButton:
+            if self.rotate_mode:
+                self.rotating = True
+                pos = self.mapToScene(event.pos())
+                item = self.scene().getItemAtPos(pos, ignore_pivot_handle=False)
+                if isinstance(item, PivotHandle):
+                    self.viewport().setCursor(QtCore.Qt.ArrowCursor)
+                else:
+                    self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)
+            elif not item:
+                self.setDragMode(QtWidgets.QGraphicsView.ScrollHandDrag)
 
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
+            if self.rotate_mode:
+                self.rotating = False
+                self.viewport().setCursor(QtCore.Qt.OpenHandCursor)
+            else:
+                self.viewport().setCursor(QtCore.Qt.ArrowCursor)
             self.setDragMode(QtWidgets.QGraphicsView.NoDrag)
             self.adjustSceneRect()
             self.lock_center()
 
         super().mouseReleaseEvent(event)
+
+    def mouseMoveEvent(self, event):
+        super().mouseMoveEvent(event)
+        if self.rotate_mode:
+            pos = self.mapToScene(event.pos())
+            item = self.scene().getItemAtPos(pos, ignore_pivot_handle=False)
+            grabber = self.scene().mouseGrabberItem()
+            if grabber or isinstance(item, PivotHandle):
+                self.viewport().setCursor(QtCore.Qt.ArrowCursor)
+            elif self.rotating:
+                self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)
+            else:
+                self.viewport().setCursor(QtCore.Qt.OpenHandCursor)
 
     def resizeEvent(self, event):
         if not event.oldSize().isValid():
@@ -765,6 +840,13 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def lock_center(self):
         self.locked_center = self.mapToScene(self.viewport().rect().center())
+
+    def handle_rotate_mode_changed(self, value):
+        self.rotate_mode = value
+        if value:
+            self.viewport().setCursor(QtCore.Qt.OpenHandCursor)
+        else:
+            self.viewport().setCursor(QtCore.Qt.ArrowCursor)
 
     def enable_opengl(self):
         format = QtGui.QSurfaceFormat()
