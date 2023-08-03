@@ -73,21 +73,21 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
 
         match self.horizontal:
             case Direction.Right:
-                x = parent.rect().right()
+                x = parent.rect().right() - 1
             case Direction.Left:
-                x = parent.rect().left() - self.size
+                x = parent.rect().left() - self.size + 1
             case Direction.Center:
                 width = parent.rect().width()
-                x = parent.rect().left()
+                x = parent.rect().left() + 1
 
         match self.vertical:
             case Direction.Top:
-                y = parent.rect().top() - self.size
+                y = parent.rect().top() - self.size + 1
             case Direction.Bottom:
-                y = parent.rect().bottom()
+                y = parent.rect().bottom() - 1
             case Direction.Center:
                 height = parent.rect().height()
-                y = parent.rect().top()
+                y = parent.rect().top() + 1
 
         rect = QtCore.QRect(x, y, width, height)
         self.prepareGeometryChange()
@@ -154,12 +154,11 @@ class BoundaryOutline(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent):
         super().__init__(parent)
         self.setPen(QtGui.QPen(QtCore.Qt.black, 1, QtCore.Qt.PenStyle.DashLine))
-        self.adjustRect()
+        self.adjustRect(parent.margin)
 
-    def adjustRect(self):
-        m = self.parentItem().margin
+    def adjustRect(self, margin):
         rect = self.parentItem().rect()
-        rect.adjust(-m, -m, m, m)
+        rect.adjust(-margin, -margin, margin, margin)
         self.prepareGeometryChange()
         self.setRect(rect)
 
@@ -168,6 +167,7 @@ class BoundaryRect(QtWidgets.QGraphicsRectItem):
     def __init__(self, x, y, w, h):
         super().__init__(x, y, w, h)
         self.minimum_size = 32
+        self.margin_target = 8
         self.margin = 8
 
         self.setBrush(QtCore.Qt.white)
@@ -190,6 +190,21 @@ class BoundaryRect(QtWidgets.QGraphicsRectItem):
         self.prepareGeometryChange()
         self.setRect(rect)
 
-        self.outline.adjustRect()
+        self.outline.adjustRect(self.margin)
         for handle in self.handles:
+            handle.adjustRect()
+
+    def adjust_scale(self, scale=1.0):
+        pen = QtGui.QPen(QtCore.Qt.black, 1 / scale)
+        self.setPen(pen)
+
+        pen = QtGui.QPen(QtCore.Qt.black, 1 / scale, QtCore.Qt.PenStyle.DashLine)
+        self.outline.setPen(pen)
+
+        self.margin = self.margin_target / scale
+        self.margin = int(self.margin) + 1
+
+        self.outline.adjustRect(self.margin)
+        for handle in self.handles:
+            handle.size = self.margin + 2
             handle.adjustRect()

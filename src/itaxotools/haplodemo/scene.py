@@ -672,6 +672,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self._view_scale = scale
         if self.pivot:
             self.pivot.adjust_scale(scale)
+        if self.boundary:
+            self.boundary.adjust_scale(scale)
 
     def reset_binder(self):
         self.binder.unbind_all()
