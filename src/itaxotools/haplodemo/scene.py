@@ -203,16 +203,15 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         if self.settings.rotate_scene:
             return self.rotateEvent(event)
         if event.type() == QtCore.QEvent.GraphicsSceneLeave:
-            return self.mouseLeaveEvent(event)
+            self.handleMouseLeaveEvent(event)
         return super().event(event)
 
-    def mouseLeaveEvent(self, event):
+    def handleMouseLeaveEvent(self, event):
         if self.hovered_item:
             hover = QtWidgets.QGraphicsSceneHoverEvent()
             # hover.type = lambda: event.type()
             self.hovered_item.hoverLeaveEvent(hover)
             self.hovered_item = None
-        return super().event(event)
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
@@ -928,7 +927,7 @@ class GraphicsView(QtWidgets.QGraphicsView):
     def prepare_export(self):
         """Make sure the scene is clean and ready for a snapshot"""
         event = QtWidgets.QGraphicsSceneEvent(QtCore.QEvent.GraphicsSceneLeave)
-        self.scene().mouseLeaveEvent(event)
+        self.scene().handleMouseLeaveEvent(event)
 
         white = QtCore.Qt.white
         self.scene().setBackgroundBrush(white)
