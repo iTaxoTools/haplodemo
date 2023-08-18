@@ -559,7 +559,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         id = node.id
         size = node.pops.total()
         args = self.settings.node_sizes.get_all_values()
-        radius = Node.radius_from_size(size, *args)
+        radius = Node.radius_from_size(size, *args) if size else 0
         radius /= self.settings.edge_length
 
         if size > 0:
