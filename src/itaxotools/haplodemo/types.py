@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from dataclasses import dataclass
 from enum import Enum, auto
 from sys import stdout
 
@@ -45,3 +46,22 @@ class HaploNode:
         print(f"{decoration}{str(self)}", file=file)
         for child in self.children:
             child.print(level + 1, length, file)
+
+
+@dataclass
+class HaploGraphNode:
+    id: str
+    pops: Counter[str]
+
+
+@dataclass
+class HaploGraphEdge:
+    node_a: int
+    node_b: int
+    mutations: int
+
+
+@dataclass
+class HaploGraph:
+    nodes: list[HaploGraphNode]
+    edges: list[HaploGraphEdge]

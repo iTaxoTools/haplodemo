@@ -18,8 +18,10 @@
 
 from PySide6 import QtGui
 
+from collections import Counter
+
 from .items.types import EdgeStyle
-from .types import HaploNode
+from .types import HaploGraph, HaploGraphEdge, HaploGraphNode, HaploNode
 
 
 class DemoLoader:
@@ -378,3 +380,53 @@ class DemoLoader:
         c.add_pops(['A'] * 52)
 
         return a
+
+    def load_demo_cycled_graph(self):
+        self.scene.clear()
+
+        self.settings.divisions.set_divisions_from_keys(['A', 'B'])
+
+        self.settings.node_sizes.a = 15
+        self.settings.node_sizes.b = 10
+        self.settings.node_sizes.c = 1
+        self.settings.node_sizes.d = 0
+        self.settings.node_sizes.e = 0
+        self.settings.node_sizes.f = 10
+        self.settings.show_legend = True
+        self.settings.show_scale = True
+        self.settings.edge_length = 20
+        self.settings.pen_width_nodes = 1
+        self.settings.pen_width_edges = 2
+        self.settings.node_label_template = 'WEIGHT'
+        self.settings.font = QtGui.QFont('Arial', 12)
+
+        graph = self.get_cycled_graph()
+        self.scene.add_nodes_from_graph(graph)
+
+    def get_cycled_graph(self) -> HaploGraph:
+        return HaploGraph(
+            [
+                HaploGraphNode(
+                    id = 'a1',
+                    pops = Counter('A' * 10)
+                ),
+                HaploGraphNode(
+                    id = 'b1',
+                    pops = Counter('B')
+                ),
+                HaploGraphNode(
+                    id = 'b2',
+                    pops = Counter('BB')
+                ),
+                HaploGraphNode(
+                    id = 'ab',
+                    pops = Counter('AAB')
+                ),
+            ],
+            [
+                HaploGraphEdge(0, 1, 1),
+                HaploGraphEdge(0, 2, 1),
+                HaploGraphEdge(1, 2, 1),
+                HaploGraphEdge(0, 3, 2),
+            ],
+        )

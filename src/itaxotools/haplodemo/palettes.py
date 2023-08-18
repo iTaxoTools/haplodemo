@@ -33,10 +33,6 @@ class Palette(list, Type):
             return super().__getitem__(index)
         return self.default
 
-    @property
-    def label(self):
-        return type(self).__name__
-
 
 class Set1(Palette):
     label = 'Set1'

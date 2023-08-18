@@ -34,7 +34,7 @@ from .items.rotate import PivotHandle
 from .items.scale import Scale
 from .layout import modified_spring_layout
 from .palettes import Palette
-from .types import HaploNode, LayoutType
+from .types import HaploGraph, HaploNode, LayoutType
 
 
 @dataclass
@@ -579,6 +579,44 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
         for child in node.children:
             self._add_nodes_from_tree_recursive(id, child)
+
+    def add_nodes_from_graph(self, haplo_graph: HaploGraph):
+        self.graph = nx.Graph()
+
+        x, y = 0, 0
+        args = self.settings.node_sizes.get_all_values()
+
+        for node in haplo_graph.nodes:
+            id = node.id
+            size = node.pops.total()
+            radius = Node.radius_from_size(size, *args) if size else 0
+            radius /= self.settings.edge_length
+
+            if size > 0:
+                item = self.create_node(x, y, size, id, dict(node.pops))
+            else:
+                item = self.create_vertex(x, y)
+            self.addItem(item)
+            self.graph.add_node(id, radius=radius, item=item)
+
+        for edge in haplo_graph.edges:
+            node_a = haplo_graph.nodes[edge.node_a].id
+            node_b = haplo_graph.nodes[edge.node_b].id
+            item_a = self.graph.nodes[node_a]['item']
+            item_b = self.graph.nodes[node_b]['item']
+            radius_a = self.graph.nodes[node_a]['radius']
+            radius_b = self.graph.nodes[node_b]['radius']
+            length = edge.mutations + radius_a + radius_b
+            item = self.add_sibling_edge(item_a, item_b, edge.mutations)
+            self.graph.add_edge(node_a, node_b, length=length)
+
+        self.style_nodes()
+        self.style_labels(
+            self.settings.node_label_template,
+            self.settings.edge_label_template)
+        self.layout_nodes()
+        self.set_marks_from_nodes()
+        self.set_boundary_to_contents()
 
     def create_vertex(self, *args, **kwargs):
         item = Vertex(*args, **kwargs)
