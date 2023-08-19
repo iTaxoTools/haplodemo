@@ -29,6 +29,12 @@ class DemoLoader:
         self.scene = scene
         self.settings = settings
 
+    @staticmethod
+    def get_font(family: str, size: int):
+        font = QtGui.QFont(family)
+        font.setPixelSize(size)
+        return font
+
     def load_demo_simple(self):
         self.scene.clear()
 
@@ -45,7 +51,7 @@ class DemoLoader:
         self.settings.scale.marks = [5, 40]
         self.settings.pen_width_nodes = 1
         self.settings.pen_width_edges = 2
-        self.settings.font = QtGui.QFont('Arial', 16)
+        self.settings.font = self.get_font('Arial', 16)
 
         self.add_demo_nodes_simple()
 
@@ -101,7 +107,7 @@ class DemoLoader:
         self.settings.node_sizes.f = 30
         self.settings.show_legend = False
         self.settings.show_scale = False
-        self.settings.font = QtGui.QFont('Arial', 16)
+        self.settings.font = self.get_font('Arial', 16)
 
         self.add_demo_nodes_many(8, 32)
 
@@ -136,7 +142,7 @@ class DemoLoader:
         self.settings.pen_width_nodes = 1
         self.settings.pen_width_edges = 2
         self.settings.node_label_template = 'WEIGHT'
-        self.settings.font = QtGui.QFont('Arial', 24)
+        self.settings.font = self.get_font('Arial', 24)
 
         tree = self.get_tiny_tree()
         self.scene.add_nodes_from_tree(tree)
@@ -188,7 +194,7 @@ class DemoLoader:
         self.settings.pen_width_nodes = 2
         self.settings.pen_width_edges = 4
         self.settings.node_label_template = 'WEIGHT'
-        self.settings.font = QtGui.QFont('Arial', 24)
+        self.settings.font = self.get_font('Arial', 24)
 
         tree = self.get_long_tree()
         self.scene.add_nodes_from_tree(tree)
@@ -352,7 +358,7 @@ class DemoLoader:
         self.settings.pen_width_nodes = 1
         self.settings.pen_width_edges = 2
         self.settings.node_label_template = 'WEIGHT'
-        self.settings.font = QtGui.QFont('Arial', 12)
+        self.settings.font = self.get_font('Arial', 12)
 
         tree = self.get_heavy_tree()
         self.scene.add_nodes_from_tree(tree)
@@ -398,7 +404,7 @@ class DemoLoader:
         self.settings.pen_width_nodes = 1
         self.settings.pen_width_edges = 2
         self.settings.node_label_template = 'WEIGHT'
-        self.settings.font = QtGui.QFont('Arial', 12)
+        self.settings.font = self.get_font('Arial', 12)
 
         graph = self.get_cycled_graph()
         self.scene.add_nodes_from_graph(graph)

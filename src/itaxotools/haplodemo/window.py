@@ -23,8 +23,8 @@ from itaxotools.common.widgets import HLineSeparator
 
 from .demos import DemoLoader
 from .dialogs import (
-    EdgeStyleDialog, LabelFormatDialog, NodeSizeDialog, PenWidthDialog,
-    ScaleMarksDialog)
+    EdgeStyleDialog, FontDialog, LabelFormatDialog, NodeSizeDialog,
+    PenWidthDialog, ScaleMarksDialog)
 from .scene import GraphicsScene, GraphicsView, Settings
 from .widgets import ColorDelegate, DivisionView, PaletteSelector, ToggleButton
 from .zoom import ZoomControl
@@ -53,6 +53,7 @@ class Window(QtWidgets.QWidget):
         self.scale_style_dialog = ScaleMarksDialog(self, scene, settings.scale)
         self.pen_style_dialog = PenWidthDialog(self, scene, settings)
         self.label_format_dialog = LabelFormatDialog(self, scene, settings)
+        self.font_dialog = FontDialog(self, settings)
 
         self.demos = DemoLoader(scene, settings)
 
@@ -100,7 +101,7 @@ class Window(QtWidgets.QWidget):
         mass_format_labels.clicked.connect(self.label_format_dialog.show)
 
         select_font = QtWidgets.QPushButton('Set font')
-        select_font.clicked.connect(self.show_font_dialog)
+        select_font.clicked.connect(self.font_dialog.exec)
 
         toggle_rotation = ToggleButton('Rotate nodes')
         toggle_recursive = ToggleButton('Move children')
@@ -226,12 +227,6 @@ class Window(QtWidgets.QWidget):
             gg.bottomRight().y() - self.zoom_control.height() - 16,
         ))
         self.zoom_control.setGeometry(gg)
-
-    def show_font_dialog(self):
-        _, font = QtWidgets.QFontDialog.getFont(
-            self.settings.font, self, 'Set Font',
-            QtWidgets.QFontDialog.FontDialogOptions.DontUseNativeDialog)
-        self.settings.font = font
 
     def quick_save(self):
         self.export_svg('graph.svg')

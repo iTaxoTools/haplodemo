@@ -440,3 +440,29 @@ class PenWidthDialog(BoundOptionsDialog):
         self.field_nodes.setValue(self.settings.pen_width_nodes)
         self.field_edges.setValue(self.settings.pen_width_edges)
         self.push()
+
+
+class FontDialog(QtWidgets.QFontDialog):
+    """Get pixel sized fonts, which are required for rendering properly"""
+
+    def __init__(self, parent, settings):
+        super().__init__(parent)
+        self.settings = settings
+        self.setWindowTitle('Select font')
+        self.setOptions(QtWidgets.QFontDialog.FontDialogOptions.DontUseNativeDialog)
+
+    def exec(self):
+        font = QtGui.QFont(self.settings.font)
+        if font.pointSize() == -1:
+            size = font.pixelSize()
+            font.setPointSize(size)
+        self.setCurrentFont(font)
+        super().exec()
+
+    def done(self, result):
+        super().done(result)
+        font = self.selectedFont()
+        if font.pixelSize() == -1:
+            size = font.pointSize()
+            font.setPixelSize(size)
+        self.settings.font = QtGui.QFont(font)
