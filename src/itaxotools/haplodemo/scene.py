@@ -173,6 +173,14 @@ class Settings(PropertyObject):
         self.binder = Binder()
         self.binder.bind(self.properties.palette, self.divisions.set_palette)
         self.binder.bind(self.properties.palette, self.properties.highlight_color, lambda x: x.highlight)
+        self.binder.bind(self.properties.font, self.enforce_pixel_size)
+
+    def enforce_pixel_size(self, font: QtGui.QFont):
+        if font.pixelSize() == -1:
+            font = QtGui.QFont(font)
+            size = font.pointSize()
+            font.setPixelSize(size)
+            self.font = font
 
 
 class GraphicsScene(QtWidgets.QGraphicsScene):
