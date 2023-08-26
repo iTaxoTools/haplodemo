@@ -466,3 +466,64 @@ class FontDialog(QtWidgets.QFontDialog):
             size = font.pointSize()
             font.setPixelSize(size)
         self.settings.font = QtGui.QFont(font)
+
+
+class EdgeLengthDialog(OptionsDialog):
+    def __init__(self, parent, scene, settings):
+        super().__init__(parent)
+        self.setWindowTitle('Haplodemo - Edge length')
+
+        self.scene = scene
+        self.settings = settings
+
+        contents = self.draw_contents()
+        self.draw_dialog(contents)
+        self.hintedResize(320, 40)
+
+    def draw_contents(self):
+        label_info = QtWidgets.QLabel('Massively set the length for all edges, based on the number of mutations between nodes.')
+        label_info.setWordWrap(True)
+
+        label_more_info = QtWidgets.QLabel('Length is measured edge-to-edge, not center-to-center.')
+        label_more_info.setWordWrap(True)
+
+        label = QtWidgets.QLabel('Length per mutation:')
+
+        length = QtWidgets.QDoubleSpinBox()
+        length.setMinimum(0)
+        length.setMaximum(float('inf'))
+        length.setSingleStep(10)
+        length.setDecimals(2)
+
+        controls = QtWidgets.QHBoxLayout()
+        controls.setContentsMargins(8, 8, 8, 8)
+        controls.setSpacing(16)
+        controls.addWidget(label)
+        controls.addWidget(length, 1)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(label_info)
+        layout.addSpacing(4)
+        layout.addLayout(controls, 1)
+        layout.addWidget(label_more_info)
+
+        self.length = length
+
+        return layout
+
+    def show(self):
+        self.length.setValue(self.settings.edge_length)
+        super().show()
+
+    def apply(self):
+        self.field_edges.setValue(self.settings.pen_width_edges)
+        self.push()
+
+    def accept(self):
+        self.apply()
+        super().accept()
+
+    def apply(self):
+        length = self.length.value()
+        # self.scene.resize_edges(length)
+        print(length)

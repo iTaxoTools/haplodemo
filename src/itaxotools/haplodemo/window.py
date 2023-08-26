@@ -23,7 +23,7 @@ from itaxotools.common.widgets import HLineSeparator
 
 from .demos import DemoLoader
 from .dialogs import (
-    EdgeStyleDialog, FontDialog, LabelFormatDialog, NodeSizeDialog,
+    EdgeLengthDialog, EdgeStyleDialog, FontDialog, LabelFormatDialog, NodeSizeDialog,
     PenWidthDialog, ScaleMarksDialog)
 from .scene import GraphicsScene, GraphicsView, Settings
 from .widgets import ColorDelegate, DivisionView, PaletteSelector, ToggleButton
@@ -48,8 +48,9 @@ class Window(QtWidgets.QWidget):
 
         palette_selector = PaletteSelector()
 
-        self.edge_style_dialog = EdgeStyleDialog(self, scene)
         self.node_size_dialog = NodeSizeDialog(self, scene, settings.node_sizes)
+        self.edge_style_dialog = EdgeStyleDialog(self, scene)
+        self.edge_length_dialog = EdgeLengthDialog(self, scene, settings)
         self.scale_style_dialog = ScaleMarksDialog(self, scene, settings.scale)
         self.pen_style_dialog = PenWidthDialog(self, scene, settings)
         self.label_format_dialog = LabelFormatDialog(self, scene, settings)
@@ -85,11 +86,14 @@ class Window(QtWidgets.QWidget):
         button_png = QtWidgets.QPushButton('Export as PNG')
         button_png.clicked.connect(lambda: self.export_png())
 
+        mass_resize_nodes = QtWidgets.QPushButton('Set node size')
+        mass_resize_nodes.clicked.connect(self.node_size_dialog.show)
+
         mass_style_edges = QtWidgets.QPushButton('Set edge style')
         mass_style_edges.clicked.connect(self.edge_style_dialog.show)
 
-        mass_resize_nodes = QtWidgets.QPushButton('Set node size')
-        mass_resize_nodes.clicked.connect(self.node_size_dialog.show)
+        mass_resize_edges = QtWidgets.QPushButton('Set edge length')
+        mass_resize_edges.clicked.connect(self.edge_length_dialog.show)
 
         style_pens = QtWidgets.QPushButton('Set pen width')
         style_pens.clicked.connect(self.pen_style_dialog.show)
@@ -134,8 +138,9 @@ class Window(QtWidgets.QWidget):
         toggles.addWidget(toggle_labels)
 
         dialogs = QtWidgets.QVBoxLayout()
-        dialogs.addWidget(mass_style_edges)
         dialogs.addWidget(mass_resize_nodes)
+        dialogs.addWidget(mass_style_edges)
+        dialogs.addWidget(mass_resize_edges)
         dialogs.addWidget(style_pens)
         dialogs.addWidget(style_scale)
         dialogs.addWidget(mass_format_labels)
