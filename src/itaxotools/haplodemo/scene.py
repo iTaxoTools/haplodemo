@@ -21,6 +21,7 @@ from PySide6 import QtCore, QtGui, QtOpenGLWidgets, QtSvg, QtWidgets
 from collections import defaultdict
 from contextlib import contextmanager
 from dataclasses import dataclass
+from math import cos, radians, sin
 
 import networkx as nx
 from itaxotools.common.bindings import (
@@ -194,6 +195,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
         self.settings = settings
         self.graph = None
+        self.root = None
 
         self.hovered_item = None
         self.boundary = None
@@ -514,6 +516,49 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.addItem(item)
         item.setPos(60, 160)
 
+    def resize_edges(self, length_per_mutation: float):
+        self.settings.edge_length = length_per_mutation
+        vertices = (item for item in self.items() if isinstance(item, Vertex))
+        root = self.root or next(vertices)
+        angles = self._get_edge_angles(root)
+        self._set_edge_lengths(root, angles, length_per_mutation)
+
+    def _get_edge_angles(self, root: Vertex) -> dict[tuple[Vertex, Vertex], float]:
+
+        def traverser(item: Vertex, angles: dict):
+            others = list(item.children) + list(item.siblings)
+            if item.parent is not None:
+                others += [item.parent]
+
+            for other in others:
+                line = QtCore.QLineF(item.pos(), other.pos())
+                angles[(item, other)] = line.angle()
+
+        angles = dict()
+        root._mapRecursive(True, True, set(), set(), traverser, [angles], {}, None, None, None)
+        return angles
+
+    def _set_edge_lengths(self, root: Vertex, angles: dict, length_per_mutation: float):
+
+        def traverser(item: Vertex, angles: dict):
+            item_radius = item.radius if isinstance(item, Node) else 0
+            others = item.children + item.siblings
+            if item.parent is not None:
+                others += [item.parent]
+
+            for other in others:
+                edge = item.edges[other]
+                other_radius = other.radius if isinstance(other, Node) else 0
+                length = item_radius + other_radius + length_per_mutation * edge.weight
+
+                angle_deg = angles[(item, other)]
+                angle_rad = radians(angle_deg)
+                x = item.pos().x() + length * cos(angle_rad)
+                y = item.pos().y() - length * sin(angle_rad)
+                other.setPos(x, y)
+
+        root._mapRecursive(True, True, set(), set(), traverser, [angles], {}, None, None, None)
+
     def style_edges(self, style_default=EdgeStyle.Bubbles, cutoff=3):
         if not cutoff:
             cutoff = float('inf')
@@ -583,6 +628,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.graph.add_edge(parent_id, id, length=length)
         else:
             self.addItem(item)
+            self.root = item
 
         for child in node.children:
             self._add_nodes_from_tree_recursive(id, child)
@@ -605,6 +651,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
                 item = self.create_vertex(x, y)
             self.addItem(item)
             self.graph.add_node(id, radius=radius, item=item)
+
+            self.root = self.root or item
 
         for edge in haplo_graph.edges:
             node_a = haplo_graph.nodes[edge.node_a].id
@@ -736,6 +784,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.reset_binder()
 
         self.settings.rotate_scene = False
+
+        self.graph = None
+        self.root = None
 
 
 class GraphicsView(QtWidgets.QGraphicsView):

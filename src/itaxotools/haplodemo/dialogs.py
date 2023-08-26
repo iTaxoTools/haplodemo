@@ -65,7 +65,6 @@ class OptionsDialog(QtWidgets.QDialog):
         self.setLayout(layout)
 
     def accept(self):
-        self.apply()
         super().accept()
 
     def apply(self):
@@ -475,6 +474,7 @@ class EdgeLengthDialog(OptionsDialog):
 
         self.scene = scene
         self.settings = settings
+        self.dirty = True
 
         contents = self.draw_contents()
         self.draw_dialog(contents)
@@ -495,6 +495,8 @@ class EdgeLengthDialog(OptionsDialog):
         length.setSingleStep(10)
         length.setDecimals(2)
 
+        length.valueChanged.connect(self.set_dirty)
+
         controls = QtWidgets.QHBoxLayout()
         controls.setContentsMargins(8, 8, 8, 8)
         controls.setSpacing(16)
@@ -511,19 +513,20 @@ class EdgeLengthDialog(OptionsDialog):
 
         return layout
 
+    def set_dirty(self):
+        self.dirty = True
+
     def show(self):
         self.length.setValue(self.settings.edge_length)
+        self.dirty = True
         super().show()
 
-    def apply(self):
-        self.field_edges.setValue(self.settings.pen_width_edges)
-        self.push()
-
     def accept(self):
-        self.apply()
+        if self.dirty:
+            self.apply()
         super().accept()
 
     def apply(self):
         length = self.length.value()
-        # self.scene.resize_edges(length)
-        print(length)
+        self.scene.resize_edges(length)
+        self.dirty = False

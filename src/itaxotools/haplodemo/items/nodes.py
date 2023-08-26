@@ -710,7 +710,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         return self._recursive_setting
 
     def _mapRecursive(
-        self, siblings,
+        self, siblings, parents,
         visited_nodes, visited_edges,
         node_func, node_args, node_kwargs,
         edge_func, edge_args, edge_kwargs,
@@ -722,13 +722,15 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         if node_func:
             node_func(self, *node_args, **node_kwargs)
 
-        nodes = self.children
+        nodes = list(self.children)
         if siblings:
-            nodes += self.siblings
+            nodes += list(self.siblings)
+        if parents and self.parent is not None:
+            nodes += [self.parent]
 
         for node in nodes:
             node._mapRecursive(
-                True, visited_nodes, visited_edges,
+                True, parents, visited_nodes, visited_edges,
                 node_func, node_args, node_kwargs,
                 edge_func, edge_args, edge_kwargs)
 
@@ -738,7 +740,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
             visited_edges.add(edge)
 
     def mapNodeRecursive(self, func, *args, **kwargs):
-        self._mapRecursive(False, set(), set(), func, args, kwargs, None, None, None)
+        self._mapRecursive(False, False, set(), set(), func, args, kwargs, None, None, None)
 
     def mapNodeEdgeRecursive(
         self,
@@ -746,7 +748,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         edge_func, edge_args, edge_kwargs,
     ):
         self._mapRecursive(
-            False, set(), set(),
+            False, False, set(), set(),
             node_func, node_args, node_kwargs,
             edge_func, edge_args, edge_kwargs)
 
