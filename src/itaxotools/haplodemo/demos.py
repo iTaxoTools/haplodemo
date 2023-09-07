@@ -16,10 +16,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # -----------------------------------------------------------------------------
 
-from PySide6 import QtGui
+from PySide6 import QtCore, QtGui
 
 from collections import Counter
 
+from .items.bezier import BezierCurve
 from .items.types import EdgeStyle
 from .types import HaploGraph, HaploGraphEdge, HaploGraphNode, HaploNode
 
@@ -500,3 +501,7 @@ class DemoLoader:
         convex.setColor('#ff3')
 
         convex = scene.create_rect_box([node6, node7, node8, node9])
+
+        item = BezierCurve(QtCore.QPointF(0, 0), QtCore.QPointF(200, 0))
+        scene.addItem(item)
+        item.setPos(160, 140)

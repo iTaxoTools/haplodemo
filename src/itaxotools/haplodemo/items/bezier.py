@@ -18,6 +18,10 @@
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from itaxotools.common.utility import override
+
+from ..utility import shapeFromPath
+
 
 class BezierHandleLine(QtWidgets.QGraphicsLineItem):
     def __init__(self, parent, p1, p2):
@@ -34,6 +38,7 @@ class BezierHandle(QtWidgets.QGraphicsEllipseItem):
         self.setBrush(QtCore.Qt.red)
         self.setPos(point.x(), point.y())
 
+    @override
     def itemChange(self, change, value):
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
             self.parentItem().moveHandle(self)
@@ -43,6 +48,8 @@ class BezierHandle(QtWidgets.QGraphicsEllipseItem):
 class BezierCurve(QtWidgets.QGraphicsPathItem):
     def __init__(self, p1, p2, parent=None):
         super().__init__(parent)
+        self.setZValue(-20)
+
         self.p1 = p1
         self.p2 = p2
         self.c1 = p1
@@ -58,15 +65,30 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
         self._pen = QtGui.QPen(QtCore.Qt.red, 2, QtCore.Qt.DotLine)
         self._pen_shape = QtGui.QPen(QtCore.Qt.black, 12)
 
-        # Affects the clickable shape size
         self.setPen(self._pen_shape)
         self.updatePath()
 
+    @override
+    def shape(self):
+        path = self.path()
+        path.cubicTo(self.c2, self.c1, self.p1)
+        pen = self.pen()
+        pen.setWidth(pen.width() + 8)
+        return shapeFromPath(path, pen)
+
+    @override
     def paint(self, painter, options, widget=None):
         painter.save()
         painter.setPen(self._pen)
         painter.drawPath(self.path())
         painter.restore()
+
+    @override
+    def mouseDoubleClickEvent(self, event):
+        if self.h1:
+            self.removeControls()
+        else:
+            self.addControls()
 
     def addControls(self):
         self.l1 = BezierHandleLine(self, self.p1, self.c1)
@@ -101,9 +123,3 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
         path.moveTo(self.p1)
         path.cubicTo(self.c1, self.c2, self.p2)
         self.setPath(path)
-
-    def mouseDoubleClickEvent(self, event):
-        if self.h1:
-            self.removeControls()
-        else:
-            self.addControls()

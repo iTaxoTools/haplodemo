@@ -27,7 +27,7 @@ import networkx as nx
 from itaxotools.common.bindings import (
     Binder, Instance, Property, PropertyObject)
 
-from .items.bezier import BezierCurve
+from .items.bezier import BezierCurve, BezierHandle
 from .items.boundary import BoundaryEdgeHandle, BoundaryRect
 from .items.boxes import RectBox
 from .items.legend import Legend
@@ -226,7 +226,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
-            item = self.getItemAtPos(event.scenePos(), ignore_edges=True, ignore_pivot_handle=False)
+            item = self.getItemAtPos(event.scenePos(), ignore_edges=True, ignore_beziers=True, ignore_pivot_handle=False)
             if item and isinstance(item, PivotHandle):
                 item.mousePressEvent(event)
                 item.grabMouse()
@@ -236,7 +236,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
                 item.grabMouse()
                 event.accept()
             else:
-                super().mousePressEvent(event)
+                return super().mousePressEvent(event)
         self.mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
@@ -350,7 +350,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             ignore_boundary_handles=True,
             ignore_legend=False,
             ignore_scale=False,
-            ignore_pivot_handle=True
+            ignore_pivot_handle=True,
+            ignore_beziers=False,
     ):
         if ignore_labels is None:
             ignore_labels = not self.settings.label_movement
@@ -364,6 +365,10 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             if isinstance(item, Scale) and not ignore_legend:
                 return item
             if isinstance(item, Legend) and not ignore_scale:
+                return item
+            if isinstance(item, BezierHandle) and not ignore_beziers:
+                return item
+            if isinstance(item, BezierCurve) and not ignore_beziers:
                 return item
             if isinstance(item, Vertex):
                 return item
