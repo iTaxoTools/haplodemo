@@ -40,7 +40,6 @@ class Window(QtWidgets.QWidget):
         settings = Settings()
 
         scene = GraphicsScene(settings)
-        # scene.addBezier()
 
         scene.style_labels(settings.node_label_template, settings.edge_label_template)
 

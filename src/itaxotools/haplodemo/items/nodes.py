@@ -225,7 +225,7 @@ class Label(QtWidgets.QGraphicsItem):
 
 
 class Edge(QtWidgets.QGraphicsLineItem):
-    def __init__(self, node1: Node, node2: Node, weight=1):
+    def __init__(self, node1: Vertex, node2: Vertex, weight=1):
         super().__init__()
         self.setAcceptHoverEvents(True)
         self.weight = weight
@@ -539,6 +539,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.boxes = list()
         self.children = list()
         self.siblings = list()
+        self.beziers = dict()
         self.edges = dict()
 
         self.weight = r
@@ -603,6 +604,8 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.parentItem()
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
             # should we be using signals instead?
+            for bezier in self.beziers.values():
+                bezier.adjustPosition()
             for edge in self.edges.values():
                 edge.adjustPosition()
             for box in self.boxes:

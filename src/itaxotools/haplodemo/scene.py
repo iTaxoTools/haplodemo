@@ -517,11 +517,6 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         scale = self._view_scale or 1.0
         self.pivot.adjust_scale(scale)
 
-    def addBezier(self):
-        item = BezierCurve(QtCore.QPointF(0, 0), QtCore.QPointF(200, 0))
-        self.addItem(item)
-        item.setPos(60, 160)
-
     def resize_edges(self, length_per_mutation: float):
         self.settings.edge_length = length_per_mutation
         vertices = (item for item in self.items() if isinstance(item, Vertex))
@@ -715,6 +710,13 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             vertex.boxes.append(item)
         self.addItem(item)
         item.adjustPosition()
+        return item
+
+    def create_bezier(self, node1, node2):
+        item = BezierCurve(node1, node2)
+        node1.beziers[node2] = item
+        node2.beziers[node1] = item
+        self.addItem(item)
         return item
 
     def add_child_edge(self, parent, child, segments=1):

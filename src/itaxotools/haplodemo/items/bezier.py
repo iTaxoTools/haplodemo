@@ -21,12 +21,13 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from itaxotools.common.utility import override
 
 from ..utility import shapeFromPath
+from .nodes import Vertex
 
 
 class BezierHandleLine(QtWidgets.QGraphicsLineItem):
     def __init__(self, parent, p1, p2):
         super().__init__(p1.x(), p1.y(), p2.x(), p2.y(), parent)
-        self.setPen(QtGui.QPen(QtCore.Qt.gray, 1))
+        self.setPen(QtGui.QPen(QtGui.QColor('#333'), 1))
 
 
 class BezierHandle(QtWidgets.QGraphicsEllipseItem):
@@ -46,14 +47,17 @@ class BezierHandle(QtWidgets.QGraphicsEllipseItem):
 
 
 class BezierCurve(QtWidgets.QGraphicsPathItem):
-    def __init__(self, p1, p2, parent=None):
+    def __init__(self, node1: Vertex, node2: Vertex, parent=None):
         super().__init__(parent)
         self.setZValue(-20)
 
-        self.p1 = p1
-        self.p2 = p2
-        self.c1 = p1
-        self.c2 = p2
+        self.node1 = node1
+        self.node2 = node2
+
+        self.p1 = node1.pos()
+        self.p2 = node2.pos()
+        self.c1 = self.p1
+        self.c2 = self.p2
         self.h1 = None
         self.h2 = None
 
@@ -110,12 +114,8 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
     def moveHandle(self, handle):
         if handle is self.h1:
             self.c1 = handle.pos()
-            line = QtCore.QLineF(self.p1, self.c1)
-            self.l1.setLine(line)
         if handle is self.h2:
             self.c2 = handle.pos()
-            line = QtCore.QLineF(self.p2, self.c2)
-            self.l2.setLine(line)
         self.updatePath()
 
     def updatePath(self):
@@ -123,3 +123,32 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
         path.moveTo(self.p1)
         path.cubicTo(self.c1, self.c2, self.p2)
         self.setPath(path)
+        self.updateHandleLines()
+
+    def updateHandleLines(self):
+        if self.l1:
+            line = QtCore.QLineF(self.p1, self.c1)
+            self.l1.setLine(line)
+        if self.l2:
+            line = QtCore.QLineF(self.p2, self.c2)
+            self.l2.setLine(line)
+
+    def adjustPosition(self):
+        self.p1 = self.node1.pos()
+        self.p2 = self.node2.pos()
+        self.updatePath()
+
+    def bump(self, away: float = 1.0, at: float = 0.5):
+        line = QtCore.QLineF(self.p1, self.p2)
+        center = line.center()
+        normal = line.normalVector()
+        normal.setLength(line.length() * away)
+        pn = normal.p2() - normal.p1()
+        p3 = center + pn
+
+        l1 = QtCore.QLineF(self.p1, p3)
+        self.c1 = l1.pointAt(at)
+        l2 = QtCore.QLineF(self.p2, p3)
+        self.c2 = l2.pointAt(at)
+
+        self.updatePath()
