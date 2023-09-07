@@ -29,6 +29,7 @@ from itaxotools.common.bindings import (
 
 from .items.bezier import BezierCurve
 from .items.boundary import BoundaryEdgeHandle, BoundaryRect
+from .items.boxes import RectBox
 from .items.legend import Legend
 from .items.nodes import Edge, EdgeStyle, Label, Node, Vertex
 from .items.rotate import PivotHandle
@@ -701,6 +702,14 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
         self.binder.bind(self.settings.properties.pen_width_edges, item.set_pen_width)
         self.binder.bind(self.settings.properties.font, item.set_label_font)
+        return item
+
+    def create_rect_box(self, vertices):
+        item = RectBox(vertices)
+        for vertex in vertices:
+            vertex.boxes.append(item)
+        self.addItem(item)
+        item.adjustPosition()
         return item
 
     def add_child_edge(self, parent, child, segments=1):

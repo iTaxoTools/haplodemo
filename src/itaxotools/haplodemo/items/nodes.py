@@ -536,6 +536,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         super().__init__(-r, -r, r * 2, r * 2)
 
         self.parent = None
+        self.boxes = list()
         self.children = list()
         self.siblings = list()
         self.edges = dict()
@@ -601,8 +602,11 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def itemChange(self, change, value):
         self.parentItem()
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
+            # should we be using signals instead?
             for edge in self.edges.values():
                 edge.adjustPosition()
+            for box in self.boxes:
+                box.adjustPosition()
         return super().itemChange(change, value)
 
     @override

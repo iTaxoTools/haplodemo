@@ -436,3 +436,67 @@ class DemoLoader:
                 HaploGraphEdge(0, 3, 2),
             ],
         )
+
+    def load_demo_fields(self):
+        self.scene.clear()
+
+        self.settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
+
+        self.settings.node_sizes.a = 0
+        self.settings.node_sizes.b = 0
+        self.settings.node_sizes.c = 0
+        self.settings.node_sizes.d = 0
+        self.settings.node_sizes.e = 6
+        self.settings.node_sizes.f = 24
+        self.settings.show_legend = False
+        self.settings.show_scale = False
+        self.settings.scale.marks = [1, 10]
+        self.settings.pen_width_nodes = 1
+        self.settings.pen_width_edges = 2
+        self.settings.font = self.get_font('Arial', 16)
+        self.settings.node_label_template = 'WEIGHT'
+
+        self.add_demo_nodes_fields()
+
+        self.scene.set_boundary_to_contents()
+
+    def add_demo_nodes_fields(self):
+        scene = self.scene
+
+        node1 = scene.create_node(0, 150, 7, 'Node1', {'X': 4, 'Y': 3})
+        scene.addItem(node1)
+
+        node2 = scene.create_node(200, 0, 4, 'Node2', {'X': 4})
+        scene.add_child_edge(node1, node2, 2)
+
+        node3 = scene.create_node(0, 0, 2, 'Node3', {'X': 2})
+        scene.add_child_edge(node2, node3, 1)
+
+        node4 = scene.create_node(400, 0, 3, 'Node4', {'X': 3})
+        scene.add_child_edge(node2, node4, 1)
+
+        node5 = scene.create_node(0, 400, 6, 'Node5', {'Z': 4})
+        scene.add_child_edge(node1, node5, 3)
+
+        node6 = scene.create_node(200, 250, 1, 'Node6', {'Y': 1})
+        scene.add_child_edge(node1, node6, 1)
+
+        node7 = scene.create_node(400, 250, 3, 'Node7', {'Y': 1})
+        scene.add_child_edge(node6, node7, 3)
+
+        node8 = scene.create_node(200, 400, 1, 'Node8', {'Y': 1})
+        scene.add_child_edge(node6, node8, 1)
+
+        node9 = scene.create_node(400, 400, 1, 'Node9', {'Y': 1})
+        scene.add_child_edge(node7, node9, 1)
+
+        scene.style_nodes()
+
+        convex = scene.create_rect_box([node1, node3])
+
+        convex = scene.create_rect_box([node2, node4])
+
+        convex = scene.create_rect_box([node5])
+        convex.setColor('#ff3')
+
+        convex = scene.create_rect_box([node6, node7, node8, node9])

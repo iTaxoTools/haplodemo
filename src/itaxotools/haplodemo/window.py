@@ -61,6 +61,9 @@ class Window(QtWidgets.QWidget):
         button_demo_simple = QtWidgets.QPushButton('Load simple demo')
         button_demo_simple.clicked.connect(lambda: self.demos.load_demo_simple())
 
+        button_demo_fields = QtWidgets.QPushButton('Load FOR demo')
+        button_demo_fields.clicked.connect(lambda: self.demos.load_demo_fields())
+
         button_demo_tiny_tree = QtWidgets.QPushButton('Load tiny tree')
         button_demo_tiny_tree.clicked.connect(lambda: self.demos.load_demo_tiny_tree())
 
@@ -123,6 +126,7 @@ class Window(QtWidgets.QWidget):
 
         demos = QtWidgets.QVBoxLayout()
         demos.addWidget(button_demo_simple)
+        demos.addWidget(button_demo_fields)
         demos.addWidget(button_demo_tiny_tree)
         demos.addWidget(button_demo_long_tree)
         demos.addWidget(button_demo_heavy_tree)
@@ -222,7 +226,7 @@ class Window(QtWidgets.QWidget):
         self.quick_save_action = action
         self.addAction(action)
 
-        self.demos.load_demo_simple()
+        self.demos.load_demo_fields()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
