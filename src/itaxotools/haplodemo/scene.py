@@ -226,7 +226,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
-            item = self.getItemAtPos(event.scenePos(), ignore_edges=True, ignore_beziers=True, ignore_pivot_handle=False)
+            item = self.getItemAtPos(event.scenePos(), ignore_edges=True, ignore_beziers=False, ignore_pivot_handle=False)
+            if item and isinstance(item, BezierHandle):
+                return super().mousePressEvent(event)
             if item and isinstance(item, PivotHandle):
                 item.mousePressEvent(event)
                 item.grabMouse()

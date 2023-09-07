@@ -31,13 +31,36 @@ class BezierHandleLine(QtWidgets.QGraphicsLineItem):
 
 
 class BezierHandle(QtWidgets.QGraphicsEllipseItem):
-    def __init__(self, parent, point, r=4):
-        super().__init__(-r, -r, r * 2, r * 2, parent)
+    def __init__(self, parent, point, r):
+        """This is drawn above all other items"""
+        super().__init__(-r, -r, r * 2, r * 2)
+        self.parent = parent
+
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setPen(QtGui.QPen(QtCore.Qt.gray, 1))
         self.setBrush(QtCore.Qt.red)
         self.setPos(point.x(), point.y())
+        self.setZValue(90)
+
+    @override
+    def itemChange(self, change, value):
+        if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
+            start_point = self.parent.parentItem().pos()
+            pos = self.pos() - start_point
+            self.parent.setPos(pos)
+        return super().itemChange(change, value)
+
+
+class BezierHandlePhantom(QtWidgets.QGraphicsEllipseItem):
+    def __init__(self, parent, point, r=7):
+        """This is drawn on parent's Z level"""
+        super().__init__(-r, -r, r * 2, r * 2, parent)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
+        self.setPos(point.x(), point.y())
+
+        self.handle = BezierHandle(self, point, r)
+        self.scene().addItem(self.handle)
 
     @override
     def itemChange(self, change, value):
@@ -97,13 +120,15 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
     def addControls(self):
         self.l1 = BezierHandleLine(self, self.p1, self.c1)
         self.l2 = BezierHandleLine(self, self.p2, self.c2)
-        self.h1 = BezierHandle(self, self.c1)
-        self.h2 = BezierHandle(self, self.c2)
+        self.h1 = BezierHandlePhantom(self, self.c1)
+        self.h2 = BezierHandlePhantom(self, self.c2)
 
     def removeControls(self):
         if self.scene():
             self.scene().removeItem(self.l1)
             self.scene().removeItem(self.l2)
+            self.scene().removeItem(self.h1.handle)
+            self.scene().removeItem(self.h2.handle)
             self.scene().removeItem(self.h1)
             self.scene().removeItem(self.h2)
         self.l1 = None
