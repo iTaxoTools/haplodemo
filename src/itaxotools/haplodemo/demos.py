@@ -21,7 +21,7 @@ from PySide6 import QtGui
 from collections import Counter
 
 from .items.types import EdgeStyle
-from .types import HaploGraph, HaploGraphEdge, HaploGraphNode, HaploNode
+from .types import HaploGraph, HaploGraphEdge, HaploGraphNode, HaploTreeNode
 
 
 class DemoLoader:
@@ -147,23 +147,23 @@ class DemoLoader:
         tree = self.get_tiny_tree()
         self.scene.add_nodes_from_tree(tree)
 
-    def get_tiny_tree(self) -> HaploNode:
-        root = HaploNode('root')
+    def get_tiny_tree(self) -> HaploTreeNode:
+        root = HaploTreeNode('root')
         root.add_pops(['A'] * 3 + ['B'] * 5)
 
-        a = HaploNode('a')
+        a = HaploTreeNode('a')
         a.add_pops(['A'] * 1)
         root.add_child(a, 1)
 
-        b = HaploNode('b')
+        b = HaploTreeNode('b')
         b.add_pops(['B'] * 3)
         root.add_child(b, 4)
 
-        c = HaploNode('c')
+        c = HaploTreeNode('c')
         c.add_pops(['B'] * 1)
         b.add_child(c, 1)
 
-        d = HaploNode('d')
+        d = HaploTreeNode('d')
         d.add_pops(['C'] * 1)
         b.add_child(d, 2)
 
@@ -199,8 +199,8 @@ class DemoLoader:
         tree = self.get_long_tree()
         self.scene.add_nodes_from_tree(tree)
 
-    def get_long_tree(self) -> HaploNode:
-        root = HaploNode('root')
+    def get_long_tree(self) -> HaploTreeNode:
+        root = HaploTreeNode('root')
         root.add_pops({
             'Asia': 9,
             'Africa': 3,
@@ -210,57 +210,57 @@ class DemoLoader:
             'Australia': 1,
         })
 
-        asia_1 = HaploNode('asia_1')
+        asia_1 = HaploTreeNode('asia_1')
         root.add_child(asia_1, 1)
         asia_1.add_pops({
             'Asia': 35,
             'Europe': 2,
         })
 
-        asia_11 = HaploNode('asia_11')
+        asia_11 = HaploTreeNode('asia_11')
         asia_1.add_child(asia_11, 1)
         asia_11.add_pops({
             'Asia': 6,
         })
 
-        asia_111 = HaploNode('asia_111')
+        asia_111 = HaploTreeNode('asia_111')
         asia_11.add_child(asia_111, 1)
         asia_111.add_pops({
             'Asia': 2,
         })
 
-        asia_1111 = HaploNode('asia_1111')
+        asia_1111 = HaploTreeNode('asia_1111')
         asia_111.add_child(asia_1111, 2)
         asia_1111.add_pops({
             'Asia': 6,
             'Africa': 2,
         })
 
-        asia_11111 = HaploNode('asia_11111')
+        asia_11111 = HaploTreeNode('asia_11111')
         asia_1111.add_child(asia_11111, 5)
         asia_11111.add_pops({
             'Asia': 1,
         })
 
-        asia_11112 = HaploNode('asia_11112')
+        asia_11112 = HaploTreeNode('asia_11112')
         asia_1111.add_child(asia_11112, 1)
         asia_11112.add_pops({
             'Africa': 1,
         })
-        asia_12 = HaploNode('asia_12')
+        asia_12 = HaploTreeNode('asia_12')
         asia_1.add_child(asia_12, 1)
         asia_12.add_pops({
             'Asia': 1,
             'Europe': 1,
         })
 
-        asia_13 = HaploNode('asia_13')
+        asia_13 = HaploTreeNode('asia_13')
         asia_1.add_child(asia_13, 1)
         asia_13.add_pops({
             'Asia': 1,
         })
 
-        asia_2 = HaploNode('asia_2')
+        asia_2 = HaploTreeNode('asia_2')
         root.add_child(asia_2, 1)
         asia_2.add_pops({
             'Asia': 14,
@@ -268,7 +268,7 @@ class DemoLoader:
             'Europe': 2,
         })
 
-        europe_1 = HaploNode('europe_1')
+        europe_1 = HaploTreeNode('europe_1')
         root.add_child(europe_1, 1)
         europe_1.add_pops({
             'Asia': 3,
@@ -278,33 +278,33 @@ class DemoLoader:
             'South America': 1,
         })
 
-        europe_11 = HaploNode('europe_11')
+        europe_11 = HaploTreeNode('europe_11')
         europe_1.add_child(europe_11, 1)
         europe_11.add_pops({
             'Asia': 1,
             'Europe': 1,
         })
 
-        europe_111 = HaploNode('europe_111')
+        europe_111 = HaploTreeNode('europe_111')
         europe_11.add_child(europe_111, 7)
         europe_111.add_pops({
             'Europe': 6,
         })
 
-        europe_1111 = HaploNode('europe_1111')
+        europe_1111 = HaploTreeNode('europe_1111')
         europe_111.add_child(europe_1111, 1)
         europe_1111.add_pops({
             'Europe': 1,
             'North America': 1,
         })
 
-        europe_1112 = HaploNode('europe_1112')
+        europe_1112 = HaploTreeNode('europe_1112')
         europe_111.add_child(europe_1112, 3)
         europe_1112.add_pops({
             'North America': 7,
         })
 
-        europe_2 = HaploNode('europe_2')
+        europe_2 = HaploTreeNode('europe_2')
         root.add_child(europe_2, 3)
         europe_2.add_pops({
             'Africa': 1,
@@ -314,7 +314,7 @@ class DemoLoader:
             'Australia': 2,
         })
 
-        america_1 = HaploNode('america_1')
+        america_1 = HaploTreeNode('america_1')
         europe_2.add_child(america_1, 1)
         america_1.add_pops({
             'Africa': 3,
@@ -323,7 +323,7 @@ class DemoLoader:
             'South America': 91,
         })
 
-        america_2 = HaploNode('america_2')
+        america_2 = HaploTreeNode('america_2')
         europe_2.add_child(america_2, 2)
         america_2.add_pops({
             'Africa': 3,
@@ -333,7 +333,7 @@ class DemoLoader:
             'Australia': 4,
         })
 
-        australia_1 = HaploNode('australia_1')
+        australia_1 = HaploTreeNode('australia_1')
         root.add_child(australia_1, 22)
         australia_1.add_pops({
             'Australia': 4,
@@ -363,25 +363,25 @@ class DemoLoader:
         tree = self.get_heavy_tree()
         self.scene.add_nodes_from_tree(tree)
 
-    def get_heavy_tree(self) -> HaploNode:
-        a = HaploNode('a')
+    def get_heavy_tree(self) -> HaploTreeNode:
+        a = HaploTreeNode('a')
         a.add_pops(['A'] * 4002 + ['B'] * 3046)
 
         for i in range(17):
-            ac = HaploNode(f'a{i}')
+            ac = HaploTreeNode(f'a{i}')
             ac.add_pops(['A'])
             a.add_child(ac, 1)
 
-        b = HaploNode('b')
+        b = HaploTreeNode('b')
         a.add_child(b, 1)
         b.add_pops(['A'] * 13 + ['B'] * 257)
 
         for i in range(11):
-            bc = HaploNode(f'b{i}')
+            bc = HaploTreeNode(f'b{i}')
             bc.add_pops(['B'])
             b.add_child(bc, 1)
 
-        c = HaploNode('c')
+        c = HaploTreeNode('c')
         a.add_child(c, 5)
         c.add_pops(['A'] * 52)
 

@@ -11,7 +11,7 @@ class LayoutType(Enum):
     Spring = auto()
 
 
-class HaploNode:
+class HaploTreeNode:
     """Copied from the Fitchi repository.
 
     Simplified datatype for the Haplotype genealogy graph produced by Fitchi.
@@ -26,7 +26,7 @@ class HaploNode:
         self.mutations = 0
         self.pops = Counter()
 
-    def add_child(self, node: HaploNode, mutations: int = 0):
+    def add_child(self, node: HaploTreeNode, mutations: int = 0):
         self.children.append(node)
         node.mutations = mutations
         node.parent = self

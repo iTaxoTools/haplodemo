@@ -36,7 +36,7 @@ from .items.rotate import PivotHandle
 from .items.scale import Scale
 from .layout import modified_spring_layout
 from .palettes import Palette
-from .types import HaploGraph, HaploNode, LayoutType
+from .types import HaploGraph, HaploTreeNode, LayoutType
 
 
 @dataclass
@@ -597,7 +597,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             text = edge_label_format.format(weight=edge.weight)
             edge.label.setText(text)
 
-    def add_nodes_from_tree(self, tree: HaploNode):
+    def add_nodes_from_tree(self, tree: HaploTreeNode):
         self.graph = nx.Graph()
 
         self._add_nodes_from_tree_recursive(None, tree)
@@ -609,7 +609,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.set_marks_from_nodes()
         self.set_boundary_to_contents()
 
-    def _add_nodes_from_tree_recursive(self, parent_id: str, node: HaploNode):
+    def _add_nodes_from_tree_recursive(self, parent_id: str, node: HaploTreeNode):
         x, y = 0, 0
         id = node.id
         size = node.pops.total()
