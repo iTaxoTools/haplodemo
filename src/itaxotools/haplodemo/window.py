@@ -26,6 +26,7 @@ from .dialogs import (
     EdgeLengthDialog, EdgeStyleDialog, FontDialog, LabelFormatDialog,
     NodeSizeDialog, PenWidthDialog, ScaleMarksDialog)
 from .scene import GraphicsScene, GraphicsView, Settings
+from .visualizer import Visualizer
 from .widgets import ColorDelegate, DivisionView, PaletteSelector, ToggleButton
 from .zoom import ZoomControl
 
@@ -40,6 +41,7 @@ class Window(QtWidgets.QWidget):
         settings = Settings()
 
         scene = GraphicsScene(settings)
+        visualizer = Visualizer(scene, settings)
 
         scene.style_labels(settings.node_label_template, settings.edge_label_template)
 
@@ -55,7 +57,7 @@ class Window(QtWidgets.QWidget):
         self.label_format_dialog = LabelFormatDialog(self, scene, settings)
         self.font_dialog = FontDialog(self, settings)
 
-        self.demos = DemoLoader(scene, settings)
+        self.demos = DemoLoader(scene, settings, visualizer)
 
         button_demo_simple = QtWidgets.QPushButton('Load simple demo')
         button_demo_simple.clicked.connect(lambda: self.demos.load_demo_simple())

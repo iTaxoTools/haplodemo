@@ -21,13 +21,16 @@ from PySide6 import QtGui
 from collections import Counter
 
 from .items.types import EdgeStyle
+from .scene import GraphicsScene, Settings
 from .types import HaploGraph, HaploGraphEdge, HaploGraphNode, HaploTreeNode
+from .visualizer import Visualizer
 
 
 class DemoLoader:
-    def __init__(self, scene, settings):
+    def __init__(self, scene: GraphicsScene, settings: Settings, visualizer: Visualizer):
         self.scene = scene
         self.settings = settings
+        self.visualizer = visualizer
 
     @staticmethod
     def get_font(family: str, size: int):
@@ -36,7 +39,7 @@ class DemoLoader:
         return font
 
     def load_demo_simple(self):
-        self.scene.clear()
+        self.visualizer.clear()
 
         self.settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
 
@@ -59,43 +62,44 @@ class DemoLoader:
         self.scene.set_boundary_to_contents()
 
     def add_demo_nodes_simple(self):
+        visualizer = self.visualizer
         scene = self.scene
 
-        node1 = scene.create_node(85, 70, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
+        node1 = visualizer.create_node(85, 70, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
         scene.addItem(node1)
 
-        node2 = scene.create_node(node1.pos().x() + 95, node1.pos().y() - 30, 20, 'Beta', {'X': 4, 'Z': 2})
-        scene.add_child_edge(node1, node2, 2)
+        node2 = visualizer.create_node(node1.pos().x() + 95, node1.pos().y() - 30, 20, 'Beta', {'X': 4, 'Z': 2})
+        visualizer.add_child_edge(node1, node2, 2)
 
-        node3 = scene.create_node(node1.pos().x() + 115, node1.pos().y() + 60, 25, 'C', {'Y': 6, 'Z': 2})
-        edge = scene.add_child_edge(node1, node3, 3)
+        node3 = visualizer.create_node(node1.pos().x() + 115, node1.pos().y() + 60, 25, 'C', {'Y': 6, 'Z': 2})
+        edge = visualizer.add_child_edge(node1, node3, 3)
         edge.set_style(EdgeStyle.Bars)
 
-        node4 = scene.create_node(node3.pos().x() + 60, node3.pos().y() - 30, 15, 'D', {'Y': 1})
-        scene.add_child_edge(node3, node4, 1)
+        node4 = visualizer.create_node(node3.pos().x() + 60, node3.pos().y() - 30, 15, 'D', {'Y': 1})
+        visualizer.add_child_edge(node3, node4, 1)
 
-        vertex1 = scene.create_vertex(node3.pos().x() - 60, node3.pos().y() + 60)
-        scene.add_child_edge(node3, vertex1, 2)
+        vertex1 = visualizer.create_vertex(node3.pos().x() - 60, node3.pos().y() + 60)
+        visualizer.add_child_edge(node3, vertex1, 2)
 
-        node5 = scene.create_node(vertex1.pos().x() - 80, vertex1.pos().y() + 40, 30, 'Error', {'?': 1})
-        edge = scene.add_child_edge(vertex1, node5, 4)
+        node5 = visualizer.create_node(vertex1.pos().x() - 80, vertex1.pos().y() + 40, 30, 'Error', {'?': 1})
+        edge = visualizer.add_child_edge(vertex1, node5, 4)
         edge.set_style(EdgeStyle.DotsWithText)
 
-        node6 = scene.create_node(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 20, 'R', {'Z': 1})
-        scene.add_child_edge(vertex1, node6, 1)
+        node6 = visualizer.create_node(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 20, 'R', {'Z': 1})
+        visualizer.add_child_edge(vertex1, node6, 1)
 
-        node7 = scene.create_node(vertex1.pos().x() + 100, vertex1.pos().y() + 80, 10, 'S', {'Z': 1})
-        scene.add_sibling_edge(node6, node7, 2)
+        node7 = visualizer.create_node(vertex1.pos().x() + 100, vertex1.pos().y() + 80, 10, 'S', {'Z': 1})
+        visualizer.add_sibling_edge(node6, node7, 2)
 
-        node8 = scene.create_node(vertex1.pos().x() + 20, vertex1.pos().y() + 80, 40, 'T', {'Y': 1})
-        scene.add_sibling_edge(node6, node8, 1)
-        scene.add_sibling_edge(node7, node8, 1)
+        node8 = visualizer.create_node(vertex1.pos().x() + 20, vertex1.pos().y() + 80, 40, 'T', {'Y': 1})
+        visualizer.add_sibling_edge(node6, node8, 1)
+        visualizer.add_sibling_edge(node7, node8, 1)
 
-        node9 = scene.create_node(node7.pos().x() + 20, node7.pos().y() - 40, 5, 'x', {'Z': 1})
-        scene.add_child_edge(node7, node9, 1)
+        node9 = visualizer.create_node(node7.pos().x() + 20, node7.pos().y() - 40, 5, 'x', {'Z': 1})
+        visualizer.add_child_edge(node7, node9, 1)
 
     def load_demo_many(self):
-        self.scene.clear()
+        self.visualizer.clear()
 
         self.settings.divisions.set_divisions_from_keys(['X', 'Y'])
 
@@ -115,21 +119,18 @@ class DemoLoader:
         self.scene.set_boundary_to_contents()
 
     def add_demo_nodes_many(self, dx, dy):
+        visualizer = self.visualizer
         scene = self.scene
 
         for x in range(dx):
-            nodex = scene.create_node(20, 80 * x, 15, f'x{x}', {'X': 1})
+            nodex = visualizer.create_node(20, 80 * x, 15, f'x{x}', {'X': 1})
             scene.addItem(nodex)
 
             for y in range(dy):
-                nodey = scene.create_node(nodex.pos().x() + 80 + 80 * y, nodex.pos().y() + 40, 15, f'y{y}', {'Y': 1})
-                scene.add_child_edge(nodex, nodey)
+                nodey = visualizer.create_node(nodex.pos().x() + 80 + 80 * y, nodex.pos().y() + 40, 15, f'y{y}', {'Y': 1})
+                visualizer.add_child_edge(nodex, nodey)
 
     def load_demo_tiny_tree(self):
-        self.scene.clear()
-
-        self.settings.divisions.set_divisions_from_keys(['A', 'B', 'C'])
-
         self.settings.node_sizes.a = 0
         self.settings.node_sizes.b = 0
         self.settings.node_sizes.c = 0
@@ -145,7 +146,8 @@ class DemoLoader:
         self.settings.font = self.get_font('Arial', 24)
 
         tree = self.get_tiny_tree()
-        self.scene.add_nodes_from_tree(tree)
+        self.visualizer.visualize_tree(tree)
+        self.visualizer.set_divisions(['A', 'B', 'C'])
 
     def get_tiny_tree(self) -> HaploTreeNode:
         root = HaploTreeNode('root')
@@ -170,7 +172,7 @@ class DemoLoader:
         return root
 
     def load_demo_long_tree(self):
-        self.scene.clear()
+        self.visualizer.clear()
 
         self.settings.divisions.set_divisions_from_keys([
             'Asia',
@@ -197,7 +199,7 @@ class DemoLoader:
         self.settings.font = self.get_font('Arial', 24)
 
         tree = self.get_long_tree()
-        self.scene.add_nodes_from_tree(tree)
+        self.visualizer.visualize_tree(tree)
 
     def get_long_tree(self) -> HaploTreeNode:
         root = HaploTreeNode('root')
@@ -342,7 +344,7 @@ class DemoLoader:
         return root
 
     def load_demo_heavy_tree(self):
-        self.scene.clear()
+        self.visualizer.clear()
 
         self.settings.divisions.set_divisions_from_keys(['A', 'B'])
 
@@ -361,7 +363,7 @@ class DemoLoader:
         self.settings.font = self.get_font('Arial', 12)
 
         tree = self.get_heavy_tree()
-        self.scene.add_nodes_from_tree(tree)
+        self.visualizer.visualize_tree(tree)
 
     def get_heavy_tree(self) -> HaploTreeNode:
         a = HaploTreeNode('a')
@@ -388,9 +390,7 @@ class DemoLoader:
         return a
 
     def load_demo_cycled_graph(self):
-        self.scene.clear()
-
-        self.settings.divisions.set_divisions_from_keys(['A', 'B'])
+        self.visualizer.clear()
 
         self.settings.node_sizes.a = 15
         self.settings.node_sizes.b = 10
@@ -407,7 +407,8 @@ class DemoLoader:
         self.settings.font = self.get_font('Arial', 12)
 
         graph = self.get_cycled_graph()
-        self.scene.add_nodes_from_graph(graph)
+        self.visualizer.visualize_graph(graph)
+        self.visualizer.set_divisions(['A', 'B'])
 
     def get_cycled_graph(self) -> HaploGraph:
         return HaploGraph(
@@ -438,7 +439,7 @@ class DemoLoader:
         )
 
     def load_demo_fields(self):
-        self.scene.clear()
+        self.visualizer.clear()
 
         self.settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
 
@@ -461,55 +462,56 @@ class DemoLoader:
         self.scene.set_boundary_to_contents()
 
     def add_demo_nodes_fields(self):
+        visualizer = self.visualizer
         scene = self.scene
 
-        node1 = scene.create_node(0, 150, 7, 'Node1', {'X': 4, 'Y': 3})
+        node1 = visualizer.create_node(0, 150, 7, 'Node1', {'X': 4, 'Y': 3})
         scene.addItem(node1)
 
-        node2 = scene.create_node(200, 0, 4, 'Node2', {'X': 4})
-        scene.add_child_edge(node1, node2, 2)
+        node2 = visualizer.create_node(200, 0, 4, 'Node2', {'X': 4})
+        visualizer.add_child_edge(node1, node2, 2)
 
-        node3 = scene.create_node(0, 0, 2, 'Node3', {'X': 2})
-        scene.add_child_edge(node2, node3, 1)
+        node3 = visualizer.create_node(0, 0, 2, 'Node3', {'X': 2})
+        visualizer.add_child_edge(node2, node3, 1)
 
-        node4 = scene.create_node(400, 0, 3, 'Node4', {'X': 3})
-        scene.add_child_edge(node2, node4, 1)
+        node4 = visualizer.create_node(400, 0, 3, 'Node4', {'X': 3})
+        visualizer.add_child_edge(node2, node4, 1)
 
-        node5 = scene.create_node(0, 400, 6, 'Node5', {'Z': 4})
-        scene.add_child_edge(node1, node5, 3)
+        node5 = visualizer.create_node(0, 400, 6, 'Node5', {'Z': 4})
+        visualizer.add_child_edge(node1, node5, 3)
 
-        node6 = scene.create_node(200, 250, 1, 'Node6', {'Y': 1})
-        scene.add_child_edge(node1, node6, 1)
+        node6 = visualizer.create_node(200, 250, 1, 'Node6', {'Y': 1})
+        visualizer.add_child_edge(node1, node6, 1)
 
-        node7 = scene.create_node(400, 250, 3, 'Node7', {'Y': 1})
-        scene.add_child_edge(node6, node7, 3)
+        node7 = visualizer.create_node(400, 250, 3, 'Node7', {'Y': 1})
+        visualizer.add_child_edge(node6, node7, 3)
 
-        node8 = scene.create_node(200, 400, 1, 'Node8', {'Y': 1})
-        scene.add_child_edge(node6, node8, 1)
+        node8 = visualizer.create_node(200, 400, 1, 'Node8', {'Y': 1})
+        visualizer.add_child_edge(node6, node8, 1)
 
-        node9 = scene.create_node(400, 400, 1, 'Node9', {'Y': 1})
-        scene.add_child_edge(node7, node9, 1)
+        node9 = visualizer.create_node(400, 400, 1, 'Node9', {'Y': 1})
+        visualizer.add_child_edge(node7, node9, 1)
 
         scene.style_nodes()
 
-        convex = scene.create_rect_box([node1, node3])
+        convex = visualizer.create_rect_box([node1, node3])
 
-        convex = scene.create_rect_box([node2, node4])
+        convex = visualizer.create_rect_box([node2, node4])
 
-        convex = scene.create_rect_box([node5])
+        convex = visualizer.create_rect_box([node5])
         convex.setColor('#ff3')
 
-        convex = scene.create_rect_box([node6, node7, node8, node9])
+        convex = visualizer.create_rect_box([node6, node7, node8, node9])
 
-        bezier = scene.create_bezier(node1, node3)
+        bezier = visualizer.create_bezier(node1, node3)
         bezier.bump(1.0)
 
-        bezier = scene.create_bezier(node2, node4)
+        bezier = visualizer.create_bezier(node2, node4)
         bezier.bump(-0.5)
 
-        bezier = scene.create_bezier(node6, node8)
+        bezier = visualizer.create_bezier(node6, node8)
         bezier.bump(0.5)
-        bezier = scene.create_bezier(node7, node8)
+        bezier = visualizer.create_bezier(node7, node8)
         bezier.bump(0.5)
-        bezier = scene.create_bezier(node7, node9)
+        bezier = visualizer.create_bezier(node7, node9)
         bezier.bump(0.5)

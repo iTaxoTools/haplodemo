@@ -23,20 +23,17 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from math import cos, radians, sin
 
-import networkx as nx
 from itaxotools.common.bindings import (
     Binder, Instance, Property, PropertyObject)
 
 from .items.bezier import BezierCurve, BezierHandle
 from .items.boundary import BoundaryEdgeHandle, BoundaryRect
-from .items.boxes import RectBox
 from .items.legend import Legend
 from .items.nodes import Edge, EdgeStyle, Label, Node, Vertex
 from .items.rotate import PivotHandle
 from .items.scale import Scale
-from .layout import modified_spring_layout
 from .palettes import Palette
-from .types import HaploGraph, HaploTreeNode, LayoutType
+from .types import LayoutType
 
 
 @dataclass
@@ -195,7 +192,6 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.setBackgroundBrush(mid)
 
         self.settings = settings
-        self.graph = None
         self.root = None
 
         self.hovered_item = None
@@ -597,169 +593,6 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             text = edge_label_format.format(weight=edge.weight)
             edge.label.setText(text)
 
-    def add_nodes_from_tree(self, tree: HaploTreeNode):
-        self.graph = nx.Graph()
-
-        self._add_nodes_from_tree_recursive(None, tree)
-        self.style_nodes()
-        self.style_labels(
-            self.settings.node_label_template,
-            self.settings.edge_label_template)
-        self.layout_nodes()
-        self.set_marks_from_nodes()
-        self.set_boundary_to_contents()
-
-    def _add_nodes_from_tree_recursive(self, parent_id: str, node: HaploTreeNode):
-        x, y = 0, 0
-        id = node.id
-        size = node.pops.total()
-        args = self.settings.node_sizes.get_all_values()
-        radius = Node.radius_from_size(size, *args) if size else 0
-        radius /= self.settings.edge_length
-
-        if size > 0:
-            item = self.create_node(x, y, size, id, dict(node.pops))
-        else:
-            item = self.create_vertex(x, y)
-        self.graph.add_node(id, radius=radius, item=item)
-
-        if parent_id:
-            parent_item = self.graph.nodes[parent_id]['item']
-            parent_radius = self.graph.nodes[parent_id]['radius']
-            length = node.mutations + parent_radius + radius
-            item = self.add_child_edge(parent_item, item, node.mutations)
-            self.graph.add_edge(parent_id, id, length=length)
-        else:
-            self.addItem(item)
-            self.root = item
-
-        for child in node.children:
-            self._add_nodes_from_tree_recursive(id, child)
-
-    def add_nodes_from_graph(self, haplo_graph: HaploGraph):
-        self.graph = nx.Graph()
-
-        x, y = 0, 0
-        args = self.settings.node_sizes.get_all_values()
-
-        for node in haplo_graph.nodes:
-            id = node.id
-            size = node.pops.total()
-            radius = Node.radius_from_size(size, *args) if size else 0
-            radius /= self.settings.edge_length
-
-            if size > 0:
-                item = self.create_node(x, y, size, id, dict(node.pops))
-            else:
-                item = self.create_vertex(x, y)
-            self.addItem(item)
-            self.graph.add_node(id, radius=radius, item=item)
-
-            self.root = self.root or item
-
-        for edge in haplo_graph.edges:
-            node_a = haplo_graph.nodes[edge.node_a].id
-            node_b = haplo_graph.nodes[edge.node_b].id
-            item_a = self.graph.nodes[node_a]['item']
-            item_b = self.graph.nodes[node_b]['item']
-            radius_a = self.graph.nodes[node_a]['radius']
-            radius_b = self.graph.nodes[node_b]['radius']
-            length = edge.mutations + radius_a + radius_b
-            item = self.add_sibling_edge(item_a, item_b, edge.mutations)
-            self.graph.add_edge(node_a, node_b, length=length)
-
-        self.style_nodes()
-        self.style_labels(
-            self.settings.node_label_template,
-            self.settings.edge_label_template)
-        self.layout_nodes()
-        self.set_marks_from_nodes()
-        self.set_boundary_to_contents()
-
-    def create_vertex(self, *args, **kwargs):
-        item = Vertex(*args, **kwargs)
-        self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
-        self.binder.bind(self.settings.properties.recursive_movement, item.set_recursive_setting)
-        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
-        self.binder.bind(self.settings.properties.pen_width_edges, item.set_pen_width)
-        return item
-
-    def create_node(self, *args, **kwargs):
-        item = Node(*args, **kwargs)
-        item.update_colors(self.settings.divisions.get_color_map())
-        self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
-        self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
-        self.binder.bind(self.settings.properties.recursive_movement, item.set_recursive_setting)
-        self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
-        self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
-        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
-        self.binder.bind(self.settings.properties.pen_width_nodes, item.set_pen_width)
-        self.binder.bind(self.settings.properties.font, item.set_label_font)
-        return item
-
-    def create_edge(self, *args, **kwargs):
-        item = Edge(*args, **kwargs)
-        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
-        self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
-        self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
-        self.binder.bind(self.settings.properties.pen_width_edges, item.set_pen_width)
-        self.binder.bind(self.settings.properties.font, item.set_label_font)
-        return item
-
-    def create_rect_box(self, vertices):
-        item = RectBox(vertices)
-        for vertex in vertices:
-            vertex.boxes.append(item)
-        self.addItem(item)
-        item.adjustPosition()
-        return item
-
-    def create_bezier(self, node1, node2):
-        item = BezierCurve(node1, node2)
-        node1.beziers[node2] = item
-        node2.beziers[node1] = item
-        self.addItem(item)
-        return item
-
-    def add_child_edge(self, parent, child, segments=1):
-        edge = self.create_edge(parent, child, segments)
-        parent.addChild(child, edge)
-        self.addItem(edge)
-        self.addItem(child)
-        return edge
-
-    def add_sibling_edge(self, vertex, sibling, segments=1):
-        edge = self.create_edge(vertex, sibling, segments)
-        vertex.addSibling(sibling, edge)
-        self.addItem(edge)
-        if not sibling.scene():
-            self.addItem(sibling)
-        return edge
-
-    def layout_nodes(self):
-        match self.settings.layout:
-            case LayoutType.Spring:
-                graph = nx.Graph()
-                for node, data in self.graph.nodes(data=True):
-                    graph.add_node(node, **data)
-                for u, v, data in self.graph.edges(data=True):
-                    weight = 1 / data['length']
-                    graph.add_edge(u, v, weight=weight, **data)
-                pos = nx.spring_layout(graph, weight='weight', scale=self.settings.layout_scale)
-                del graph
-            case LayoutType.ModifiedSpring:
-                pos = modified_spring_layout(self.graph, scale=None)
-            case _:
-                return
-
-        for id, attrs in self.graph.nodes.items():
-            x, y = pos[id]
-            x *= self.settings.edge_length
-            y *= self.settings.edge_length
-            item = attrs['item']
-            item.setPos(x, y)
-            item.update()
-
     def get_marks_from_nodes(self):
         weights = set()
         nodes = (item for item in self.items() if isinstance(item, Node))
@@ -803,7 +636,6 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
         self.settings.rotate_scene = False
 
-        self.graph = None
         self.root = None
 
 

@@ -799,7 +799,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
 
 class Node(Vertex):
-    def __init__(self, x, y, r, name, weights):
+    def __init__(self, x, y, r, name, weights, size_settings={}):
         super().__init__(x, y, r)
         self.weights = weights
         self.pies = dict()
@@ -811,7 +811,7 @@ class Node(Vertex):
         self._pen_width = 2
 
         self.label = Label(name, self)
-        self.adjust_radius()
+        self.adjust_radius(*size_settings)
 
     @override
     def hoverEnterEvent(self, event):
