@@ -97,6 +97,7 @@ class Visualizer:
             self._visualize_tree_recursive(id, child, size_settings)
 
     def visualize_graph(self, haplo_graph: HaploGraph):
+        self.clear()
         self.graph = nx.Graph()
         self.tree = None
 

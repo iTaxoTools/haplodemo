@@ -462,6 +462,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.binder.bind(self.settings.properties.highlight_color, self.legend.set_highlight_color)
             self.binder.bind(self.settings.properties.pen_width_nodes, self.legend.set_pen_width)
             self.binder.bind(self.settings.properties.font, self.legend.set_label_font)
+            self.legend.set_divisions(self.settings.divisions.all())
         self.legend.setVisible(value)
         self.position_legend()
 

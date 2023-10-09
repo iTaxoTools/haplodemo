@@ -109,7 +109,22 @@ class Legend(QtWidgets.QGraphicsRectItem):
         self.setPen(QtGui.QPen(QtCore.Qt.black, 1))
         self.update()
 
-    def adjustRect(self):
+    def update_sizes(self):
+        metric = QtGui.QFontMetrics(self.font)
+        height = metric.height()
+
+        self.radius = height / 2
+        self.padding = height / 2
+        self.margin = height
+
+        if self.divisions:
+            self.longest = max(
+                metric.horizontalAdvance(division.key)
+                for division in self.divisions)
+        else:
+            self.longest = 64
+
+    def adjust_rect(self):
         width = 2 * self.margin + self.longest
         width += 3 * self.radius
         height = 2 * self.margin
@@ -132,29 +147,21 @@ class Legend(QtWidgets.QGraphicsRectItem):
 
     def set_divisions(self, divisions):
         self.divisions = divisions
+        self.update_sizes()
+        self.adjust_rect()
         self.repopulate()
 
     def set_label_font(self, font):
         self.font = font
 
-        metric = QtGui.QFontMetrics(font)
-        height = metric.height()
-
-        self.radius = height / 2
-        self.padding = height / 2
-        self.margin = height
-
         if not self.divisions:
             return
-
-        self.longest = max(
-            metric.horizontalAdvance(division.key)
-            for division in self.divisions)
 
         for item in self.childItems():
             item.set_label_font(font)
 
-        self.adjustRect()
+        self.update_sizes()
+        self.adjust_rect()
         self.repopulate()
 
     def repopulate(self):

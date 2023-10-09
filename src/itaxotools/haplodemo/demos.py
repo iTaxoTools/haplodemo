@@ -39,10 +39,6 @@ class DemoLoader:
         return font
 
     def load_demo_simple(self):
-        self.visualizer.clear()
-
-        self.settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
-
         self.settings.node_sizes.a = 10
         self.settings.node_sizes.b = 2
         self.settings.node_sizes.c = 0.2
@@ -56,53 +52,52 @@ class DemoLoader:
         self.settings.pen_width_edges = 2
         self.settings.font = self.get_font('Arial', 16)
 
-        self.add_demo_nodes_simple()
+        self.visualizer.set_divisions(['X', 'Y', 'Z'])
 
-        self.scene.style_nodes()
+        self.visualizer.clear()
+        self.add_demo_nodes_simple()
         self.scene.set_boundary_to_contents()
 
     def add_demo_nodes_simple(self):
         visualizer = self.visualizer
         scene = self.scene
 
-        node1 = visualizer.create_node(85, 70, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2})
+        size_settings = self.settings.node_sizes.get_all_values()
+
+        node1 = visualizer.create_node(85, 70, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2}, size_settings)
         scene.addItem(node1)
 
-        node2 = visualizer.create_node(node1.pos().x() + 95, node1.pos().y() - 30, 20, 'Beta', {'X': 4, 'Z': 2})
+        node2 = visualizer.create_node(node1.pos().x() + 95, node1.pos().y() - 30, 20, 'Beta', {'X': 4, 'Z': 2}, size_settings)
         visualizer.add_child_edge(node1, node2, 2)
 
-        node3 = visualizer.create_node(node1.pos().x() + 115, node1.pos().y() + 60, 25, 'C', {'Y': 6, 'Z': 2})
+        node3 = visualizer.create_node(node1.pos().x() + 115, node1.pos().y() + 60, 25, 'C', {'Y': 6, 'Z': 2}, size_settings)
         edge = visualizer.add_child_edge(node1, node3, 3)
         edge.set_style(EdgeStyle.Bars)
 
-        node4 = visualizer.create_node(node3.pos().x() + 60, node3.pos().y() - 30, 15, 'D', {'Y': 1})
+        node4 = visualizer.create_node(node3.pos().x() + 60, node3.pos().y() - 30, 15, 'D', {'Y': 1}, size_settings)
         visualizer.add_child_edge(node3, node4, 1)
 
         vertex1 = visualizer.create_vertex(node3.pos().x() - 60, node3.pos().y() + 60)
         visualizer.add_child_edge(node3, vertex1, 2)
 
-        node5 = visualizer.create_node(vertex1.pos().x() - 80, vertex1.pos().y() + 40, 30, 'Error', {'?': 1})
+        node5 = visualizer.create_node(vertex1.pos().x() - 80, vertex1.pos().y() + 40, 30, 'Error', {'?': 1}, size_settings)
         edge = visualizer.add_child_edge(vertex1, node5, 4)
         edge.set_style(EdgeStyle.DotsWithText)
 
-        node6 = visualizer.create_node(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 20, 'R', {'Z': 1})
+        node6 = visualizer.create_node(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 20, 'R', {'Z': 1}, size_settings)
         visualizer.add_child_edge(vertex1, node6, 1)
 
-        node7 = visualizer.create_node(vertex1.pos().x() + 100, vertex1.pos().y() + 80, 10, 'S', {'Z': 1})
+        node7 = visualizer.create_node(vertex1.pos().x() + 100, vertex1.pos().y() + 80, 10, 'S', {'Z': 1}, size_settings)
         visualizer.add_sibling_edge(node6, node7, 2)
 
-        node8 = visualizer.create_node(vertex1.pos().x() + 20, vertex1.pos().y() + 80, 40, 'T', {'Y': 1})
+        node8 = visualizer.create_node(vertex1.pos().x() + 20, vertex1.pos().y() + 80, 40, 'T', {'Y': 1}, size_settings)
         visualizer.add_sibling_edge(node6, node8, 1)
         visualizer.add_sibling_edge(node7, node8, 1)
 
-        node9 = visualizer.create_node(node7.pos().x() + 20, node7.pos().y() - 40, 5, 'x', {'Z': 1})
+        node9 = visualizer.create_node(node7.pos().x() + 20, node7.pos().y() - 40, 5, 'x', {'Z': 1}, size_settings)
         visualizer.add_child_edge(node7, node9, 1)
 
     def load_demo_many(self):
-        self.visualizer.clear()
-
-        self.settings.divisions.set_divisions_from_keys(['X', 'Y'])
-
         self.settings.node_sizes.a = 0
         self.settings.node_sizes.b = 0
         self.settings.node_sizes.c = 0
@@ -113,21 +108,24 @@ class DemoLoader:
         self.settings.show_scale = False
         self.settings.font = self.get_font('Arial', 16)
 
-        self.add_demo_nodes_many(8, 32)
+        self.visualizer.set_divisions(['X', 'Y'])
 
-        self.scene.style_nodes()
+        self.visualizer.clear()
+        self.add_demo_nodes_many(8, 32)
         self.scene.set_boundary_to_contents()
 
     def add_demo_nodes_many(self, dx, dy):
         visualizer = self.visualizer
         scene = self.scene
 
+        size_settings = self.settings.node_sizes.get_all_values()
+
         for x in range(dx):
-            nodex = visualizer.create_node(20, 80 * x, 15, f'x{x}', {'X': 1})
+            nodex = visualizer.create_node(20, 80 * x, 15, f'x{x}', {'X': 1}, size_settings)
             scene.addItem(nodex)
 
             for y in range(dy):
-                nodey = visualizer.create_node(nodex.pos().x() + 80 + 80 * y, nodex.pos().y() + 40, 15, f'y{y}', {'Y': 1})
+                nodey = visualizer.create_node(nodex.pos().x() + 80 + 80 * y, nodex.pos().y() + 40, 15, f'y{y}', {'Y': 1}, size_settings)
                 visualizer.add_child_edge(nodex, nodey)
 
     def load_demo_tiny_tree(self):
@@ -145,9 +143,10 @@ class DemoLoader:
         self.settings.node_label_template = 'WEIGHT'
         self.settings.font = self.get_font('Arial', 24)
 
+        self.visualizer.set_divisions(['A', 'B', 'C'])
+
         tree = self.get_tiny_tree()
         self.visualizer.visualize_tree(tree)
-        self.visualizer.set_divisions(['A', 'B', 'C'])
 
     def get_tiny_tree(self) -> HaploTreeNode:
         root = HaploTreeNode('root')
@@ -172,18 +171,6 @@ class DemoLoader:
         return root
 
     def load_demo_long_tree(self):
-        self.visualizer.clear()
-
-        self.settings.divisions.set_divisions_from_keys([
-            'Asia',
-            'Africa',
-            'North America',
-            'South America',
-            'Europe',
-            'Australia',
-            'Antarctica',
-        ])
-
         self.settings.node_sizes.a = 20
         self.settings.node_sizes.b = 5
         self.settings.node_sizes.c = 1
@@ -197,6 +184,16 @@ class DemoLoader:
         self.settings.pen_width_edges = 4
         self.settings.node_label_template = 'WEIGHT'
         self.settings.font = self.get_font('Arial', 24)
+
+        self.visualizer.set_divisions([
+            'Asia',
+            'Africa',
+            'North America',
+            'South America',
+            'Europe',
+            'Australia',
+            'Antarctica',
+        ])
 
         tree = self.get_long_tree()
         self.visualizer.visualize_tree(tree)
@@ -344,10 +341,6 @@ class DemoLoader:
         return root
 
     def load_demo_heavy_tree(self):
-        self.visualizer.clear()
-
-        self.settings.divisions.set_divisions_from_keys(['A', 'B'])
-
         self.settings.node_sizes.a = 15
         self.settings.node_sizes.b = 10
         self.settings.node_sizes.c = 1
@@ -361,6 +354,8 @@ class DemoLoader:
         self.settings.pen_width_edges = 2
         self.settings.node_label_template = 'WEIGHT'
         self.settings.font = self.get_font('Arial', 12)
+
+        self.visualizer.set_divisions(['A', 'B'])
 
         tree = self.get_heavy_tree()
         self.visualizer.visualize_tree(tree)
@@ -390,8 +385,6 @@ class DemoLoader:
         return a
 
     def load_demo_cycled_graph(self):
-        self.visualizer.clear()
-
         self.settings.node_sizes.a = 15
         self.settings.node_sizes.b = 10
         self.settings.node_sizes.c = 1
@@ -406,9 +399,10 @@ class DemoLoader:
         self.settings.node_label_template = 'WEIGHT'
         self.settings.font = self.get_font('Arial', 12)
 
+        self.visualizer.set_divisions(['A', 'B'])
+
         graph = self.get_cycled_graph()
         self.visualizer.visualize_graph(graph)
-        self.visualizer.set_divisions(['A', 'B'])
 
     def get_cycled_graph(self) -> HaploGraph:
         return HaploGraph(
@@ -439,10 +433,6 @@ class DemoLoader:
         )
 
     def load_demo_fields(self):
-        self.visualizer.clear()
-
-        self.settings.divisions.set_divisions_from_keys(['X', 'Y', 'Z'])
-
         self.settings.node_sizes.a = 0
         self.settings.node_sizes.b = 0
         self.settings.node_sizes.c = 0
@@ -457,42 +447,44 @@ class DemoLoader:
         self.settings.font = self.get_font('Arial', 16)
         self.settings.node_label_template = 'WEIGHT'
 
-        self.add_demo_nodes_fields()
+        self.visualizer.set_divisions(['X', 'Y', 'Z'])
 
+        self.visualizer.clear()
+        self.add_demo_nodes_fields()
         self.scene.set_boundary_to_contents()
 
     def add_demo_nodes_fields(self):
         visualizer = self.visualizer
         scene = self.scene
 
-        node1 = visualizer.create_node(0, 150, 7, 'Node1', {'X': 4, 'Y': 3})
+        size_settings = self.settings.node_sizes.get_all_values()
+
+        node1 = visualizer.create_node(0, 150, 7, 'Node1', {'X': 4, 'Y': 3}, size_settings)
         scene.addItem(node1)
 
-        node2 = visualizer.create_node(200, 0, 4, 'Node2', {'X': 4})
+        node2 = visualizer.create_node(200, 0, 4, 'Node2', {'X': 4}, size_settings)
         visualizer.add_child_edge(node1, node2, 2)
 
-        node3 = visualizer.create_node(0, 0, 2, 'Node3', {'X': 2})
+        node3 = visualizer.create_node(0, 0, 2, 'Node3', {'X': 2}, size_settings)
         visualizer.add_child_edge(node2, node3, 1)
 
-        node4 = visualizer.create_node(400, 0, 3, 'Node4', {'X': 3})
+        node4 = visualizer.create_node(400, 0, 3, 'Node4', {'X': 3}, size_settings)
         visualizer.add_child_edge(node2, node4, 1)
 
-        node5 = visualizer.create_node(0, 400, 6, 'Node5', {'Z': 4})
+        node5 = visualizer.create_node(0, 400, 6, 'Node5', {'Z': 4}, size_settings)
         visualizer.add_child_edge(node1, node5, 3)
 
-        node6 = visualizer.create_node(200, 250, 1, 'Node6', {'Y': 1})
+        node6 = visualizer.create_node(200, 250, 1, 'Node6', {'Y': 1}, size_settings)
         visualizer.add_child_edge(node1, node6, 1)
 
-        node7 = visualizer.create_node(400, 250, 3, 'Node7', {'Y': 1})
+        node7 = visualizer.create_node(400, 250, 3, 'Node7', {'Y': 1}, size_settings)
         visualizer.add_child_edge(node6, node7, 3)
 
-        node8 = visualizer.create_node(200, 400, 1, 'Node8', {'Y': 1})
+        node8 = visualizer.create_node(200, 400, 1, 'Node8', {'Y': 1}, size_settings)
         visualizer.add_child_edge(node6, node8, 1)
 
-        node9 = visualizer.create_node(400, 400, 1, 'Node9', {'Y': 1})
+        node9 = visualizer.create_node(400, 400, 1, 'Node9', {'Y': 1}, size_settings)
         visualizer.add_child_edge(node7, node9, 1)
-
-        scene.style_nodes()
 
         convex = visualizer.create_rect_box([node1, node3])
 
