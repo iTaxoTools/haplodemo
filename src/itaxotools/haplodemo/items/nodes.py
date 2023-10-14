@@ -870,6 +870,10 @@ class Node(Vertex):
         painter.restore()
 
     def update_colors(self, color_map):
+        if not self.weights:
+            self.setBrush(QtGui.QBrush(color_map[None]))
+            return
+
         total_weight = sum(weight for weight in self.weights.values())
 
         weight_items = iter(self.weights.items())

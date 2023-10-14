@@ -148,7 +148,8 @@ class Scale(QtWidgets.QGraphicsItem):
 
     def update_radii(self):
         values = self.settings.node_sizes.get_all_values()
-        radii = [Node.radius_from_size(size, *values) for size in self.marks]
+        marks = self.marks or [1]
+        radii = [Node.radius_from_size(size, *values) for size in marks]
         self.radii = radii
         self.radius = max(radii)
         self.place_labels()

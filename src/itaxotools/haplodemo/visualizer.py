@@ -16,6 +16,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # -----------------------------------------------------------------------------
 
+from collections import Counter, defaultdict
+
 import networkx as nx
 from itaxotools.common.bindings import Binder
 
@@ -37,8 +39,12 @@ class Visualizer:
         self.binder = Binder()
 
         self.items: dict[str, Vertex] = {}
+        self.members: dict[str, list[str]] = defaultdict(list)
+        self.partition: dict[str, str] = defaultdict(str)
         self.graph: HaploGraph = None
         self.tree: HaploTreeNode = None
+
+        self.scene.nodeSelected.connect(self.handle_node_selected)
 
     def clear(self):
         """If visualizer is used, scene should be cleared through here to
@@ -47,11 +53,18 @@ class Visualizer:
         self.scene.clear()
 
         self.items = {}
+        self.members = defaultdict(list)
+        self.partition = defaultdict(str)
         self.graph = None
         self.tree = None
 
     def set_divisions(self, divisions: list[str]):
         self.settings.divisions.set_divisions_from_keys(divisions)
+
+    def set_partition(self, partition: dict[str, str]):
+        self.partition = defaultdict(str, partition)
+        if self.items:
+            self.colorize_nodes()
 
     def visualize_tree(self, tree: HaploTreeNode):
         self.clear()
@@ -71,7 +84,7 @@ class Visualizer:
     def _visualize_tree_recursive(self, parent_id: str, node: HaploTreeNode, size_settings: dict):
         x, y = 0, 0
         id = node.id
-        size = node.pops.total()
+        size = node.get_size()
 
         if size > 0:
             item = self.create_node(x, y, size, id, dict(node.pops), size_settings)
@@ -81,6 +94,7 @@ class Visualizer:
             radius = 0
 
         self.items[id] = item
+        self.members[id] = node.members
         self.graph.add_node(id, radius=radius)
 
         if parent_id:
@@ -106,7 +120,7 @@ class Visualizer:
 
         for node in haplo_graph.nodes:
             id = node.id
-            size = node.pops.total()
+            size = node.get_size()
 
             if size > 0:
                 item = self.create_node(x, y, size, id, dict(node.pops), size_settings)
@@ -116,6 +130,7 @@ class Visualizer:
                 radius = 0
 
             self.items[id] = item
+            self.members[id] = node.members
             self.graph.add_node(id, radius=radius)
             self.scene.addItem(item)
 
@@ -163,6 +178,15 @@ class Visualizer:
             item = self.items[id]
             item.setPos(x, y)
             item.update()
+
+    def colorize_nodes(self):
+        color_map = self.settings.divisions.get_color_map()
+        for id, item in self.items.items():
+            if not isinstance(item, Node):
+                continue
+            weights = Counter(self.partition[member] for member in self.members[id])
+            item.weights = dict(weights)
+            item.update_colors(color_map)
 
     def create_vertex(self, *args, **kwargs):
         item = Vertex(*args, **kwargs)
@@ -223,3 +247,6 @@ class Visualizer:
         if not sibling.scene():
             self.scene.addItem(sibling)
         return edge
+
+    def handle_node_selected(self, name):
+        print('>', name, ':', self.members[name])

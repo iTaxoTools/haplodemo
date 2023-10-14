@@ -185,6 +185,7 @@ class Settings(PropertyObject):
 class GraphicsScene(QtWidgets.QGraphicsScene):
     boundaryPlaced = QtCore.Signal()
     rotateModeChanged = QtCore.Signal(bool)
+    nodeSelected = QtCore.Signal(str)
 
     def __init__(self, settings, parent=None):
         super().__init__(parent)
@@ -235,6 +236,19 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
                 event.accept()
             else:
                 return super().mousePressEvent(event)
+        elif event.button() == QtCore.Qt.RightButton:
+            item = self.getItemAtPos(
+                event.scenePos(),
+                ignore_edges=True,
+                ignore_labels=True,
+                ignore_boundary_handles=True,
+                ignore_legend=True,
+                ignore_scale=True,
+                ignore_pivot_handle=True,
+                ignore_beziers=True,
+            )
+            if isinstance(item, Node):
+                self.nodeSelected.emit(item.name)
         self.mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):

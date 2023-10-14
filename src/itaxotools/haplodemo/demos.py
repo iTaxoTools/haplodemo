@@ -170,6 +170,69 @@ class DemoLoader:
 
         return root
 
+    def load_demo_members_tree(self):
+        self.settings.node_sizes.a = 0
+        self.settings.node_sizes.b = 0
+        self.settings.node_sizes.c = 0
+        self.settings.node_sizes.d = 0
+        self.settings.node_sizes.e = 10
+        self.settings.node_sizes.f = 20
+        self.settings.show_legend = True
+        self.settings.show_scale = True
+        self.settings.edge_length = 40
+        self.settings.pen_width_nodes = 1
+        self.settings.pen_width_edges = 2
+        self.settings.node_label_template = 'WEIGHT'
+        self.settings.font = self.get_font('Arial', 24)
+
+        self.visualizer.set_divisions(['A', 'B', 'C'])
+
+        tree = self.get_members_tree()
+        self.visualizer.visualize_tree(tree)
+
+        partition = self.get_members_partition()
+        self.visualizer.set_partition(partition)
+
+    def get_members_tree(self) -> HaploTreeNode:
+        root = HaploTreeNode('root')
+        root.add_members(['a1', 'a2', 'a3', 'b1', 'b2'])
+
+        a = HaploTreeNode('a')
+        a.add_members(['a4', 'a5', 'a6'])
+        root.add_child(a, 1)
+
+        b = HaploTreeNode('b')
+        b.add_members(['b3', 'b4'])
+        root.add_child(b, 4)
+
+        c = HaploTreeNode('c')
+        c.add_members(['b5'])
+        b.add_child(c, 1)
+
+        d = HaploTreeNode('d')
+        d.add_members(['c1'])
+        b.add_child(d, 2)
+
+        return root
+
+    def get_members_partition(self) -> dict[str, str]:
+        return {
+            'a1': 'A',
+            'a2': 'A',
+            'a3': 'A',
+            'a4': 'A',
+            'a5': 'A',
+            'a6': 'A',
+
+            'b1': 'B',
+            'b2': 'B',
+            'b3': 'B',
+            'b4': 'B',
+            'b5': 'B',
+
+            'c1': 'C',
+        }
+
     def load_demo_long_tree(self):
         self.settings.node_sizes.a = 20
         self.settings.node_sizes.b = 5
@@ -409,19 +472,23 @@ class DemoLoader:
             [
                 HaploGraphNode(
                     id = 'a1',
-                    pops = Counter('A' * 10)
+                    pops = Counter('A' * 10),
+                    members = [f'a1_{x}' for x in range(10)],
                 ),
                 HaploGraphNode(
                     id = 'b1',
-                    pops = Counter('B')
+                    pops = Counter('B'),
+                    members = ['b1_0'],
                 ),
                 HaploGraphNode(
                     id = 'b2',
-                    pops = Counter('BB')
+                    pops = Counter('BB'),
+                    members = [f'b2_{x}' for x in range(2)],
                 ),
                 HaploGraphNode(
                     id = 'ab',
-                    pops = Counter('AAB')
+                    pops = Counter('AAB'),
+                    members = [f'ab_{x}' for x in range(3)],
                 ),
             ],
             [

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto
 from sys import stdout
 
@@ -21,10 +21,11 @@ class HaploTreeNode:
 
     def __init__(self, id):
         self.id = id
-        self.children = []
+        self.children = list[HaploTreeNode]()
         self.parent = None
         self.mutations = 0
         self.pops = Counter()
+        self.members = list[str]()
 
     def add_child(self, node: HaploTreeNode, mutations: int = 0):
         self.children.append(node)
@@ -33,6 +34,15 @@ class HaploTreeNode:
 
     def add_pops(self, pops: list[str] | dict[str, int]):
         self.pops.update(pops)
+
+    def add_members(self, members: iter[str]):
+        self.members.extend([member for member in members])
+
+    def get_size(self):
+        if self.pops:
+            return self.pops.total()
+        if self.members:
+            return len(self.members)
 
     def __str__(self):
         total = self.pops.total()
@@ -51,7 +61,14 @@ class HaploTreeNode:
 @dataclass
 class HaploGraphNode:
     id: str
-    pops: Counter[str]
+    pops: Counter[str] = field(default_factory=Counter)
+    members: list[str] = field(default_factory=list)
+
+    def get_size(self):
+        if self.pops:
+            return self.pops.total()
+        if self.members:
+            return len(self.members)
 
 
 @dataclass

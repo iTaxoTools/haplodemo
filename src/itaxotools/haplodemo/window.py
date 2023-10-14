@@ -77,6 +77,9 @@ class Window(QtWidgets.QWidget):
         button_demo_cycled_graph = QtWidgets.QPushButton('Load cycled graph')
         button_demo_cycled_graph.clicked.connect(lambda: self.demos.load_demo_cycled_graph())
 
+        button_demo_members_tree = QtWidgets.QPushButton('Load members tree')
+        button_demo_members_tree.clicked.connect(lambda: self.demos.load_demo_members_tree())
+
         button_demo_many = QtWidgets.QPushButton('Test performance')
         button_demo_many.clicked.connect(lambda: self.demos.load_demo_many())
         button_demo_many.setStyleSheet('color: #A00;')
@@ -132,6 +135,7 @@ class Window(QtWidgets.QWidget):
         demos.addWidget(button_demo_long_tree)
         demos.addWidget(button_demo_heavy_tree)
         demos.addWidget(button_demo_cycled_graph)
+        demos.addWidget(button_demo_members_tree)
         demos.addWidget(button_demo_many)
 
         toggles = QtWidgets.QVBoxLayout()
