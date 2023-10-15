@@ -22,7 +22,7 @@ from itaxotools.common.bindings import Binder, Property, PropertyObject
 from itaxotools.common.utility import AttrDict, type_convert
 
 from .items.types import EdgeStyle
-from .scene import NodeSizeSettings, ScaleSettings
+from .settings import NodeSizeSettings, ScaleSettings
 from .widgets import GLineEdit, PenWidthField, PenWidthSlider, RadioButtonGroup
 
 

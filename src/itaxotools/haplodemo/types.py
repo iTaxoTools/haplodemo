@@ -6,6 +6,18 @@ from enum import Enum, auto
 from sys import stdout
 
 
+@dataclass
+class Partition:
+    key: str
+    map: dict[str, str]
+
+
+@dataclass
+class Division:
+    key: str
+    color: str
+
+
 class LayoutType(Enum):
     ModifiedSpring = auto()
     Spring = auto()

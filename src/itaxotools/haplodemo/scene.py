@@ -20,14 +20,10 @@ from __future__ import annotations
 
 from PySide6 import QtCore, QtGui, QtOpenGLWidgets, QtSvg, QtWidgets
 
-from collections import defaultdict
 from contextlib import contextmanager
-from dataclasses import dataclass
 from math import cos, radians, sin
 
-from itaxotools.common.bindings import (
-    Binder, Instance, Property, PropertyObject)
-from itaxotools.common.utility import override
+from itaxotools.common.bindings import Binder
 
 from .items.bezier import BezierCurve, BezierHandle
 from .items.boundary import BoundaryEdgeHandle, BoundaryRect
@@ -35,211 +31,7 @@ from .items.legend import Legend
 from .items.nodes import Edge, EdgeStyle, Label, Node, Vertex
 from .items.rotate import PivotHandle
 from .items.scale import Scale
-from .palettes import Palette
-from .types import LayoutType
-
-
-@dataclass
-class Partition:
-    key: str
-    map: dict[str, str]
-
-
-@dataclass
-class Division:
-    key: str
-    color: str
-
-
-class PartitionListModel(QtCore.QAbstractListModel):
-    partitionsChanged = QtCore.Signal(object)
-    PartitionRole = QtCore.Qt.UserRole
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self._partitions: list[Partition] = []
-
-    @override
-    def rowCount(self, parent=QtCore.QModelIndex()):
-        return len(self._partitions)
-
-    @override
-    def data(self, index, role=QtCore.Qt.DisplayRole):
-        if not index.isValid() or not (0 <= index.row() < self.rowCount()):
-            return None
-
-        partition = self._partitions[index.row()]
-
-        if role == QtCore.Qt.DisplayRole:
-            return partition.key
-        elif role == QtCore.Qt.EditRole:
-            return partition.key
-        elif role == self.PartitionRole:
-            return partition
-
-        return None
-
-    @override
-    def flags(self, index):
-        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
-
-    def set_partitions(self, partitions: iter[tuple[str, dict[str, str]]]):
-        self.beginResetModel()
-        self._partitions = [Partition(key, map) for key, map in partitions]
-        self.endResetModel()
-        self.partitionsChanged.emit(self.all())
-
-    def all(self):
-        return list(self._partitions)
-
-
-class DivisionListModel(QtCore.QAbstractListModel):
-    colorMapChanged = QtCore.Signal(object)
-    divisionsChanged = QtCore.Signal(object)
-
-    def __init__(self, names=[], palette=Palette.Spring(), parent=None):
-        super().__init__(parent)
-        self._palette = palette
-        self._default_color = palette.default
-        self._divisions = list()
-        self.set_divisions_from_keys(names)
-        self.set_palette(palette)
-
-        self.dataChanged.connect(self.handle_data_changed)
-        self.modelReset.connect(self.handle_data_changed)
-
-    @override
-    def rowCount(self, parent=QtCore.QModelIndex()):
-        return len(self._divisions)
-
-    @override
-    def data(self, index, role=QtCore.Qt.DisplayRole):
-        if not index.isValid() or not (0 <= index.row() < self.rowCount()):
-            return None
-
-        key = self._divisions[index.row()].key
-        color = self._divisions[index.row()].color
-
-        if role == QtCore.Qt.DisplayRole:
-            return key
-        elif role == QtCore.Qt.EditRole:
-            return color
-        elif role == QtCore.Qt.DecorationRole:
-            color = QtGui.QColor(color)
-            pixmap = QtGui.QPixmap(16, 16)
-            pixmap.fill(color)
-            return QtGui.QIcon(pixmap)
-
-        return None
-
-    @override
-    def setData(self, index, value, role=QtCore.Qt.EditRole):
-        if not index.isValid() or not (0 <= index.row() < self.rowCount()):
-            return False
-
-        if role == QtCore.Qt.EditRole:
-            color = value.strip()
-            if not color.startswith('#'):
-                color = '#' + color
-
-            if not QtGui.QColor.isValidColor(color):
-                return False
-
-            self._divisions[index.row()].color = color
-            self.dataChanged.emit(index, index)
-            return True
-
-        return False
-
-    @override
-    def flags(self, index):
-        return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
-
-    def set_divisions_from_keys(self, keys):
-        self.beginResetModel()
-        palette = self._palette
-        self._divisions = [Division(keys[i], palette[i]) for i in range(len(keys))]
-        self.endResetModel()
-        self.divisionsChanged.emit(self.all())
-
-    def set_palette(self, palette):
-        self.beginResetModel()
-        self._default_color = palette.default
-        for index, division in enumerate(self._divisions):
-            division.color = palette[index]
-        self.endResetModel()
-
-    def get_color_map(self):
-        map = {d.key: d.color for d in self._divisions}
-        return defaultdict(lambda: self._default_color, map)
-
-    def handle_data_changed(self, *args, **kwargs):
-        self.colorMapChanged.emit(self.get_color_map())
-
-    def all(self):
-        return list(self._divisions)
-
-
-class NodeSizeSettings(PropertyObject):
-    a = Property(float, 10)
-    b = Property(float, 2)
-    c = Property(float, 0.2)
-    d = Property(float, 1)
-    e = Property(float, 0)
-    f = Property(float, 5)
-
-    def get_all_values(self):
-        return [property.value for property in self.properties]
-
-
-class ScaleSettings(PropertyObject):
-    marks = Property(list, [5, 10, 20])
-
-
-class Settings(PropertyObject):
-    partitions = Property(PartitionListModel, Instance)
-    divisions = Property(DivisionListModel, Instance)
-
-    partition_index = Property(QtCore.QModelIndex, Instance)
-
-    palette = Property(Palette, Palette.Spring())
-    highlight_color = Property(QtGui.QColor, QtCore.Qt.magenta)
-
-    font = Property(QtGui.QFont, None)
-    rotational_movement = Property(bool, True)
-    recursive_movement = Property(bool, True)
-    label_movement = Property(bool, False)
-
-    rotate_scene = Property(bool, False)
-    show_legend = Property(bool, False)
-    show_scale = Property(bool, False)
-
-    layout = Property(LayoutType, LayoutType.ModifiedSpring)
-    layout_scale = Property(float, 3)
-    edge_length = Property(float, 100)
-
-    node_sizes = Property(NodeSizeSettings, Instance)
-    scale = Property(ScaleSettings, Instance)
-
-    pen_width_nodes = Property(float, 1)
-    pen_width_edges = Property(float, 2)
-
-    node_label_template = Property(str, 'NAME')
-    edge_label_template = Property(str, '(WEIGHT)')
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.binder = Binder()
-        self.binder.bind(self.properties.palette, self.divisions.set_palette)
-        self.binder.bind(self.properties.palette, self.properties.highlight_color, lambda x: x.highlight)
-        self.binder.bind(self.properties.font, self.enforce_pixel_size)
-
-    def enforce_pixel_size(self, font: QtGui.QFont):
-        if font.pixelSize() == -1:
-            font = QtGui.QFont(font)
-            size = font.pointSize()
-            font.setPixelSize(size)
-            self.font = font
+from .settings import Settings
 
 
 class GraphicsScene(QtWidgets.QGraphicsScene):
@@ -247,7 +39,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
     rotateModeChanged = QtCore.Signal(bool)
     nodeSelected = QtCore.Signal(str)
 
-    def __init__(self, settings, parent=None):
+    def __init__(self, settings: Settings, parent=None):
         super().__init__(parent)
         mid = QtWidgets.QApplication.instance().palette().mid()
         self.setBackgroundBrush(mid)

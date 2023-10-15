@@ -23,7 +23,8 @@ from PySide6 import QtGui
 from collections import Counter
 
 from .items.types import EdgeStyle
-from .scene import GraphicsScene, Settings
+from .scene import GraphicsScene
+from .settings import Settings
 from .types import HaploGraph, HaploGraphEdge, HaploGraphNode, HaploTreeNode
 from .visualizer import Visualizer
 
@@ -186,8 +187,6 @@ class DemoLoader:
         self.settings.pen_width_edges = 2
         self.settings.node_label_template = 'WEIGHT'
         self.settings.font = self.get_font('Arial', 24)
-
-        self.visualizer.set_divisions(['A', 'B', 'C'])
 
         tree = self.get_members_tree()
         self.visualizer.visualize_tree(tree)

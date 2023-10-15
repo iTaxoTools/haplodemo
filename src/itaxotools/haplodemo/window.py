@@ -25,7 +25,8 @@ from .demos import DemoLoader
 from .dialogs import (
     EdgeLengthDialog, EdgeStyleDialog, FontDialog, LabelFormatDialog,
     NodeSizeDialog, PenWidthDialog, ScaleMarksDialog)
-from .scene import GraphicsScene, GraphicsView, Settings
+from .scene import GraphicsScene, GraphicsView
+from .settings import Settings
 from .visualizer import Visualizer
 from .widgets import (
     ColorDelegate, DivisionView, PaletteSelector, PartitionSelector,

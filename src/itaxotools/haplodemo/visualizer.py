@@ -27,7 +27,9 @@ from .items.bezier import BezierCurve
 from .items.boxes import RectBox
 from .items.nodes import Edge, Node, Vertex
 from .layout import modified_spring_layout
-from .scene import GraphicsScene, PartitionListModel, Settings
+from .models import PartitionListModel
+from .scene import GraphicsScene
+from .settings import Settings
 from .types import HaploGraph, HaploTreeNode, LayoutType
 
 

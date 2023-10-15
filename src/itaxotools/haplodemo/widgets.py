@@ -20,8 +20,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import Guard
 
+from .models import DivisionListModel, PartitionListModel
 from .palettes import Palette
-from .scene import DivisionListModel, PartitionListModel
 
 
 class GLineEdit(QtWidgets.QLineEdit):
