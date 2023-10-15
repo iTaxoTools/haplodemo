@@ -42,22 +42,15 @@ class DemoLoader:
         return font
 
     def load_demo_simple(self):
-        self.settings.node_sizes.a = 10
-        self.settings.node_sizes.b = 2
-        self.settings.node_sizes.c = 0.2
-        self.settings.node_sizes.d = 1
-        self.settings.node_sizes.e = 0
-        self.settings.node_sizes.f = 0
+        self.settings.reset()
+        self.settings.node_sizes.set_all_values(10, 2, 0.2, 1, 0, 0)
         self.settings.show_legend = True
         self.settings.show_scale = True
         self.settings.scale.marks = [5, 40]
-        self.settings.pen_width_nodes = 1
-        self.settings.pen_width_edges = 2
         self.settings.font = self.get_font('Arial', 16)
 
-        self.visualizer.set_divisions(['X', 'Y', 'Z'])
-
         self.visualizer.clear()
+        self.visualizer.set_divisions(['X', 'Y', 'Z'])
         self.add_demo_nodes_simple()
         self.scene.set_boundary_to_contents()
 
@@ -101,19 +94,12 @@ class DemoLoader:
         visualizer.add_child_edge(node7, node9, 1)
 
     def load_demo_many(self):
-        self.settings.node_sizes.a = 0
-        self.settings.node_sizes.b = 0
-        self.settings.node_sizes.c = 0
-        self.settings.node_sizes.d = 0
-        self.settings.node_sizes.e = 0
-        self.settings.node_sizes.f = 30
-        self.settings.show_legend = False
-        self.settings.show_scale = False
-        self.settings.font = self.get_font('Arial', 16)
+        self.settings.reset()
+        self.settings.node_sizes.set_all_values(0, 0, 0, 0, 0, 30)
 
-        self.visualizer.set_divisions(['X', 'Y'])
 
         self.visualizer.clear()
+        self.visualizer.set_divisions(['X', 'Y'])
         self.add_demo_nodes_many(8, 32)
         self.scene.set_boundary_to_contents()
 
@@ -132,17 +118,11 @@ class DemoLoader:
                 visualizer.add_child_edge(nodex, nodey)
 
     def load_demo_tiny_tree(self):
-        self.settings.node_sizes.a = 0
-        self.settings.node_sizes.b = 0
-        self.settings.node_sizes.c = 0
-        self.settings.node_sizes.d = 0
-        self.settings.node_sizes.e = 10
-        self.settings.node_sizes.f = 20
+        self.settings.reset()
+        self.settings.node_sizes.set_all_values(0, 0, 0, 0, 10, 20)
         self.settings.show_legend = True
         self.settings.show_scale = True
         self.settings.edge_length = 40
-        self.settings.pen_width_nodes = 1
-        self.settings.pen_width_edges = 2
         self.settings.node_label_template = 'WEIGHT'
         self.settings.font = self.get_font('Arial', 24)
 
@@ -174,17 +154,11 @@ class DemoLoader:
         return root
 
     def load_demo_members_tree(self):
-        self.settings.node_sizes.a = 0
-        self.settings.node_sizes.b = 0
-        self.settings.node_sizes.c = 0
-        self.settings.node_sizes.d = 0
-        self.settings.node_sizes.e = 10
-        self.settings.node_sizes.f = 20
+        self.settings.reset()
+        self.settings.node_sizes.set_all_values(0, 0, 0, 0, 10, 20)
         self.settings.show_legend = True
         self.settings.show_scale = True
         self.settings.edge_length = 40
-        self.settings.pen_width_nodes = 1
-        self.settings.pen_width_edges = 2
         self.settings.node_label_template = 'WEIGHT'
         self.settings.font = self.get_font('Arial', 24)
 
@@ -226,17 +200,17 @@ class DemoLoader:
                 'a5': 'A',
                 'a6': 'A',
 
-                'b1': 'B',
-                'b2': 'B',
-                'b3': 'B',
-                'b4': 'B',
-                'b5': 'B',
+                'b1': 'E',
+                'b2': 'E',
+                'b3': 'E',
+                'b4': 'E',
+                'b5': 'E',
 
                 'c1': 'C',
             },
             'Many': {
-                'a1': 'A',
-                'a2': 'A',
+                'a1': 'E',
+                'a2': 'F',
                 'a3': 'A',
                 'a4': 'A',
                 'a5': 'D',
@@ -253,12 +227,8 @@ class DemoLoader:
         }
 
     def load_demo_long_tree(self):
-        self.settings.node_sizes.a = 20
-        self.settings.node_sizes.b = 5
-        self.settings.node_sizes.c = 1
-        self.settings.node_sizes.d = 0
-        self.settings.node_sizes.e = 0
-        self.settings.node_sizes.f = 20
+        self.settings.reset()
+        self.settings.node_sizes.set_all_values(20, 5, 1, 0, 0, 20)
         self.settings.show_legend = True
         self.settings.show_scale = True
         self.settings.edge_length = 40
@@ -423,19 +393,12 @@ class DemoLoader:
         return root
 
     def load_demo_heavy_tree(self):
-        self.settings.node_sizes.a = 15
-        self.settings.node_sizes.b = 10
-        self.settings.node_sizes.c = 1
-        self.settings.node_sizes.d = 0
-        self.settings.node_sizes.e = 0
-        self.settings.node_sizes.f = 10
+        self.settings.reset()
+        self.settings.node_sizes.set_all_values(15, 10, 1, 0, 0, 10)
         self.settings.show_legend = True
         self.settings.show_scale = True
         self.settings.edge_length = 20
-        self.settings.pen_width_nodes = 1
-        self.settings.pen_width_edges = 2
         self.settings.node_label_template = 'WEIGHT'
-        self.settings.font = self.get_font('Arial', 12)
 
         self.visualizer.set_divisions(['A', 'B'])
 
@@ -467,19 +430,12 @@ class DemoLoader:
         return a
 
     def load_demo_cycled_graph(self):
-        self.settings.node_sizes.a = 15
-        self.settings.node_sizes.b = 10
-        self.settings.node_sizes.c = 1
-        self.settings.node_sizes.d = 0
-        self.settings.node_sizes.e = 0
-        self.settings.node_sizes.f = 10
+        self.settings.reset()
+        self.settings.node_sizes.set_all_values(15, 10, 1, 0, 0, 10)
         self.settings.show_legend = True
         self.settings.show_scale = True
         self.settings.edge_length = 20
-        self.settings.pen_width_nodes = 1
-        self.settings.pen_width_edges = 2
         self.settings.node_label_template = 'WEIGHT'
-        self.settings.font = self.get_font('Arial', 12)
 
         self.visualizer.set_divisions(['A', 'B'])
 
@@ -519,23 +475,14 @@ class DemoLoader:
         )
 
     def load_demo_fields(self):
-        self.settings.node_sizes.a = 0
-        self.settings.node_sizes.b = 0
-        self.settings.node_sizes.c = 0
-        self.settings.node_sizes.d = 0
-        self.settings.node_sizes.e = 6
-        self.settings.node_sizes.f = 24
-        self.settings.show_legend = False
-        self.settings.show_scale = False
+        self.settings.reset()
+        self.settings.node_sizes.set_all_values(0, 0, 0, 0, 6, 24)
         self.settings.scale.marks = [1, 10]
-        self.settings.pen_width_nodes = 1
-        self.settings.pen_width_edges = 2
         self.settings.font = self.get_font('Arial', 16)
         self.settings.node_label_template = 'WEIGHT'
 
-        self.visualizer.set_divisions(['X', 'Y', 'Z'])
-
         self.visualizer.clear()
+        self.visualizer.set_divisions(['X', 'Y', 'Z'])
         self.add_demo_nodes_fields()
         self.scene.set_boundary_to_contents()
 
