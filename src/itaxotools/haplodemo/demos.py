@@ -16,6 +16,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 from PySide6 import QtGui
 
 from collections import Counter
@@ -190,8 +192,8 @@ class DemoLoader:
         tree = self.get_members_tree()
         self.visualizer.visualize_tree(tree)
 
-        partition = self.get_members_partition()
-        self.visualizer.set_partition(partition)
+        partitions = self.get_members_partitions()
+        self.visualizer.set_partitions(partitions.items())
 
     def get_members_tree(self) -> HaploTreeNode:
         root = HaploTreeNode('root')
@@ -215,22 +217,40 @@ class DemoLoader:
 
         return root
 
-    def get_members_partition(self) -> dict[str, str]:
+    def get_members_partitions(self) -> dict[str, dict[str, str]]:
         return {
-            'a1': 'A',
-            'a2': 'A',
-            'a3': 'A',
-            'a4': 'A',
-            'a5': 'A',
-            'a6': 'A',
+            'Few': {
+                'a1': 'A',
+                'a2': 'A',
+                'a3': 'A',
+                'a4': 'A',
+                'a5': 'A',
+                'a6': 'A',
 
-            'b1': 'B',
-            'b2': 'B',
-            'b3': 'B',
-            'b4': 'B',
-            'b5': 'B',
+                'b1': 'B',
+                'b2': 'B',
+                'b3': 'B',
+                'b4': 'B',
+                'b5': 'B',
 
-            'c1': 'C',
+                'c1': 'C',
+            },
+            'Many': {
+                'a1': 'A',
+                'a2': 'A',
+                'a3': 'A',
+                'a4': 'A',
+                'a5': 'D',
+                'a6': 'D',
+
+                'b1': 'B',
+                'b2': 'B',
+                'b3': 'E',
+                'b4': 'E',
+                'b5': 'F',
+
+                'c1': 'C',
+            },
         }
 
     def load_demo_long_tree(self):

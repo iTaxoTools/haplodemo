@@ -16,6 +16,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 from PySide6 import QtCore, QtGui, QtOpenGLWidgets, QtSvg, QtWidgets
 
 from collections import defaultdict
@@ -25,6 +27,7 @@ from math import cos, radians, sin
 
 from itaxotools.common.bindings import (
     Binder, Instance, Property, PropertyObject)
+from itaxotools.common.utility import override
 
 from .items.bezier import BezierCurve, BezierHandle
 from .items.boundary import BoundaryEdgeHandle, BoundaryRect
@@ -37,9 +40,57 @@ from .types import LayoutType
 
 
 @dataclass
+class Partition:
+    key: str
+    map: dict[str, str]
+
+
+@dataclass
 class Division:
     key: str
     color: str
+
+
+class PartitionListModel(QtCore.QAbstractListModel):
+    partitionsChanged = QtCore.Signal(object)
+    PartitionRole = QtCore.Qt.UserRole
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._partitions: list[Partition] = []
+
+    @override
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return len(self._partitions)
+
+    @override
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if not index.isValid() or not (0 <= index.row() < self.rowCount()):
+            return None
+
+        partition = self._partitions[index.row()]
+
+        if role == QtCore.Qt.DisplayRole:
+            return partition.key
+        elif role == QtCore.Qt.EditRole:
+            return partition.key
+        elif role == self.PartitionRole:
+            return partition
+
+        return None
+
+    @override
+    def flags(self, index):
+        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
+
+    def set_partitions(self, partitions: iter[tuple[str, dict[str, str]]]):
+        self.beginResetModel()
+        self._partitions = [Partition(key, map) for key, map in partitions]
+        self.endResetModel()
+        self.partitionsChanged.emit(self.all())
+
+    def all(self):
+        return list(self._partitions)
 
 
 class DivisionListModel(QtCore.QAbstractListModel):
@@ -56,6 +107,53 @@ class DivisionListModel(QtCore.QAbstractListModel):
 
         self.dataChanged.connect(self.handle_data_changed)
         self.modelReset.connect(self.handle_data_changed)
+
+    @override
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return len(self._divisions)
+
+    @override
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if not index.isValid() or not (0 <= index.row() < self.rowCount()):
+            return None
+
+        key = self._divisions[index.row()].key
+        color = self._divisions[index.row()].color
+
+        if role == QtCore.Qt.DisplayRole:
+            return key
+        elif role == QtCore.Qt.EditRole:
+            return color
+        elif role == QtCore.Qt.DecorationRole:
+            color = QtGui.QColor(color)
+            pixmap = QtGui.QPixmap(16, 16)
+            pixmap.fill(color)
+            return QtGui.QIcon(pixmap)
+
+        return None
+
+    @override
+    def setData(self, index, value, role=QtCore.Qt.EditRole):
+        if not index.isValid() or not (0 <= index.row() < self.rowCount()):
+            return False
+
+        if role == QtCore.Qt.EditRole:
+            color = value.strip()
+            if not color.startswith('#'):
+                color = '#' + color
+
+            if not QtGui.QColor.isValidColor(color):
+                return False
+
+            self._divisions[index.row()].color = color
+            self.dataChanged.emit(index, index)
+            return True
+
+        return False
+
+    @override
+    def flags(self, index):
+        return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
     def set_divisions_from_keys(self, keys):
         self.beginResetModel()
@@ -78,49 +176,6 @@ class DivisionListModel(QtCore.QAbstractListModel):
     def handle_data_changed(self, *args, **kwargs):
         self.colorMapChanged.emit(self.get_color_map())
 
-    def rowCount(self, parent=QtCore.QModelIndex()):
-        return len(self._divisions)
-
-    def data(self, index, role=QtCore.Qt.DisplayRole):
-        if not index.isValid() or not (0 <= index.row() < self.rowCount()):
-            return None
-
-        key = self._divisions[index.row()].key
-        color = self._divisions[index.row()].color
-
-        if role == QtCore.Qt.DisplayRole:
-            return key
-        elif role == QtCore.Qt.EditRole:
-            return color
-        elif role == QtCore.Qt.DecorationRole:
-            color = QtGui.QColor(color)
-            pixmap = QtGui.QPixmap(16, 16)
-            pixmap.fill(color)
-            return QtGui.QIcon(pixmap)
-
-        return None
-
-    def setData(self, index, value, role=QtCore.Qt.EditRole):
-        if not index.isValid() or not (0 <= index.row() < self.rowCount()):
-            return False
-
-        if role == QtCore.Qt.EditRole:
-            color = value.strip()
-            if not color.startswith('#'):
-                color = '#' + color
-
-            if not QtGui.QColor.isValidColor(color):
-                return False
-
-            self._divisions[index.row()].color = color
-            self.dataChanged.emit(index, index)
-            return True
-
-        return False
-
-    def flags(self, index):
-        return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
-
     def all(self):
         return list(self._divisions)
 
@@ -142,9 +197,14 @@ class ScaleSettings(PropertyObject):
 
 
 class Settings(PropertyObject):
-    palette = Property(Palette, Palette.Spring())
+    partitions = Property(PartitionListModel, Instance)
     divisions = Property(DivisionListModel, Instance)
+
+    partition_index = Property(QtCore.QModelIndex, Instance)
+
+    palette = Property(Palette, Palette.Spring())
     highlight_color = Property(QtGui.QColor, QtCore.Qt.magenta)
+
     font = Property(QtGui.QFont, None)
     rotational_movement = Property(bool, True)
     recursive_movement = Property(bool, True)

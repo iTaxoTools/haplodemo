@@ -27,7 +27,9 @@ from .dialogs import (
     NodeSizeDialog, PenWidthDialog, ScaleMarksDialog)
 from .scene import GraphicsScene, GraphicsView, Settings
 from .visualizer import Visualizer
-from .widgets import ColorDelegate, DivisionView, PaletteSelector, ToggleButton
+from .widgets import (
+    ColorDelegate, DivisionView, PaletteSelector, PartitionSelector,
+    ToggleButton)
 from .zoom import ZoomControl
 
 
@@ -46,6 +48,8 @@ class Window(QtWidgets.QWidget):
         scene.style_labels(settings.node_label_template, settings.edge_label_template)
 
         scene_view = GraphicsView(scene, opengl)
+
+        partition_selector = PartitionSelector(settings.partitions)
 
         palette_selector = PaletteSelector()
 
@@ -177,6 +181,7 @@ class Window(QtWidgets.QWidget):
         right_layout.addSpacing(4)
         right_layout.addWidget(HLineSeparator(1))
         right_layout.addSpacing(4)
+        right_layout.addWidget(partition_selector)
         right_layout.addWidget(palette_selector)
         right_layout.addWidget(division_view, 1)
 
@@ -202,6 +207,10 @@ class Window(QtWidgets.QWidget):
         self.settings = settings
 
         self.binder = Binder()
+
+        self.binder.bind(settings.partitions.partitionsChanged, partition_selector.setVisible, lambda partitions: len(partitions) > 0)
+        self.binder.bind(partition_selector.modelIndexChanged, settings.properties.partition_index)
+        self.binder.bind(settings.properties.partition_index, partition_selector.setModelIndex)
 
         self.binder.bind(palette_selector.currentValueChanged, settings.properties.palette)
         self.binder.bind(settings.properties.palette, palette_selector.setValue)

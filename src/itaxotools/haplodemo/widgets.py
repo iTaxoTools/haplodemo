@@ -21,7 +21,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from itaxotools.common.utility import Guard
 
 from .palettes import Palette
-from .scene import DivisionListModel
+from .scene import DivisionListModel, PartitionListModel
 
 
 class GLineEdit(QtWidgets.QLineEdit):
@@ -94,6 +94,22 @@ class ToggleButton(QtWidgets.QPushButton):
 
     def sizeHint(self):
         return super().sizeHint() + QtCore.QSize(48, 0)
+
+
+class PartitionSelector(QtWidgets.QComboBox):
+    modelIndexChanged = QtCore.Signal(QtCore.QModelIndex)
+
+    def __init__(self, model: PartitionListModel):
+        super().__init__()
+        self.setModel(model)
+        self.currentIndexChanged.connect(self.handleIndexChanged)
+
+    def handleIndexChanged(self, row: int):
+        index = self.model().index(row, 0)
+        self.modelIndexChanged.emit(index)
+
+    def setModelIndex(self, index: QtCore.QModelIndex):
+        self.setCurrentIndex(index.row())
 
 
 class PaletteSelector(QtWidgets.QComboBox):

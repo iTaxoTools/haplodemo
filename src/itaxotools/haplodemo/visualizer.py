@@ -16,6 +16,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 from collections import Counter, defaultdict
 
 import networkx as nx
@@ -25,7 +27,7 @@ from .items.bezier import BezierCurve
 from .items.boxes import RectBox
 from .items.nodes import Edge, Node, Vertex
 from .layout import modified_spring_layout
-from .scene import GraphicsScene, Settings
+from .scene import GraphicsScene, PartitionListModel, Settings
 from .types import HaploGraph, HaploTreeNode, LayoutType
 
 
@@ -45,12 +47,16 @@ class Visualizer:
         self.tree: HaploTreeNode = None
 
         self.scene.nodeSelected.connect(self.handle_node_selected)
+        self.settings.properties.partition_index.notify.connect(self.handle_partition_selected)
 
     def clear(self):
         """If visualizer is used, scene should be cleared through here to
         properly unbind settings from older objects"""
         self.binder.unbind_all()
         self.scene.clear()
+
+        # self.settings.divisions.set_divisions_from_keys([])
+        self.settings.partitions.set_partitions([])
 
         self.items = {}
         self.members = defaultdict(list)
@@ -61,8 +67,13 @@ class Visualizer:
     def set_divisions(self, divisions: list[str]):
         self.settings.divisions.set_divisions_from_keys(divisions)
 
+    def set_partitions(self, partitions: iter[tuple[str, dict[str, str]]]):
+        self.settings.partitions.set_partitions(partitions)
+
     def set_partition(self, partition: dict[str, str]):
         self.partition = defaultdict(str, partition)
+        divisions_set = {subset for subset in partition.values()}
+        self.set_divisions(list(sorted(divisions_set)))
         if self.items:
             self.colorize_nodes()
 
@@ -250,3 +261,8 @@ class Visualizer:
 
     def handle_node_selected(self, name):
         print('>', name, ':', self.members[name])
+
+    def handle_partition_selected(self, index):
+        partition = index.data(PartitionListModel.PartitionRole)
+        if partition is not None:
+            self.set_partition(partition.map)
