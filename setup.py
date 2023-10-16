@@ -11,7 +11,7 @@ long_description = (here / 'README.md').read_text(encoding='utf-8')
 
 setup(
     name='haplodemo',
-    version='0.0.1',
+    version='0.0.2',
     description='Visualize, edit and export haplotype networks',
     long_description=long_description,
     long_description_content_type='text/markdown',
