@@ -55,6 +55,7 @@ class HaploTreeNode:
             return self.pops.total()
         if self.members:
             return len(self.members)
+        return 0
 
     def __str__(self):
         total = self.pops.total()
@@ -82,6 +83,7 @@ class HaploGraphNode:
             return self.pops.total()
         if self.members:
             return len(self.members)
+        return 0
 
 
 @dataclass
