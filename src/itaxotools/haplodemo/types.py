@@ -60,7 +60,8 @@ class HaploTreeNode:
         total = self.pops.total()
         per_pop_strings = (f'{v} \u00D7 {k}' for k, v in self.pops.items())
         all_pops_string = ' + '.join(per_pop_strings)
-        return f"<{self.id}: {total} = {all_pops_string}>"
+        members_string = ', '.join(self.members)
+        return f"<{self.id}: {total} = {all_pops_string}; {members_string}>"
 
     def print(self, level=0, length=5, file=stdout):
         mutations_string = str(self.mutations).center(length, '\u2500')
