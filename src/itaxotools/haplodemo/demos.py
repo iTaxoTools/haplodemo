@@ -156,70 +156,78 @@ class DemoLoader:
         self.settings.show_legend = True
         self.settings.show_scale = True
         self.settings.edge_length = 40
-        self.settings.node_label_template = 'WEIGHT'
+        self.settings.node_label_template = 'NAME/WEIGHT'
         self.settings.font = self.get_font('Arial', 24)
 
         tree = self.get_members_tree()
         self.visualizer.visualize_tree(tree)
 
         partitions = self.get_members_partitions()
+
         self.visualizer.set_partitions(partitions.items())
+        self.visualizer.visualize_haploweb()
 
     def get_members_tree(self) -> HaploTreeNode:
-        root = HaploTreeNode('root')
-        root.add_members(['a1', 'a2', 'a3', 'b1', 'b2'])
-
         a = HaploTreeNode('a')
-        a.add_members(['a4', 'a5', 'a6'])
-        root.add_child(a, 1)
+        a.add_members(['x', 'y', 'z', 'r', 's', 't'])
 
         b = HaploTreeNode('b')
-        b.add_members(['b3', 'b4'])
-        root.add_child(b, 4)
+        b.add_members(['x', 'y', 's'])
+        a.add_child(b, 1)
 
         c = HaploTreeNode('c')
-        c.add_members(['b5'])
-        b.add_child(c, 1)
+        c.add_members(['k', 'l', 'm'])
+        a.add_child(c, 4)
 
         d = HaploTreeNode('d')
-        d.add_members(['c1'])
-        b.add_child(d, 2)
+        d.add_members(['m', 'n'])
+        c.add_child(d, 1)
 
-        return root
+        e = HaploTreeNode('e')
+        e.add_members(['n'])
+        c.add_child(e, 2)
+
+        f = HaploTreeNode('f')
+        f.add_members(['o'])
+        a.add_child(f, 3)
+
+        return a
 
     def get_members_partitions(self) -> dict[str, dict[str, str]]:
         return {
             'Few': {
-                'a1': 'A',
-                'a2': 'A',
-                'a3': 'A',
-                'a4': 'A',
-                'a5': 'A',
-                'a6': 'A',
+                'x': 'A',
+                'y': 'A',
+                'z': 'A',
 
-                'b1': 'E',
-                'b2': 'E',
-                'b3': 'E',
-                'b4': 'E',
-                'b5': 'E',
+                'r': 'A',
+                's': 'A',
+                't': 'A',
 
-                'c1': 'C',
+                'k': 'E',
+                'l': 'E',
+
+                'm': 'E',
+                'n': 'E',
+
+                'o': 'A',
             },
             'Many': {
-                'a1': 'E',
-                'a2': 'F',
-                'a3': 'A',
-                'a4': 'A',
-                'a5': 'D',
-                'a6': 'D',
+                'x': 'A',
+                'y': 'A',
+                'z': 'A',
 
-                'b1': 'B',
-                'b2': 'B',
-                'b3': 'E',
-                'b4': 'E',
-                'b5': 'F',
+                'r': 'B',
+                's': 'B',
+                't': 'C',
 
-                'c1': 'C',
+                'k': 'D',
+                'l': 'D',
+
+                'm': 'E',
+                'n': 'E',
+
+                'o': 'C',
             },
         }
 

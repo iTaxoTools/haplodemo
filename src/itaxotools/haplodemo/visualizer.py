@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 from collections import Counter, defaultdict
+from itertools import combinations
 
 import networkx as nx
 from itaxotools.common.bindings import Binder
@@ -43,7 +44,7 @@ class Visualizer:
         self.binder = Binder()
 
         self.items: dict[str, Vertex] = {}
-        self.members: dict[str, list[str]] = defaultdict(list)
+        self.members: dict[str, set[str]] = defaultdict(set)
         self.partition: dict[str, str] = defaultdict(str)
         self.graph: HaploGraph = None
         self.tree: HaploTreeNode = None
@@ -61,7 +62,7 @@ class Visualizer:
         self.settings.partitions.set_partitions([])
 
         self.items = {}
-        self.members = defaultdict(list)
+        self.members = defaultdict(set)
         self.partition = defaultdict(str)
         self.graph = None
         self.tree = None
@@ -223,6 +224,53 @@ class Visualizer:
             weights = Counter(self.partition[member] for member in self.members[id])
             item.weights = dict(weights)
             item.update_colors(color_map)
+
+    def visualize_haploweb(self):
+        if not self.members:
+            return
+        edges: dict[tuple[str, str], int] = {}
+        for x, y in combinations(self.members, 2):
+            common = self.members[x] & self.members[y]
+            edges[(x, y)] = len(common)
+
+        groups: list[str] = self._find_groups_from_edges(edges)
+
+        for (x, y), v in edges.items():
+            if v > 0:
+                bezier = self.create_bezier(self.items[x], self.items[y])
+                bezier.bump(0.3)
+
+        for group in groups:
+            self.create_rect_box([self.items[x] for x in group])
+
+    def _find_groups_from_edges(self, edges: dict[tuple[str, str], int]):
+        graph = defaultdict(set)
+        for (a, b), v in edges.items():
+            if v > 0:
+                graph[a].add(b)
+                graph[b].add(a)
+
+        visited: set[str] = set()
+        groups: list[set[str]] = []
+
+        for node in graph:
+            if node not in visited:
+                group = self._find_group_for_node(graph, node, visited)
+                groups.append(group)
+
+        return groups
+
+    def _find_group_for_node(self, graph: dict[str, set[str]], node: str, visited: set[str]) -> set[str]:
+        group = set()
+        self._find_group_for_node_dfs(graph, node, visited, group)
+        return group
+
+    def _find_group_for_node_dfs(self, graph: dict[str, set[str]], node: str, visited: set[str], group: set[str]):
+        visited.add(node)
+        group.add(node)
+        for child in graph[node]:
+            if child not in visited:
+                self._find_group_for_node_dfs(graph, child, visited, group)
 
     def create_vertex(self, *args, **kwargs):
         item = Vertex(*args, **kwargs)

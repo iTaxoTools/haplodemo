@@ -37,7 +37,7 @@ class HaploTreeNode:
         self.parent = None
         self.mutations = 0
         self.pops = Counter()
-        self.members = list[str]()
+        self.members = set[str]()
 
     def add_child(self, node: HaploTreeNode, mutations: int = 0):
         self.children.append(node)
@@ -48,7 +48,7 @@ class HaploTreeNode:
         self.pops.update(pops)
 
     def add_members(self, members: iter[str]):
-        self.members.extend([member for member in members])
+        self.members.update([member for member in members])
 
     def get_size(self):
         if self.pops:
@@ -74,7 +74,7 @@ class HaploTreeNode:
 class HaploGraphNode:
     id: str
     pops: Counter[str] = field(default_factory=Counter)
-    members: list[str] = field(default_factory=list)
+    members: set[str] = field(default_factory=set)
 
     def get_size(self):
         if self.pops:
