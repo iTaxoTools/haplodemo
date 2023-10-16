@@ -57,7 +57,7 @@ class Visualizer:
         self.binder.unbind_all()
         self.scene.clear()
 
-        # self.settings.divisions.set_divisions_from_keys([])
+        self.settings.divisions.set_divisions_from_keys([])
         self.settings.partitions.set_partitions([])
 
         self.items = {}
@@ -69,8 +69,25 @@ class Visualizer:
     def set_divisions(self, divisions: list[str]):
         self.settings.divisions.set_divisions_from_keys(divisions)
 
+    def set_divisions_from_tree(self, tree: HaploTreeNode):
+        divisions_set = set()
+        self._get_tree_divisions(divisions_set, tree)
+        self.set_divisions(list(sorted(divisions_set)))
+
+    def _get_tree_divisions(self, divisions: set, node: HaploTreeNode):
+        divisions.update(node.pops.keys())
+        for child in node.children:
+            self._get_tree_divisions(divisions, child)
+
+    def set_divisions_from_graph(self, haplo_graph: HaploGraph):
+        divisions_set = set()
+        for node in haplo_graph.nodes:
+            divisions_set.update(node.pops.keys())
+        self.set_divisions(list(sorted(divisions_set)))
+
     def set_partitions(self, partitions: iter[tuple[str, dict[str, str]]]):
         self.settings.partitions.set_partitions(partitions)
+        self.scene.set_boundary_to_contents()
 
     def set_partition(self, partition: dict[str, str]):
         self.partition = defaultdict(str, partition)
@@ -81,6 +98,9 @@ class Visualizer:
 
     def visualize_tree(self, tree: HaploTreeNode):
         self.clear()
+
+        self.set_divisions_from_tree(tree)
+
         self.graph = nx.Graph()
         self.tree = tree
 
@@ -125,6 +145,9 @@ class Visualizer:
 
     def visualize_graph(self, haplo_graph: HaploGraph):
         self.clear()
+
+        self.set_divisions_from_graph(haplo_graph)
+
         self.graph = nx.Graph()
         self.tree = None
 

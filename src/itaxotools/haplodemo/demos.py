@@ -97,7 +97,6 @@ class DemoLoader:
         self.settings.reset()
         self.settings.node_sizes.set_all_values(0, 0, 0, 0, 0, 30)
 
-
         self.visualizer.clear()
         self.visualizer.set_divisions(['X', 'Y'])
         self.add_demo_nodes_many(8, 32)
@@ -125,8 +124,6 @@ class DemoLoader:
         self.settings.edge_length = 40
         self.settings.node_label_template = 'WEIGHT'
         self.settings.font = self.get_font('Arial', 24)
-
-        self.visualizer.set_divisions(['A', 'B', 'C'])
 
         tree = self.get_tiny_tree()
         self.visualizer.visualize_tree(tree)
@@ -236,16 +233,6 @@ class DemoLoader:
         self.settings.pen_width_edges = 4
         self.settings.node_label_template = 'WEIGHT'
         self.settings.font = self.get_font('Arial', 24)
-
-        self.visualizer.set_divisions([
-            'Asia',
-            'Africa',
-            'North America',
-            'South America',
-            'Europe',
-            'Australia',
-            'Antarctica',
-        ])
 
         tree = self.get_long_tree()
         self.visualizer.visualize_tree(tree)
@@ -400,8 +387,6 @@ class DemoLoader:
         self.settings.edge_length = 20
         self.settings.node_label_template = 'WEIGHT'
 
-        self.visualizer.set_divisions(['A', 'B'])
-
         tree = self.get_heavy_tree()
         self.visualizer.visualize_tree(tree)
 
@@ -436,8 +421,6 @@ class DemoLoader:
         self.settings.show_scale = True
         self.settings.edge_length = 20
         self.settings.node_label_template = 'WEIGHT'
-
-        self.visualizer.set_divisions(['A', 'B'])
 
         graph = self.get_cycled_graph()
         self.visualizer.visualize_graph(graph)
