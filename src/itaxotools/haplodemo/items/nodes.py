@@ -549,6 +549,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.locked_event_pos = None
         self.locked_angle = None
         self.locked_center = None
+        self.locked_beziers = None
 
         self.state_hovered = False
         self.state_pressed = False
@@ -605,7 +606,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
             # should we be using signals instead?
             for bezier in self.beziers.values():
-                bezier.adjustPosition()
+                bezier.adjust_position()
             for edge in self.edges.values():
                 edge.adjustPosition()
             for box in self.boxes:
@@ -762,6 +763,9 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def lockPosition(self, event, center=None):
         self.locked_event_pos = event.scenePos()
         self.locked_pos = self.pos()
+        self.locked_beziers = {
+            bezier: QtCore.QPointF(bezier.get_control_point_for_node(self))
+            for bezier in self.beziers.values()}
 
         if center is not None:
             line = QtCore.QLineF(center, event.scenePos())
@@ -771,9 +775,18 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def applyTranspose(self, diff):
         self.setPos(self.locked_pos + diff)
 
+        for bezier in self.beziers.values():
+            locked_bezier_pos = self.locked_beziers[bezier]
+            bezier.set_control_point_for_node(self, locked_bezier_pos + diff)
+
     def applyTransform(self, transform):
         pos = transform.map(self.locked_pos)
         self.setPos(pos)
+
+        for bezier in self.beziers.values():
+            locked_bezier_pos = self.locked_beziers[bezier]
+            new_bezier_pos = transform.map(locked_bezier_pos)
+            bezier.set_control_point_for_node(self, new_bezier_pos)
 
     def moveOrthogonally(self, event):
         epos = event.scenePos()

@@ -58,6 +58,8 @@ class BezierHandlePhantom(QtWidgets.QGraphicsEllipseItem):
         super().__init__(-r, -r, r * 2, r * 2, parent)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setPos(point.x(), point.y())
+        self.setBrush(QtCore.Qt.NoBrush)
+        self.setPen(QtCore.Qt.NoPen)
 
         self.handle = BezierHandle(self, point, r)
         self.scene().addItem(self.handle)
@@ -65,7 +67,7 @@ class BezierHandlePhantom(QtWidgets.QGraphicsEllipseItem):
     @override
     def itemChange(self, change, value):
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
-            self.parentItem().moveHandle(self)
+            self.parentItem().move_handle(self)
         return super().itemChange(change, value)
 
 
@@ -93,7 +95,7 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
         self._pen_shape = QtGui.QPen(QtCore.Qt.black, 12)
 
         self.setPen(self._pen_shape)
-        self.updatePath()
+        self.update_path()
 
     @override
     def shape(self):
@@ -113,17 +115,33 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
     @override
     def mouseDoubleClickEvent(self, event):
         if self.h1:
-            self.removeControls()
+            self.remove_controls()
         else:
-            self.addControls()
+            self.add_controls()
 
-    def addControls(self):
+    def get_control_point_for_node(self, node):
+        if node == self.node1:
+            return self.c1
+        if node == self.node2:
+            return self.c2
+        raise ValueError('node not in bezier')
+
+    def set_control_point_for_node(self, node, point):
+        if node == self.node1:
+            self.c1 = point
+            return
+        if node == self.node2:
+            self.c2 = point
+            return
+        raise ValueError('node not in bezier')
+
+    def add_controls(self):
         self.l1 = BezierHandleLine(self, self.p1, self.c1)
         self.l2 = BezierHandleLine(self, self.p2, self.c2)
         self.h1 = BezierHandlePhantom(self, self.c1)
         self.h2 = BezierHandlePhantom(self, self.c2)
 
-    def removeControls(self):
+    def remove_controls(self):
         if self.scene():
             self.scene().removeItem(self.l1)
             self.scene().removeItem(self.l2)
@@ -136,21 +154,22 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
         self.h1 = None
         self.h2 = None
 
-    def moveHandle(self, handle):
+    def move_handle(self, handle):
         if handle is self.h1:
             self.c1 = handle.pos()
         if handle is self.h2:
             self.c2 = handle.pos()
-        self.updatePath()
+        self.update_path()
 
-    def updatePath(self):
+    def update_path(self):
         path = QtGui.QPainterPath()
         path.moveTo(self.p1)
         path.cubicTo(self.c1, self.c2, self.p2)
         self.setPath(path)
-        self.updateHandleLines()
+        self.update_handle_lines()
+        self.update_handle_points()
 
-    def updateHandleLines(self):
+    def update_handle_lines(self):
         if self.l1:
             line = QtCore.QLineF(self.p1, self.c1)
             self.l1.setLine(line)
@@ -158,10 +177,16 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
             line = QtCore.QLineF(self.p2, self.c2)
             self.l2.setLine(line)
 
-    def adjustPosition(self):
+    def update_handle_points(self):
+        if self.h1:
+            self.h1.handle.setPos(self.c1)
+        if self.h2:
+            self.h2.handle.setPos(self.c2)
+
+    def adjust_position(self):
         self.p1 = self.node1.pos()
         self.p2 = self.node2.pos()
-        self.updatePath()
+        self.update_path()
 
     def bump(self, away: float = 1.0, at: float = 0.5):
         line = QtCore.QLineF(self.p1, self.p2)
@@ -176,4 +201,4 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
         l2 = QtCore.QLineF(self.p2, p3)
         self.c2 = l2.pointAt(at)
 
-        self.updatePath()
+        self.update_path()
