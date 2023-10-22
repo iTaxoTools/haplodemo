@@ -48,10 +48,8 @@ class RectBox(QtWidgets.QGraphicsRectItem):
 
     def adjustPosition(self):
         if not self.items:
-            self.setVisible(False)
             return
 
-        self.setVisible(True)
         bounds = QtCore.QRectF()
         for item in self.items:
             rect = QtCore.QRectF(item.rect())
