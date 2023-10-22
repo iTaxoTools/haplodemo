@@ -56,11 +56,17 @@ class ScaleSettings(PropertyObject):
     marks = Property(list, [5, 10, 20])
 
 
+class FieldSettings(PropertyObject):
+    show_groups = Property(bool, True)
+    show_isolated = Property(bool, True)
+
+
 class Settings(PropertyObject):
     partitions = Property(PartitionListModel, Instance, tag='frozen')
     divisions = Property(DivisionListModel, Instance, tag='frozen')
 
     node_sizes = Property(NodeSizeSettings, Instance, tag='frozen')
+    fields = Property(FieldSettings, Instance, tag='frozen')
     scale = Property(ScaleSettings, Instance, tag='frozen')
 
     partition_index = Property(QtCore.QModelIndex, Instance)
@@ -107,6 +113,7 @@ class Settings(PropertyObject):
         properties = chain(
             [p for p in self.properties if p.tag != 'frozen'],
             self.node_sizes.properties,
+            self.fields.properties,
             self.scale.properties,
         )
         for property in properties:

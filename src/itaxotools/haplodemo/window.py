@@ -124,6 +124,8 @@ class Window(QtWidgets.QWidget):
         toggle_labels = ToggleButton('Lock labels')
         toggle_legend = ToggleButton('Show legend')
         toggle_scale = ToggleButton('Show scale')
+        toggle_field_groups = ToggleButton('Show groups')
+        toggle_field_isolated = ToggleButton('Show isolated')
         toggle_scene_rotation = ToggleButton('Rotate scene')
 
         division_view = DivisionView(settings.divisions)
@@ -147,6 +149,14 @@ class Window(QtWidgets.QWidget):
         toggles.addWidget(toggle_scene_rotation)
         toggles.addWidget(toggle_legend)
         toggles.addWidget(toggle_scale)
+        toggles.addSpacing(4)
+        toggles.addWidget(HLineSeparator(1))
+        toggles.addSpacing(4)
+        toggles.addWidget(toggle_field_groups)
+        toggles.addWidget(toggle_field_isolated)
+        toggles.addSpacing(4)
+        toggles.addWidget(HLineSeparator(1))
+        toggles.addSpacing(4)
         toggles.addWidget(toggle_rotation)
         toggles.addWidget(toggle_recursive)
         toggles.addWidget(toggle_labels)
@@ -231,6 +241,12 @@ class Window(QtWidgets.QWidget):
 
         self.binder.bind(settings.properties.show_scale, toggle_scale.setChecked)
         self.binder.bind(toggle_scale.toggled, settings.properties.show_scale)
+
+        self.binder.bind(settings.fields.properties.show_groups, toggle_field_groups.setChecked)
+        self.binder.bind(toggle_field_groups.toggled, settings.fields.properties.show_groups)
+
+        self.binder.bind(settings.fields.properties.show_isolated, toggle_field_isolated.setChecked)
+        self.binder.bind(toggle_field_isolated.toggled, settings.fields.properties.show_isolated)
 
         self.binder.bind(settings.properties.rotate_scene, toggle_scene_rotation.setChecked)
         self.binder.bind(toggle_scene_rotation.toggled, settings.properties.rotate_scene)

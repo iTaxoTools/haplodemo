@@ -27,6 +27,7 @@ from itaxotools.common.bindings import Binder
 
 from .items.bezier import BezierCurve, BezierHandle
 from .items.boundary import BoundaryEdgeHandle, BoundaryRect
+from .items.boxes import RectBox
 from .items.legend import Legend
 from .items.nodes import Edge, EdgeStyle, Label, Node, Vertex
 from .items.rotate import PivotHandle
@@ -425,6 +426,25 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
         root._mapRecursive(True, True, set(), set(), traverser, [angles], {}, None, None, None)
 
+    def set_boxes_visible(self, show_groups: bool, show_isolated: bool = True):
+        for item in self.items():
+            match item:
+                case RectBox():
+                    if len(item.items) == 1:
+                        visible = show_isolated
+                    else:
+                        visible = show_groups
+                    item.setVisible(visible)
+                case BezierCurve():
+                    item.setVisible(show_groups)
+                    if not show_groups and item.h1:
+                        item.remove_controls()
+
+    def update_boxes_visible(self):
+        show_groups = self.settings.fields.show_groups
+        show_isolated = self.settings.fields.show_isolated
+        self.set_boxes_visible(show_groups, show_isolated)
+
     def style_edges(self, style_default=EdgeStyle.Bubbles, cutoff=3):
         if not cutoff:
             cutoff = float('inf')
@@ -492,6 +512,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.binder.bind(self.settings.properties.rotate_scene, self.rotateModeChanged)
         self.binder.bind(self.settings.properties.show_legend, self.show_legend)
         self.binder.bind(self.settings.properties.show_scale, self.show_scale)
+
+        self.binder.bind(self.settings.fields.properties.show_groups, self.update_boxes_visible)
+        self.binder.bind(self.settings.fields.properties.show_isolated, self.update_boxes_visible)
 
     def clear(self):
         super().clear()
