@@ -175,9 +175,12 @@ class DemoLoader:
         b.add_members(['x', 'y', 's'])
         a.add_child(b, 1)
 
+        x = HaploTreeNode('x')
+        a.add_child(x, 2)
+
         c = HaploTreeNode('c')
         c.add_members(['k', 'l', 'm'])
-        a.add_child(c, 4)
+        x.add_child(c, 2)
 
         d = HaploTreeNode('d')
         d.add_members(['m', 'n'])

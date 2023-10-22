@@ -243,11 +243,12 @@ class Visualizer:
         for group in groups:
             self.create_rect_box([self.items[x] for x in group])
 
-        grouped_members = {name for group in groups for name in group}
-        isolated_members = set(self.members) - grouped_members
+        grouped_nodes = {name for group in groups for name in group}
+        isolated_nodes = set(self.members.keys()) - grouped_nodes
 
-        for name in isolated_members:
-            self.create_rect_box([self.items[name]])
+        for name in isolated_nodes:
+            if self.members[name]:
+                self.create_rect_box([self.items[name]])
 
     def _find_groups_from_edges(self, edges: dict[tuple[str, str], int]):
         graph = defaultdict(set)
