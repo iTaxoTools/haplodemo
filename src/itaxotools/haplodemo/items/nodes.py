@@ -554,6 +554,10 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.snap_angle_threshold = 4.0
         self.snap_angles = [45 * x for x in range(9)]
 
+        self.snap_axis_threshold = 16.0
+        self.snap_axis_xs = []
+        self.snap_axis_ys = []
+
         self.state_hovered = False
         self.state_pressed = False
 
@@ -775,6 +779,11 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
             self.locked_angle = line.angle()
             self.locked_center = center
 
+        if not self.isMovementRotational():
+            positions = [item.pos() for item in self.edges.keys()]
+            self.snap_axis_xs = [pos.x() for pos in positions]
+            self.snap_axis_ys = [pos.y() for pos in positions]
+
     def applyTranspose(self, diff):
         self.setPos(self.locked_pos + diff)
 
@@ -794,6 +803,28 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def moveOrthogonally(self, event):
         epos = event.scenePos()
         diff = epos - self.locked_event_pos
+
+        new_pos = self.locked_pos + diff
+
+        diff_xs = [x - new_pos.x() for x in self.snap_axis_xs]
+        diff_ys = [y - new_pos.y() for y in self.snap_axis_ys]
+
+        abs_diff_xs = [abs(x) for x in diff_xs]
+        abs_diff_ys = [abs(y) for y in diff_ys]
+
+        min_abs_diff_x = min(abs_diff_xs)
+        min_abs_diff_y = min(abs_diff_ys)
+
+        if min_abs_diff_x < self.snap_axis_threshold:
+            index_of_min_diff_x = abs_diff_xs.index(min_abs_diff_x)
+            diff_x = diff_xs[index_of_min_diff_x]
+            diff.setX(diff.x() + diff_x)
+
+        if min_abs_diff_y < self.snap_axis_threshold:
+            index_of_min_diff_y = abs_diff_ys.index(min_abs_diff_y)
+            diff_y = diff_ys[index_of_min_diff_y]
+            diff.setY(diff.y() + diff_y)
+
         if self.isMovementRecursive():
             return self.mapNodeRecursive(type(self).applyTranspose, diff)
         return self.applyTranspose(diff)
