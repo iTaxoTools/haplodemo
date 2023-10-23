@@ -551,6 +551,9 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.locked_center = None
         self.locked_beziers = None
 
+        self.snap_angle_threshold = 4.0
+        self.snap_angles = [45 * x for x in range(9)]
+
         self.state_hovered = False
         self.state_pressed = False
 
@@ -805,6 +808,21 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         transform.translate(center.x(), center.y())
         transform.rotate(angle)
         transform.translate(-center.x(), -center.y())
+
+        new_pos = transform.map(self.locked_pos)
+        absolute_line = QtCore.QLineF(self.locked_center, new_pos)
+        absolute_angle = absolute_line.angle()
+
+        snap_diffs = [absolute_angle - snap_angle for snap_angle in self.snap_angles]
+        snap_abs_diffs = [abs(snap_diff) for snap_diff in snap_diffs]
+        min_abs_diff = min(snap_abs_diffs)
+
+        if min_abs_diff < self.snap_angle_threshold:
+            index_of_min_diff = snap_abs_diffs.index(min_abs_diff)
+            snap_diff = snap_diffs[index_of_min_diff]
+            transform.translate(center.x(), center.y())
+            transform.rotate(snap_diff)
+            transform.translate(-center.x(), -center.y())
 
         if self.isMovementRecursive():
             return self.mapNodeRecursive(type(self).applyTransform, transform)
