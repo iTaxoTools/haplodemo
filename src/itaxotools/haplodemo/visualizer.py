@@ -278,6 +278,7 @@ class Visualizer:
 
     def create_vertex(self, *args, **kwargs):
         item = Vertex(*args, **kwargs)
+        self.binder.bind(self.settings.properties.snapping_movement, item.set_snapping_setting)
         self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
         self.binder.bind(self.settings.properties.recursive_movement, item.set_recursive_setting)
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
@@ -288,6 +289,7 @@ class Visualizer:
         item = Node(*args, **kwargs)
         item.update_colors(self.settings.divisions.get_color_map())
         self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
+        self.binder.bind(self.settings.properties.snapping_movement, item.set_snapping_setting)
         self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
         self.binder.bind(self.settings.properties.recursive_movement, item.set_recursive_setting)
         self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)

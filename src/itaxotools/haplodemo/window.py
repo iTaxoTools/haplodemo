@@ -117,6 +117,7 @@ class Window(QtWidgets.QWidget):
         select_font = QtWidgets.QPushButton('Set font')
         select_font.clicked.connect(self.font_dialog.exec)
 
+        toggle_snapping = ToggleButton('Enable snapping')
         toggle_rotation = ToggleButton('Rotate nodes')
         toggle_recursive = ToggleButton('Move children')
         toggle_labels = ToggleButton('Lock labels')
@@ -155,6 +156,7 @@ class Window(QtWidgets.QWidget):
         toggles.addSpacing(4)
         toggles.addWidget(HLineSeparator(1))
         toggles.addSpacing(4)
+        toggles.addWidget(toggle_snapping)
         toggles.addWidget(toggle_rotation)
         toggles.addWidget(toggle_recursive)
         toggles.addWidget(toggle_labels)
@@ -224,6 +226,9 @@ class Window(QtWidgets.QWidget):
         self.binder.bind(palette_selector.currentValueChanged, settings.properties.palette)
         self.binder.bind(settings.properties.palette, palette_selector.setValue)
         self.binder.bind(settings.properties.palette, ColorDelegate.setCustomColors)
+
+        self.binder.bind(settings.properties.snapping_movement, toggle_snapping.setChecked)
+        self.binder.bind(toggle_snapping.toggled, settings.properties.snapping_movement)
 
         self.binder.bind(settings.properties.rotational_movement, toggle_rotation.setChecked)
         self.binder.bind(toggle_rotation.toggled, settings.properties.rotational_movement)

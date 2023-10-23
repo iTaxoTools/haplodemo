@@ -551,7 +551,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.locked_center = None
         self.locked_beziers = None
 
-        self.snap_angle_threshold = 4.0
+        self.snap_angle_threshold = 8.0
         self.snap_angles = [45 * x for x in range(9)]
 
         self.snap_axis_threshold = 16.0
@@ -561,6 +561,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.state_hovered = False
         self.state_pressed = False
 
+        self._snapping_setting = None
         self._rotational_setting = None
         self._recursive_setting = None
         self.in_scene_rotation = False
@@ -699,6 +700,9 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
             edge.set_hovered(value)
         self.update()
 
+    def set_snapping_setting(self, value):
+        self._snapping_setting = value
+
     def set_rotational_setting(self, value):
         self._rotational_setting = value
 
@@ -804,26 +808,28 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         epos = event.scenePos()
         diff = epos - self.locked_event_pos
 
-        new_pos = self.locked_pos + diff
+        if self._snapping_setting:
 
-        diff_xs = [x - new_pos.x() for x in self.snap_axis_xs]
-        diff_ys = [y - new_pos.y() for y in self.snap_axis_ys]
+            new_pos = self.locked_pos + diff
 
-        abs_diff_xs = [abs(x) for x in diff_xs]
-        abs_diff_ys = [abs(y) for y in diff_ys]
+            diff_xs = [x - new_pos.x() for x in self.snap_axis_xs]
+            diff_ys = [y - new_pos.y() for y in self.snap_axis_ys]
 
-        min_abs_diff_x = min(abs_diff_xs)
-        min_abs_diff_y = min(abs_diff_ys)
+            abs_diff_xs = [abs(x) for x in diff_xs]
+            abs_diff_ys = [abs(y) for y in diff_ys]
 
-        if min_abs_diff_x < self.snap_axis_threshold:
-            index_of_min_diff_x = abs_diff_xs.index(min_abs_diff_x)
-            diff_x = diff_xs[index_of_min_diff_x]
-            diff.setX(diff.x() + diff_x)
+            min_abs_diff_x = min(abs_diff_xs)
+            min_abs_diff_y = min(abs_diff_ys)
 
-        if min_abs_diff_y < self.snap_axis_threshold:
-            index_of_min_diff_y = abs_diff_ys.index(min_abs_diff_y)
-            diff_y = diff_ys[index_of_min_diff_y]
-            diff.setY(diff.y() + diff_y)
+            if min_abs_diff_x < self.snap_axis_threshold:
+                index_of_min_diff_x = abs_diff_xs.index(min_abs_diff_x)
+                diff_x = diff_xs[index_of_min_diff_x]
+                diff.setX(diff.x() + diff_x)
+
+            if min_abs_diff_y < self.snap_axis_threshold:
+                index_of_min_diff_y = abs_diff_ys.index(min_abs_diff_y)
+                diff_y = diff_ys[index_of_min_diff_y]
+                diff.setY(diff.y() + diff_y)
 
         if self.isMovementRecursive():
             return self.mapNodeRecursive(type(self).applyTranspose, diff)
@@ -840,20 +846,22 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         transform.rotate(angle)
         transform.translate(-center.x(), -center.y())
 
-        new_pos = transform.map(self.locked_pos)
-        absolute_line = QtCore.QLineF(self.locked_center, new_pos)
-        absolute_angle = absolute_line.angle()
+        if self._snapping_setting:
 
-        snap_diffs = [absolute_angle - snap_angle for snap_angle in self.snap_angles]
-        snap_abs_diffs = [abs(snap_diff) for snap_diff in snap_diffs]
-        min_abs_diff = min(snap_abs_diffs)
+            new_pos = transform.map(self.locked_pos)
+            absolute_line = QtCore.QLineF(self.locked_center, new_pos)
+            absolute_angle = absolute_line.angle()
 
-        if min_abs_diff < self.snap_angle_threshold:
-            index_of_min_diff = snap_abs_diffs.index(min_abs_diff)
-            snap_diff = snap_diffs[index_of_min_diff]
-            transform.translate(center.x(), center.y())
-            transform.rotate(snap_diff)
-            transform.translate(-center.x(), -center.y())
+            snap_diffs = [absolute_angle - snap_angle for snap_angle in self.snap_angles]
+            snap_abs_diffs = [abs(snap_diff) for snap_diff in snap_diffs]
+            min_abs_diff = min(snap_abs_diffs)
+
+            if min_abs_diff < self.snap_angle_threshold:
+                index_of_min_diff = snap_abs_diffs.index(min_abs_diff)
+                snap_diff = snap_diffs[index_of_min_diff]
+                transform.translate(center.x(), center.y())
+                transform.rotate(snap_diff)
+                transform.translate(-center.x(), -center.y())
 
         if self.isMovementRecursive():
             return self.mapNodeRecursive(type(self).applyTransform, transform)

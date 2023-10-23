@@ -83,6 +83,7 @@ class Settings(PropertyObject):
     highlight_color = Property(QtGui.QColor, QtCore.Qt.magenta)
 
     font = Property(QtGui.QFont, get_default_font())
+    snapping_movement = Property(bool, True)
     rotational_movement = Property(bool, True)
     recursive_movement = Property(bool, True)
     label_movement = Property(bool, False)
