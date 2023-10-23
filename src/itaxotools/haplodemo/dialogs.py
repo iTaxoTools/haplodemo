@@ -178,62 +178,89 @@ class NodeSizeDialog(BoundOptionsDialog):
         self.draw_dialog(contents)
 
     def draw_contents(self):
-        return QtWidgets.QVBoxLayout()
-        label_info = QtWidgets.QLabel('Set node radius (r) from node weight (w) according to the following formula:')
+        label_info = QtWidgets.QLabel('Set node size from node weight, that is the haplotype count of the node:')
         label_info.setWordWrap(True)
 
-        dot = ' \u00B7 '
-        sub = '<sub>b</sub>'
-        formula = f'r = a{dot}log{sub}(c{dot}w+d) + e{dot}w + f'
-        label_formula = QtWidgets.QLabel(formula)
-        label_formula.setStyleSheet("padding: 4; font: 16px;")
-        label_formula.setAlignment(QtCore.Qt.AlignCenter)
-
         labels = AttrDict()
-        for x in ['a', 'b', 'c', 'd', 'e', 'f']:
-            labels[x] = QtWidgets.QLabel(f'{x}:')
+        labels.base_radius = QtWidgets.QLabel('Base radius:')
+        labels.linear_factor = QtWidgets.QLabel('Linear factor:')
+        labels.area_factor = QtWidgets.QLabel('Area factor:')
+        labels.logarithmic_factor = QtWidgets.QLabel('Log. factor:')
 
         fields = AttrDict()
-        for x in ['a', 'b', 'c', 'd', 'e', 'f']:
-            field = QtWidgets.QDoubleSpinBox()
-            field.setMaximum(float('inf'))
-            field.setSingleStep(1)
-            field.setDecimals(2)
-            property = self.settings.properties[x]
-            self.binder.bind(field.valueChanged, property, lambda x: type_convert(x, float, None))
-            self.binder.bind(property, field.setValue, lambda x: type_convert(x, float, 0))
-            fields[x] = field
+        properties = self.settings.properties
+        fields.base_radius = self.create_int_box(properties.base_radius)
+        fields.linear_factor = self.create_float_box(properties.linear_factor)
+        fields.area_factor = self.create_float_box(properties.area_factor)
+        fields.logarithmic_factor = self.create_float_box(properties.logarithmic_factor)
 
-        fields.b.setMinimum(2)
+        descrs = AttrDict()
+        descrs.base_radius = QtWidgets.QLabel('Starting node radius, regardless of weight.')
+        descrs.linear_factor = QtWidgets.QLabel('Increase radius proportionally to weight.')
+        descrs.area_factor = QtWidgets.QLabel('Increase area proportionally to weight.')
+        descrs.logarithmic_factor = QtWidgets.QLabel('Increase radius logarithmically (base 10).')
+
+        for descr in descrs.values():
+            font = descr.font()
+            font.setItalic(True)
+            descr.setFont(font)
 
         controls = QtWidgets.QGridLayout()
-        controls.setContentsMargins(8, 8, 8, 8)
+        controls.setContentsMargins(16, 16, 16, 8)
         controls.setColumnMinimumWidth(1, 8)
+        controls.setColumnMinimumWidth(2, 60)
         controls.setColumnMinimumWidth(3, 8)
-        controls.setColumnMinimumWidth(5, 8)
-        controls.setColumnStretch(2, 1)
-        controls.setColumnStretch(6, 1)
+        controls.setColumnStretch(4, 1)
 
-        controls.addWidget(labels.a, 0, 0)
-        controls.addWidget(fields.a, 0, 2)
-        controls.addWidget(labels.b, 0, 4)
-        controls.addWidget(fields.b, 0, 6)
+        row = 0
+        controls.addWidget(labels.base_radius, row, 0)
+        controls.addWidget(fields.base_radius, row, 2)
+        controls.addWidget(descrs.base_radius, row, 4)
 
-        controls.addWidget(labels.c, 1, 0)
-        controls.addWidget(fields.c, 1, 2)
-        controls.addWidget(labels.d, 1, 4)
-        controls.addWidget(fields.d, 1, 6)
+        row += 1
+        controls.setRowMinimumHeight(row, 16)
 
-        controls.addWidget(labels.e, 2, 0)
-        controls.addWidget(fields.e, 2, 2)
-        controls.addWidget(labels.f, 2, 4)
-        controls.addWidget(fields.f, 2, 6)
+        row += 1
+        controls.addWidget(labels.linear_factor, row, 0)
+        controls.addWidget(fields.linear_factor, row, 2)
+        controls.addWidget(descrs.linear_factor, row, 4)
+
+        row += 1
+        controls.addWidget(labels.area_factor, row, 0)
+        controls.addWidget(fields.area_factor, row, 2)
+        controls.addWidget(descrs.area_factor, row, 4)
+
+        row += 1
+        controls.addWidget(labels.logarithmic_factor, row, 0)
+        controls.addWidget(fields.logarithmic_factor, row, 2)
+        controls.addWidget(descrs.logarithmic_factor, row, 4)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(label_info, 1)
-        layout.addWidget(label_formula, 0)
         layout.addLayout(controls, 1)
         return layout
+
+    def create_int_box(self, property: Property) -> QtWidgets.QSpinBox:
+        box = QtWidgets.QSpinBox()
+        box.setMinimum(0)
+        box.setSingleStep(1)
+        self.binder.bind(box.valueChanged, property, lambda x: type_convert(x, int, None))
+        self.binder.bind(property, box.setValue, lambda x: type_convert(x, int, 0))
+        return box
+
+    def create_float_box(self, property: Property) -> QtWidgets.QDoubleSpinBox:
+        box = QtWidgets.QDoubleSpinBox()
+        box.setMinimum(0)
+        box.setMaximum(float('inf'))
+        box.setSingleStep(1)
+        box.setDecimals(2)
+        self.binder.bind(box.valueChanged, property, lambda x: type_convert(x, float, None))
+        self.binder.bind(property, box.setValue, lambda x: type_convert(x, float, 0))
+        return box
+
+    def pull(self):
+        super().pull()
+        self.settings.logarithmic_base = 10
 
     def apply(self):
         self.push()
