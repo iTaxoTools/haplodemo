@@ -110,9 +110,7 @@ class Visualizer:
         self._visualize_tree_recursive(None, tree, radius_for_size)
         self.layout_nodes()
 
-        self.scene.style_labels(
-            self.settings.node_label_template,
-            self.settings.edge_label_template)
+        self.scene.style_labels()
         self.scene.set_marks_from_nodes()
         self.scene.set_boundary_to_contents()
 
@@ -187,9 +185,7 @@ class Visualizer:
 
         self.layout_nodes()
 
-        self.scene.style_labels(
-            self.settings.node_label_template,
-            self.settings.edge_label_template)
+        self.scene.style_labels()
         self.scene.set_marks_from_nodes()
         self.scene.set_boundary_to_contents()
 

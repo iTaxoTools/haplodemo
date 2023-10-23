@@ -479,6 +479,7 @@ class DemoLoader:
         self.visualizer.set_divisions(['X', 'Y', 'Z'])
         self.add_demo_nodes_fields()
         self.scene.set_boundary_to_contents()
+        self.scene.style_labels()
 
     def add_demo_nodes_fields(self):
         visualizer = self.visualizer

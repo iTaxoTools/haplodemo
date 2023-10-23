@@ -319,12 +319,8 @@ class LabelFormatDialog(BoundOptionsDialog):
         return layout
 
     def apply(self):
-        settings = self.settings
-        self.scene.style_labels(
-            settings.node_label_template,
-            settings.edge_label_template,
-        )
         self.push()
+        self.scene.style_labels()
 
 
 class ScaleMarksDialog(BoundOptionsDialog):

@@ -46,8 +46,6 @@ class Window(QtWidgets.QWidget):
         scene = GraphicsScene(settings)
         visualizer = Visualizer(scene, settings)
 
-        scene.style_labels(settings.node_label_template, settings.edge_label_template)
-
         scene_view = GraphicsView(scene, opengl)
 
         partition_selector = PartitionSelector(settings.partitions)

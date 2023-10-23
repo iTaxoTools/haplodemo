@@ -467,9 +467,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         for edge in edges:
             edge.adjustPosition()
 
-    def style_labels(self, node_label_template, edge_label_template):
-        node_label_format = node_label_template.replace('NAME', '{name}').replace('WEIGHT', '{weight}')
-        edge_label_format = edge_label_template.replace('WEIGHT', '{weight}')
+    def style_labels(self):
+        node_label_format = self.settings.node_label_template.replace('NAME', '{name}').replace('WEIGHT', '{weight}')
+        edge_label_format = self.settings.edge_label_template.replace('WEIGHT', '{weight}')
         nodes = (item for item in self.items() if isinstance(item, Node))
         edges = (item for item in self.items() if isinstance(item, Edge))
         for node in nodes:
