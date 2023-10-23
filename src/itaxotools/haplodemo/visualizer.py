@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from collections import Counter, defaultdict
 from itertools import combinations
+from typing import Callable
 
 import networkx as nx
 from itaxotools.common.bindings import Binder
@@ -105,8 +106,8 @@ class Visualizer:
         self.graph = nx.Graph()
         self.tree = tree
 
-        size_settings = self.settings.node_sizes.get_all_values()
-        self._visualize_tree_recursive(None, tree, size_settings)
+        radius_for_size = self.settings.node_sizes.radius_for_size
+        self._visualize_tree_recursive(None, tree, radius_for_size)
         self.layout_nodes()
 
         self.scene.style_labels(
@@ -115,13 +116,13 @@ class Visualizer:
         self.scene.set_marks_from_nodes()
         self.scene.set_boundary_to_contents()
 
-    def _visualize_tree_recursive(self, parent_id: str, node: HaploTreeNode, size_settings: dict):
+    def _visualize_tree_recursive(self, parent_id: str, node: HaploTreeNode, radius_for_size: Callable[[int], float]):
         x, y = 0, 0
         id = node.id
         size = node.get_size()
 
         if size > 0:
-            item = self.create_node(x, y, size, id, dict(node.pops), size_settings)
+            item = self.create_node(x, y, size, id, dict(node.pops), radius_for_size)
             radius = item.radius / self.settings.edge_length
         else:
             item = self.create_vertex(x, y)
@@ -142,7 +143,7 @@ class Visualizer:
             self.scene.root = item
 
         for child in node.children:
-            self._visualize_tree_recursive(id, child, size_settings)
+            self._visualize_tree_recursive(id, child, radius_for_size)
 
     def visualize_graph(self, haplo_graph: HaploGraph):
         self.clear()
@@ -153,14 +154,14 @@ class Visualizer:
         self.tree = None
 
         x, y = 0, 0
-        size_settings = self.settings.node_sizes.get_all_values()
+        radius_for_size = self.settings.node_sizes.radius_for_size
 
         for node in haplo_graph.nodes:
             id = node.id
             size = node.get_size()
 
             if size > 0:
-                item = self.create_node(x, y, size, id, dict(node.pops), size_settings)
+                item = self.create_node(x, y, size, id, dict(node.pops), radius_for_size)
                 radius = item.radius / self.settings.edge_length
             else:
                 item = self.create_vertex(x, y)

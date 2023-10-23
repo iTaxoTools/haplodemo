@@ -43,7 +43,7 @@ class DemoLoader:
 
     def load_demo_simple(self):
         self.settings.reset()
-        self.settings.node_sizes.set_all_values(10, 2, 0.2, 1, 0, 0)
+        self.settings.node_sizes.set_all_values(10, 0, 0, 10, 10)
         self.settings.show_legend = True
         self.settings.show_scale = True
         self.settings.scale.marks = [5, 40]
@@ -58,44 +58,44 @@ class DemoLoader:
         visualizer = self.visualizer
         scene = self.scene
 
-        size_settings = self.settings.node_sizes.get_all_values()
+        radius_for_size = self.settings.node_sizes.radius_for_size
 
-        node1 = visualizer.create_node(85, 70, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2}, size_settings)
+        node1 = visualizer.create_node(85, 70, 35, 'Alphanumerical', {'X': 4, 'Y': 3, 'Z': 2}, radius_for_size)
         scene.addItem(node1)
 
-        node2 = visualizer.create_node(node1.pos().x() + 95, node1.pos().y() - 30, 20, 'Beta', {'X': 4, 'Z': 2}, size_settings)
+        node2 = visualizer.create_node(node1.pos().x() + 95, node1.pos().y() - 30, 20, 'Beta', {'X': 4, 'Z': 2}, radius_for_size)
         visualizer.add_child_edge(node1, node2, 2)
 
-        node3 = visualizer.create_node(node1.pos().x() + 115, node1.pos().y() + 60, 25, 'C', {'Y': 6, 'Z': 2}, size_settings)
+        node3 = visualizer.create_node(node1.pos().x() + 115, node1.pos().y() + 60, 25, 'C', {'Y': 6, 'Z': 2}, radius_for_size)
         edge = visualizer.add_child_edge(node1, node3, 3)
         edge.set_style(EdgeStyle.Bars)
 
-        node4 = visualizer.create_node(node3.pos().x() + 60, node3.pos().y() - 30, 15, 'D', {'Y': 1}, size_settings)
+        node4 = visualizer.create_node(node3.pos().x() + 60, node3.pos().y() - 30, 15, 'D', {'Y': 1}, radius_for_size)
         visualizer.add_child_edge(node3, node4, 1)
 
         vertex1 = visualizer.create_vertex(node3.pos().x() - 60, node3.pos().y() + 60)
         visualizer.add_child_edge(node3, vertex1, 2)
 
-        node5 = visualizer.create_node(vertex1.pos().x() - 80, vertex1.pos().y() + 40, 30, 'Error', {'?': 1}, size_settings)
+        node5 = visualizer.create_node(vertex1.pos().x() - 80, vertex1.pos().y() + 40, 30, 'Error', {'?': 1}, radius_for_size)
         edge = visualizer.add_child_edge(vertex1, node5, 4)
         edge.set_style(EdgeStyle.DotsWithText)
 
-        node6 = visualizer.create_node(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 20, 'R', {'Z': 1}, size_settings)
+        node6 = visualizer.create_node(vertex1.pos().x() + 60, vertex1.pos().y() + 20, 20, 'R', {'Z': 1}, radius_for_size)
         visualizer.add_child_edge(vertex1, node6, 1)
 
-        node7 = visualizer.create_node(vertex1.pos().x() + 100, vertex1.pos().y() + 80, 10, 'S', {'Z': 1}, size_settings)
+        node7 = visualizer.create_node(vertex1.pos().x() + 100, vertex1.pos().y() + 80, 10, 'S', {'Z': 1}, radius_for_size)
         visualizer.add_sibling_edge(node6, node7, 2)
 
-        node8 = visualizer.create_node(vertex1.pos().x() + 20, vertex1.pos().y() + 80, 40, 'T', {'Y': 1}, size_settings)
+        node8 = visualizer.create_node(vertex1.pos().x() + 20, vertex1.pos().y() + 80, 40, 'T', {'Y': 1}, radius_for_size)
         visualizer.add_sibling_edge(node6, node8, 1)
         visualizer.add_sibling_edge(node7, node8, 1)
 
-        node9 = visualizer.create_node(node7.pos().x() + 20, node7.pos().y() - 40, 5, 'x', {'Z': 1}, size_settings)
+        node9 = visualizer.create_node(node7.pos().x() + 20, node7.pos().y() - 40, 5, 'x', {'Z': 1}, radius_for_size)
         visualizer.add_child_edge(node7, node9, 1)
 
     def load_demo_many(self):
         self.settings.reset()
-        self.settings.node_sizes.set_all_values(0, 0, 0, 0, 0, 30)
+        self.settings.node_sizes.set_all_values(30, 0, 0, 0, 0)
 
         self.visualizer.clear()
         self.visualizer.set_divisions(['X', 'Y'])
@@ -106,19 +106,19 @@ class DemoLoader:
         visualizer = self.visualizer
         scene = self.scene
 
-        size_settings = self.settings.node_sizes.get_all_values()
+        radius_for_size = self.settings.node_sizes.radius_for_size
 
         for x in range(dx):
-            nodex = visualizer.create_node(20, 80 * x, 15, f'x{x}', {'X': 1}, size_settings)
+            nodex = visualizer.create_node(20, 80 * x, 15, f'x{x}', {'X': 1}, radius_for_size)
             scene.addItem(nodex)
 
             for y in range(dy):
-                nodey = visualizer.create_node(nodex.pos().x() + 80 + 80 * y, nodex.pos().y() + 40, 15, f'y{y}', {'Y': 1}, size_settings)
+                nodey = visualizer.create_node(nodex.pos().x() + 80 + 80 * y, nodex.pos().y() + 40, 15, f'y{y}', {'Y': 1}, radius_for_size)
                 visualizer.add_child_edge(nodex, nodey)
 
     def load_demo_tiny_tree(self):
         self.settings.reset()
-        self.settings.node_sizes.set_all_values(0, 0, 0, 0, 10, 20)
+        self.settings.node_sizes.set_all_values(20, 10, 0, 0, 0)
         self.settings.show_legend = True
         self.settings.show_scale = True
         self.settings.edge_length = 40
@@ -152,7 +152,7 @@ class DemoLoader:
 
     def load_demo_members_tree(self):
         self.settings.reset()
-        self.settings.node_sizes.set_all_values(0, 0, 0, 0, 10, 20)
+        self.settings.node_sizes.set_all_values(20, 10, 0, 0, 0)
         self.settings.show_legend = True
         self.settings.show_scale = True
         self.settings.edge_length = 40
@@ -236,7 +236,7 @@ class DemoLoader:
 
     def load_demo_long_tree(self):
         self.settings.reset()
-        self.settings.node_sizes.set_all_values(20, 5, 1, 0, 0, 20)
+        self.settings.node_sizes.set_all_values(30, 0, 20, 0, 0)
         self.settings.show_legend = True
         self.settings.show_scale = True
         self.settings.edge_length = 40
@@ -392,10 +392,10 @@ class DemoLoader:
 
     def load_demo_heavy_tree(self):
         self.settings.reset()
-        self.settings.node_sizes.set_all_values(15, 10, 1, 0, 0, 10)
+        self.settings.node_sizes.set_all_values(20, 0, 0, 30, 10)
         self.settings.show_legend = True
         self.settings.show_scale = True
-        self.settings.edge_length = 20
+        self.settings.edge_length = 40
         self.settings.node_label_template = 'WEIGHT'
 
         tree = self.get_heavy_tree()
@@ -427,7 +427,7 @@ class DemoLoader:
 
     def load_demo_cycled_graph(self):
         self.settings.reset()
-        self.settings.node_sizes.set_all_values(15, 10, 1, 0, 0, 10)
+        self.settings.node_sizes.set_all_values(10, 0, 0, 15, 10)
         self.settings.show_legend = True
         self.settings.show_scale = True
         self.settings.edge_length = 20
@@ -470,7 +470,7 @@ class DemoLoader:
 
     def load_demo_fields(self):
         self.settings.reset()
-        self.settings.node_sizes.set_all_values(0, 0, 0, 0, 6, 24)
+        self.settings.node_sizes.set_all_values(24, 6, 0, 0, 0)
         self.settings.scale.marks = [1, 10]
         self.settings.font = self.get_font('Arial', 16)
         self.settings.node_label_template = 'WEIGHT'
@@ -484,33 +484,33 @@ class DemoLoader:
         visualizer = self.visualizer
         scene = self.scene
 
-        size_settings = self.settings.node_sizes.get_all_values()
+        radius_for_size = self.settings.node_sizes.radius_for_size
 
-        node1 = visualizer.create_node(0, 150, 7, 'Node1', {'X': 4, 'Y': 3}, size_settings)
+        node1 = visualizer.create_node(0, 150, 7, 'Node1', {'X': 4, 'Y': 3}, radius_for_size)
         scene.addItem(node1)
 
-        node2 = visualizer.create_node(200, 0, 4, 'Node2', {'X': 4}, size_settings)
+        node2 = visualizer.create_node(200, 0, 4, 'Node2', {'X': 4}, radius_for_size)
         visualizer.add_child_edge(node1, node2, 2)
 
-        node3 = visualizer.create_node(0, 0, 2, 'Node3', {'X': 2}, size_settings)
+        node3 = visualizer.create_node(0, 0, 2, 'Node3', {'X': 2}, radius_for_size)
         visualizer.add_child_edge(node2, node3, 1)
 
-        node4 = visualizer.create_node(400, 0, 3, 'Node4', {'X': 3}, size_settings)
+        node4 = visualizer.create_node(400, 0, 3, 'Node4', {'X': 3}, radius_for_size)
         visualizer.add_child_edge(node2, node4, 1)
 
-        node5 = visualizer.create_node(0, 400, 6, 'Node5', {'Z': 4}, size_settings)
+        node5 = visualizer.create_node(0, 400, 6, 'Node5', {'Z': 4}, radius_for_size)
         visualizer.add_child_edge(node1, node5, 3)
 
-        node6 = visualizer.create_node(200, 250, 1, 'Node6', {'Y': 1}, size_settings)
+        node6 = visualizer.create_node(200, 250, 1, 'Node6', {'Y': 1}, radius_for_size)
         visualizer.add_child_edge(node1, node6, 1)
 
-        node7 = visualizer.create_node(400, 250, 3, 'Node7', {'Y': 1}, size_settings)
+        node7 = visualizer.create_node(400, 250, 3, 'Node7', {'Y': 1}, radius_for_size)
         visualizer.add_child_edge(node6, node7, 3)
 
-        node8 = visualizer.create_node(200, 400, 1, 'Node8', {'Y': 1}, size_settings)
+        node8 = visualizer.create_node(200, 400, 1, 'Node8', {'Y': 1}, radius_for_size)
         visualizer.add_child_edge(node6, node8, 1)
 
-        node9 = visualizer.create_node(400, 400, 1, 'Node9', {'Y': 1}, size_settings)
+        node9 = visualizer.create_node(400, 400, 1, 'Node9', {'Y': 1}, radius_for_size)
         visualizer.add_child_edge(node7, node9, 1)
 
         convex = visualizer.create_rect_box([node1, node3])

@@ -460,11 +460,10 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             edge.set_style(style)
 
     def style_nodes(self):
-        args = self.settings.node_sizes.get_all_values()
         nodes = (item for item in self.items() if isinstance(item, Node))
         edges = (item for item in self.items() if isinstance(item, Edge))
         for node in nodes:
-            node.adjust_radius(*args)
+            node.adjust_radius()
         for edge in edges:
             edge.adjustPosition()
 

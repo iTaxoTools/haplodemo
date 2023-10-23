@@ -20,7 +20,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import override
 
-from .nodes import Label, Node
+from .nodes import Label
 from .types import Direction
 
 
@@ -147,9 +147,9 @@ class Scale(QtWidgets.QGraphicsItem):
         self.update_radii()
 
     def update_radii(self):
-        values = self.settings.node_sizes.get_all_values()
         marks = self.marks or [1]
-        radii = [Node.radius_from_size(size, *values) for size in marks]
+        radius_for_size = self.settings.node_sizes.radius_for_size
+        radii = [radius_for_size(size) for size in marks]
         self.radii = radii
         self.radius = max(radii)
         self.place_labels()

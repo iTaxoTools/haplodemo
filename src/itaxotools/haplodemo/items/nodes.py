@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from math import log
+from typing import Callable
 
 from itaxotools.common.utility import override
 
@@ -812,11 +812,16 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
 
 class Node(Vertex):
-    def __init__(self, x, y, r, name, weights, size_settings={}):
+    def __init__(
+        self, x: float, y: float, r: float, name: str,
+        weights: dict[str, int],
+        radius_for_size: Callable[[int], float] = None,
+    ):
         super().__init__(x, y, r)
-        self.weights = weights
-        self.pies = dict()
         self.name = name
+        self.weights = weights
+        self.radius_for_size = radius_for_size
+        self.pies = dict()
 
         self._pen = QtGui.QPen(QtCore.Qt.black, 2)
         self._pen_high = QtGui.QPen(self._highlight_color, 4)
@@ -824,7 +829,7 @@ class Node(Vertex):
         self._pen_width = 2
 
         self.label = Label(name, self)
-        self.adjust_radius(*size_settings)
+        self.adjust_radius()
 
     @override
     def hoverEnterEvent(self, event):
@@ -921,15 +926,12 @@ class Node(Vertex):
     def set_label_font(self, value):
         self.label.set_font(value)
 
-    def adjust_radius(self, a=10, b=2, c=0.4, d=1, e=0, f=0):
-        r = self.radius_from_size(self.weight, a, b, c, d, e, f)
+    def adjust_radius(self):
+        if self.radius_for_size:
+            r = self.radius_for_size(self.weight)
+        else:
+            r = self.weight
         self.radius = r
 
         self.prepareGeometryChange()
         self.setRect(-r, -r, 2 * r, 2 * r)
-
-    @classmethod
-    def radius_from_size(cls, x, a, b, c, d, e, f):
-        if a and b and c:
-            return a * log(c * x + d, b) + e * x + f
-        return e * x + f

@@ -178,6 +178,7 @@ class NodeSizeDialog(BoundOptionsDialog):
         self.draw_dialog(contents)
 
     def draw_contents(self):
+        return QtWidgets.QVBoxLayout()
         label_info = QtWidgets.QLabel('Set node radius (r) from node weight (w) according to the following formula:')
         label_info.setWordWrap(True)
 

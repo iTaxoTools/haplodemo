@@ -21,6 +21,7 @@ from __future__ import annotations
 from PySide6 import QtCore, QtGui
 
 from itertools import chain
+from math import log, pi, sqrt
 
 from itaxotools.common.bindings import (
     Binder, Instance, Property, PropertyObject)
@@ -37,12 +38,19 @@ def get_default_font():
 
 
 class NodeSizeSettings(PropertyObject):
-    a = Property(float, 10)
-    b = Property(float, 2)
-    c = Property(float, 0.2)
-    d = Property(float, 1)
-    e = Property(float, 0)
-    f = Property(float, 5)
+    base_radius = Property(int, 10)
+    linear_factor = Property(float, 0)
+    area_factor = Property(float, 0)
+    logarithmic_factor = Property(float, 10)
+    logarithmic_base = Property(float, 10)
+
+    def radius_for_size(self, size: int) -> float:
+        radius = self.base_radius
+        radius += self.linear_factor * size
+        radius += sqrt(self.area_factor * size / pi)
+        if self.logarithmic_factor > 1 and self.logarithmic_base > 0:
+            radius += self.logarithmic_factor * log(size, self.logarithmic_base)
+        return radius
 
     def get_all_values(self):
         return [property.value for property in self.properties]
