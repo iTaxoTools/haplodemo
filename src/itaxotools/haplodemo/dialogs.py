@@ -23,7 +23,9 @@ from itaxotools.common.utility import AttrDict, type_convert
 
 from .items.types import EdgeStyle
 from .settings import NodeSizeSettings, ScaleSettings
-from .widgets import GLineEdit, PenWidthField, PenWidthSlider, RadioButtonGroup
+from .widgets import (
+    ClickableDoubleSpinBox, ClickableSpinBox, GLineEdit, PenWidthField,
+    PenWidthSlider, RadioButtonGroup)
 
 
 class OptionsDialog(QtWidgets.QDialog):
@@ -90,6 +92,10 @@ class BoundOptionsDialog(OptionsDialog):
     def push(self):
         for property in self.settings.properties:
             self.global_settings.properties[property.key].set(property.value)
+
+    def accept(self):
+        self.apply()
+        super().accept()
 
 
 class EdgeStyleSettings(PropertyObject):
@@ -178,27 +184,49 @@ class NodeSizeDialog(BoundOptionsDialog):
         self.draw_dialog(contents)
 
     def draw_contents(self):
+        properties = self.settings.properties
+
         label_info = QtWidgets.QLabel('Set node size from node weight, that is the haplotype count of the node:')
         label_info.setWordWrap(True)
 
-        labels = AttrDict()
-        labels.base_radius = QtWidgets.QLabel('Base radius:')
-        labels.linear_factor = QtWidgets.QLabel('Linear factor:')
-        labels.area_factor = QtWidgets.QLabel('Area factor:')
-        labels.logarithmic_factor = QtWidgets.QLabel('Log. factor:')
+        radios = AttrDict()
+        radios.linear_factor = QtWidgets.QRadioButton('Linear factor:')
+        radios.area_factor = QtWidgets.QRadioButton('Area factor:')
+        radios.logarithmic_factor = QtWidgets.QRadioButton('Log. factor:')
+        radios.base_radius = QtWidgets.QCheckBox('Base radius:')
+
+        self.binder.bind(radios.linear_factor.toggled, properties.has_linear_factor)
+        self.binder.bind(properties.has_linear_factor, radios.linear_factor.setChecked)
+
+        self.binder.bind(radios.area_factor.toggled, properties.has_area_factor)
+        self.binder.bind(properties.has_area_factor, radios.area_factor.setChecked)
+
+        self.binder.bind(radios.logarithmic_factor.toggled, properties.has_logarithmic_factor)
+        self.binder.bind(properties.has_logarithmic_factor, radios.logarithmic_factor.setChecked)
+
+        self.binder.bind(radios.base_radius.toggled, properties.has_base_radius)
+        self.binder.bind(properties.has_base_radius, radios.base_radius.setChecked)
 
         fields = AttrDict()
-        properties = self.settings.properties
-        fields.base_radius = self.create_int_box(properties.base_radius)
         fields.linear_factor = self.create_float_box(properties.linear_factor)
         fields.area_factor = self.create_float_box(properties.area_factor)
         fields.logarithmic_factor = self.create_float_box(properties.logarithmic_factor)
+        fields.base_radius = self.create_int_box(properties.base_radius)
+
+        self.binder.bind(fields.linear_factor.clicked, properties.has_linear_factor)
+        self.binder.bind(fields.area_factor.clicked, properties.has_area_factor)
+        self.binder.bind(fields.logarithmic_factor.clicked, properties.has_logarithmic_factor)
+
+        self.binder.bind(properties.has_linear_factor, fields.linear_factor.set_text_black)
+        self.binder.bind(properties.has_area_factor, fields.area_factor.set_text_black)
+        self.binder.bind(properties.has_logarithmic_factor, fields.logarithmic_factor.set_text_black)
+        self.binder.bind(properties.has_base_radius, fields.base_radius.set_text_black)
 
         descrs = AttrDict()
-        descrs.base_radius = QtWidgets.QLabel('Starting node radius, regardless of weight.')
         descrs.linear_factor = QtWidgets.QLabel('Increase radius proportionally to weight.')
         descrs.area_factor = QtWidgets.QLabel('Increase area proportionally to weight.')
         descrs.logarithmic_factor = QtWidgets.QLabel('Increase radius logarithmically (base 10).')
+        descrs.base_radius = QtWidgets.QLabel('Starting node radius, regardless of weight.')
 
         for descr in descrs.values():
             font = descr.font()
@@ -213,46 +241,47 @@ class NodeSizeDialog(BoundOptionsDialog):
         controls.setColumnStretch(4, 1)
 
         row = 0
-        controls.addWidget(labels.base_radius, row, 0)
-        controls.addWidget(fields.base_radius, row, 2)
-        controls.addWidget(descrs.base_radius, row, 4)
+        controls.addWidget(radios.linear_factor, row, 0)
+        controls.addWidget(fields.linear_factor, row, 2)
+        controls.addWidget(descrs.linear_factor, row, 4)
+
+        row += 1
+        controls.addWidget(radios.area_factor, row, 0)
+        controls.addWidget(fields.area_factor, row, 2)
+        controls.addWidget(descrs.area_factor, row, 4)
+
+        row += 1
+        controls.addWidget(radios.logarithmic_factor, row, 0)
+        controls.addWidget(fields.logarithmic_factor, row, 2)
+        controls.addWidget(descrs.logarithmic_factor, row, 4)
 
         row += 1
         controls.setRowMinimumHeight(row, 16)
 
         row += 1
-        controls.addWidget(labels.linear_factor, row, 0)
-        controls.addWidget(fields.linear_factor, row, 2)
-        controls.addWidget(descrs.linear_factor, row, 4)
-
-        row += 1
-        controls.addWidget(labels.area_factor, row, 0)
-        controls.addWidget(fields.area_factor, row, 2)
-        controls.addWidget(descrs.area_factor, row, 4)
-
-        row += 1
-        controls.addWidget(labels.logarithmic_factor, row, 0)
-        controls.addWidget(fields.logarithmic_factor, row, 2)
-        controls.addWidget(descrs.logarithmic_factor, row, 4)
+        controls.addWidget(radios.base_radius, row, 0)
+        controls.addWidget(fields.base_radius, row, 2)
+        controls.addWidget(descrs.base_radius, row, 4)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(label_info, 1)
         layout.addLayout(controls, 1)
         return layout
 
-    def create_int_box(self, property: Property) -> QtWidgets.QSpinBox:
-        box = QtWidgets.QSpinBox()
+    def create_int_box(self, property: Property) -> ClickableSpinBox:
+        box = ClickableSpinBox()
         box.setMinimum(0)
-        box.setSingleStep(1)
+        box.setMaximum(100000)
+        box.setSingleStep(10)
         self.binder.bind(box.valueChanged, property, lambda x: type_convert(x, int, None))
         self.binder.bind(property, box.setValue, lambda x: type_convert(x, int, 0))
         return box
 
-    def create_float_box(self, property: Property) -> QtWidgets.QDoubleSpinBox:
-        box = QtWidgets.QDoubleSpinBox()
+    def create_float_box(self, property: Property) -> ClickableDoubleSpinBox:
+        box = ClickableDoubleSpinBox()
         box.setMinimum(0)
         box.setMaximum(float('inf'))
-        box.setSingleStep(1)
+        box.setSingleStep(10)
         box.setDecimals(2)
         self.binder.bind(box.valueChanged, property, lambda x: type_convert(x, float, None))
         self.binder.bind(property, box.setValue, lambda x: type_convert(x, float, 0))

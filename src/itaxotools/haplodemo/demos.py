@@ -43,7 +43,7 @@ class DemoLoader:
 
     def load_demo_simple(self):
         self.settings.reset()
-        self.settings.node_sizes.set_all_values(10, 0, 0, 10, 10)
+        self.settings.node_sizes.set_all_values(10, 0, 0, 10)
         self.settings.show_legend = True
         self.settings.show_scale = True
         self.settings.scale.marks = [5, 40]
@@ -392,7 +392,7 @@ class DemoLoader:
 
     def load_demo_heavy_tree(self):
         self.settings.reset()
-        self.settings.node_sizes.set_all_values(20, 0, 0, 30, 10)
+        self.settings.node_sizes.set_all_values(20, 0, 0, 40)
         self.settings.show_legend = True
         self.settings.show_scale = True
         self.settings.edge_length = 40

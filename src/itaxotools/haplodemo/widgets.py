@@ -223,3 +223,45 @@ class PenWidthField(GLineEdit):
             return value
         except Exception:
             return 0.0
+
+
+class ClickableLineEdit(QtWidgets.QLineEdit):
+    clicked = QtCore.Signal(bool)
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        self.clicked.emit(True)
+
+
+class ClickableSpinBox(QtWidgets.QSpinBox):
+    clicked = QtCore.Signal(bool)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setLineEdit(ClickableLineEdit(self))
+        self.lineEdit().clicked.connect(self.clicked.emit)
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        self.clicked.emit(True)
+
+    def set_text_black(self, black: bool):
+        color = 'Palette(Text)' if black else 'Palette(Dark)'
+        self.lineEdit().setStyleSheet(f"QLineEdit {{ color: {color}; }}")
+
+
+class ClickableDoubleSpinBox(QtWidgets.QDoubleSpinBox):
+    clicked = QtCore.Signal(bool)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setLineEdit(ClickableLineEdit(self))
+        self.lineEdit().clicked.connect(self.clicked.emit)
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        self.clicked.emit(True)
+
+    def set_text_black(self, black: bool):
+        color = 'Palette(Text)' if black else 'Palette(Dark)'
+        self.lineEdit().setStyleSheet(f"QLineEdit {{ color: {color}; }}")
