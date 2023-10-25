@@ -504,6 +504,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.pivot.adjust_scale(scale)
         if self.boundary:
             self.boundary.adjust_scale(scale)
+        vertices = (item for item in self.items() if isinstance(item, Vertex))
+        for vertex in vertices:
+            vertex.adjust_scale(scale)
 
     def reset_binder(self):
         self.binder.unbind_all()

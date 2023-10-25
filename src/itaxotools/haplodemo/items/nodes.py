@@ -554,7 +554,9 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.snap_angle_threshold = 8.0
         self.snap_angles = [45 * x for x in range(9)]
 
-        self.snap_axis_threshold = 16.0
+        self.snap_axis_threshold = 20.0
+        self.snap_axis_threshold_base = 20.0
+        self.snap_axis_threshold_factor = 10.0
         self.snap_axis_xs = []
         self.snap_axis_ys = []
 
@@ -866,6 +868,11 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         if self.isMovementRecursive():
             return self.mapNodeRecursive(type(self).applyTransform, transform)
         return self.applyTransform(transform)
+
+    def adjust_scale(self, scale=1.0):
+        if not scale:
+            return
+        self.snap_axis_threshold = self.snap_axis_threshold_base + self.snap_axis_threshold_factor / scale
 
 
 class Node(Vertex):
