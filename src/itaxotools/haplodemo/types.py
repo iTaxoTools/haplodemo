@@ -97,3 +97,24 @@ class HaploGraphEdge:
 class HaploGraph:
     nodes: list[HaploGraphNode]
     edges: list[HaploGraphEdge]
+
+
+class MemberItem:
+    def __init__(self, name, parent=None):
+        self.name = name
+        self.parent = parent
+        self.children = []
+        self.index = 0
+
+        if parent is not None:
+            parent.add_child(self)
+
+    def add_child(self, item: MemberItem):
+        item.index = len(self.children)
+        self.children.append(item)
+
+    def __repr__(self):
+        parent_str = self.parent.name if self.parent else None
+        children_str = ', '.join(repr(child.name) for child in self.children)
+        children_str = children_str or 'None'
+        return f"{type(self).__name__} <name='{self.name}', parent='{parent_str}', index={self.index}, children={children_str}>"

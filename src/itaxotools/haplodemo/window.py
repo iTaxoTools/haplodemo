@@ -27,10 +27,9 @@ from .dialogs import (
     NodeSizeDialog, PenWidthDialog, ScaleMarksDialog)
 from .scene import GraphicsScene, GraphicsView
 from .settings import Settings
+from .views import ColorDelegate, DivisionView, MemberView
 from .visualizer import Visualizer
-from .widgets import (
-    ColorDelegate, DivisionView, PaletteSelector, PartitionSelector,
-    ToggleButton)
+from .widgets import PaletteSelector, PartitionSelector, ToggleButton
 from .zoom import ZoomControl
 
 
@@ -128,6 +127,7 @@ class Window(QtWidgets.QWidget):
         toggle_scene_rotation = ToggleButton('Rotate scene')
 
         division_view = DivisionView(settings.divisions)
+        member_view = MemberView(settings.members)
 
         exports = QtWidgets.QVBoxLayout()
         exports.addWidget(button_svg)
@@ -195,6 +195,7 @@ class Window(QtWidgets.QWidget):
         right_layout.addWidget(partition_selector)
         right_layout.addWidget(palette_selector)
         right_layout.addWidget(division_view, 1)
+        right_layout.addWidget(member_view, 3)
 
         left_sidebar = QtWidgets.QWidget()
         left_sidebar.setLayout(left_layout)

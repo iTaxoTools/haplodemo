@@ -26,7 +26,8 @@ from math import log, pi, sqrt
 from itaxotools.common.bindings import (
     Binder, Instance, Property, PropertyObject)
 
-from itaxotools.haplodemo.models import DivisionListModel, PartitionListModel
+from itaxotools.haplodemo.models import (
+    DivisionListModel, MemberTreeModel, PartitionListModel)
 from itaxotools.haplodemo.palettes import Palette
 from itaxotools.haplodemo.types import LayoutType
 
@@ -90,6 +91,7 @@ class FieldSettings(PropertyObject):
 class Settings(PropertyObject):
     partitions = Property(PartitionListModel, Instance, tag='frozen')
     divisions = Property(DivisionListModel, Instance, tag='frozen')
+    members = Property(MemberTreeModel, Instance, tag='frozen')
 
     node_sizes = Property(NodeSizeSettings, Instance, tag='frozen')
     fields = Property(FieldSettings, Instance, tag='frozen')

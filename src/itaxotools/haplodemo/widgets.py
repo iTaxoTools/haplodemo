@@ -20,7 +20,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import Guard
 
-from .models import DivisionListModel, PartitionListModel
+from .models import PartitionListModel
 from .palettes import Palette
 
 
@@ -129,45 +129,6 @@ class PaletteSelector(QtWidgets.QComboBox):
     def setValue(self, value):
         index = self._palettes.index(value.type)
         self.setCurrentIndex(index)
-
-
-class ColorDelegate(QtWidgets.QStyledItemDelegate):
-    def paint(self, painter, option, index):
-        super().paint(painter, option, index)
-
-        # Draw the decoration icon on top of the background
-        decoration_rect = QtCore.QRect(option.rect.x() + 2, option.rect.y() + 2, 16, option.rect.height() - 4)
-        icon = index.data(QtCore.Qt.DecorationRole)
-        if icon and not icon.isNull():
-            icon.paint(painter, decoration_rect)
-
-    def createEditor(self, parent, option, index):
-        editor = QtWidgets.QColorDialog(parent=parent)
-        editor.setOption(QtWidgets.QColorDialog.DontUseNativeDialog, True)
-        return editor
-
-    def setEditorData(self, editor, index):
-        color = index.model().data(index, QtCore.Qt.EditRole)
-        editor.setCurrentColor(QtGui.QColor(color))
-
-    def setModelData(self, editor, model, index):
-        model.setData(index, editor.currentColor().name(), QtCore.Qt.EditRole)
-
-    def updateEditorGeometry(self, editor, option, index):
-        # Override required for centering the dialog
-        pass
-
-    @staticmethod
-    def setCustomColors(palette):
-        for i in range(16):
-            QtWidgets.QColorDialog.setCustomColor(i, QtGui.QColor(palette[i]))
-
-
-class DivisionView(QtWidgets.QListView):
-    def __init__(self, divisions: DivisionListModel):
-        super().__init__()
-        self.setModel(divisions)
-        self.setItemDelegate(ColorDelegate(self))
 
 
 class PenWidthSlider(QtWidgets.QSlider):

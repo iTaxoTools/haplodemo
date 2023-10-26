@@ -24,8 +24,8 @@ from collections import defaultdict
 
 from itaxotools.common.utility import override
 
-from itaxotools.haplodemo.palettes import Palette
-from itaxotools.haplodemo.types import Division, Partition
+from .palettes import Palette
+from .types import Division, MemberItem, Partition
 
 
 class PartitionListModel(QtCore.QAbstractListModel):
@@ -155,3 +155,73 @@ class DivisionListModel(QtCore.QAbstractListModel):
 
     def all(self):
         return list(self._divisions)
+
+
+class MemberTreeModel(QtCore.QAbstractItemModel):
+    def __init__(self, root: MemberItem = None, parent=None):
+        super().__init__(parent)
+        self.root_item = None
+        self.set_root(root)
+
+    def set_dict(self, data: dict[str, iter[str]]):
+        root_item = MemberItem('root')
+        for node_name, member_names in data.items():
+            node_item = MemberItem(node_name, root_item)
+            for member_name in member_names:
+                MemberItem(member_name, node_item)
+        self.set_root(root_item)
+
+    def set_root(self, root: MemberItem = None):
+        self.beginResetModel()
+        if not root:
+            self.root_item = MemberItem('None')
+        else:
+            self.root_item = root
+        self.endResetModel()
+
+    def get_index_map(self) -> dict[str, QtCore.QModelIndex]:
+        return {
+            node.name: self.createIndex(row, 0, node)
+            for row, node in enumerate(self.root_item.children)
+        }
+
+    def index(self, row, column, parent=QtCore.QModelIndex()):
+        if not self.hasIndex(row, column, parent):
+            return QtCore.QModelIndex()
+        if not parent.isValid():
+            parent_item = self.root_item
+        else:
+            parent_item = parent.internalPointer()
+        child_item = parent_item.children[row]
+        if child_item:
+            return self.createIndex(row, column, child_item)
+        return QtCore.QModelIndex()
+
+    def parent(self, index):
+        if not index.isValid():
+            return QtCore.QModelIndex()
+        child_item = index.internalPointer()
+        parent_item = child_item.parent
+        if parent_item == self.root_item:
+            return QtCore.QModelIndex()
+        return self.createIndex(parent_item.index, 0, parent_item)
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        if parent.column() > 0:
+            return 0
+        if not parent.isValid():
+            parent_item = self.root_item
+        else:
+            parent_item = parent.internalPointer()
+        return len(parent_item.children)
+
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        return 1
+
+    def data(self, index, role):
+        if not index.isValid():
+            return None
+        if role != QtCore.Qt.DisplayRole:
+            return None
+        item = index.internalPointer()
+        return item.name

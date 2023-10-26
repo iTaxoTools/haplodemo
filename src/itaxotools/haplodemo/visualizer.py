@@ -61,12 +61,16 @@ class Visualizer:
 
         self.settings.divisions.set_divisions_from_keys([])
         self.settings.partitions.set_partitions([])
+        self.settings.members.set_dict({})
 
         self.items = {}
         self.members = defaultdict(set)
         self.partition = defaultdict(str)
         self.graph = None
         self.tree = None
+
+    def update_members_setting(self):
+        self.settings.members.set_dict(self.members)
 
     def set_divisions(self, divisions: list[str]):
         self.settings.divisions.set_divisions_from_keys(divisions)
@@ -108,6 +112,7 @@ class Visualizer:
 
         radius_for_size = self.settings.node_sizes.radius_for_size
         self._visualize_tree_recursive(None, tree, radius_for_size)
+        self.update_members_setting()
         self.layout_nodes()
 
         self.scene.style_labels()
@@ -184,6 +189,7 @@ class Visualizer:
             self.graph.add_edge(node_a, node_b, length=length)
 
         self.layout_nodes()
+        self.update_members_setting()
 
         self.scene.style_labels()
         self.scene.set_marks_from_nodes()
