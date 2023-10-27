@@ -31,6 +31,7 @@ from .types import Direction, EdgeDecoration, EdgeStyle
 class Label(QtWidgets.QGraphicsItem):
     def __init__(self, text, parent):
         super().__init__(parent)
+        self.setCursor(QtCore.Qt.ArrowCursor)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setAcceptHoverEvents(True)
@@ -227,6 +228,7 @@ class Label(QtWidgets.QGraphicsItem):
 class Edge(QtWidgets.QGraphicsLineItem):
     def __init__(self, node1: Vertex, node2: Vertex, weight=1):
         super().__init__()
+        self.setCursor(QtCore.Qt.ArrowCursor)
         self.setAcceptHoverEvents(True)
         self.weight = weight
         self.segments = weight
@@ -575,6 +577,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.update_z_value()
 
         self.setAcceptHoverEvents(True)
+        self.setCursor(QtCore.Qt.ArrowCursor)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setPen(QtCore.Qt.NoPen)
@@ -730,6 +733,11 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
             return False
         return self._recursive_setting
 
+    def isMovementSnapping(self):
+        if self.in_scene_rotation:
+            return False
+        return self._snapping_setting
+
     def _mapRecursive(
         self, siblings, parents,
         visited_nodes, visited_edges,
@@ -814,7 +822,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         epos = event.scenePos()
         diff = epos - self.locked_event_pos
 
-        if self._snapping_setting and self.snap_axis_xs and self.snap_axis_ys:
+        if self.isMovementSnapping() and self.snap_axis_xs and self.snap_axis_ys:
 
             new_pos = self.locked_pos + diff
 
@@ -852,7 +860,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         transform.rotate(angle)
         transform.translate(-center.x(), -center.y())
 
-        if self._snapping_setting:
+        if self.isMovementSnapping():
 
             new_pos = transform.map(self.locked_pos)
             absolute_line = QtCore.QLineF(self.locked_center, new_pos)

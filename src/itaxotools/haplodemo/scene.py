@@ -25,11 +25,11 @@ from math import cos, radians, sin
 
 from itaxotools.common.bindings import Binder
 
-from .items.bezier import BezierCurve, BezierHandle
-from .items.boundary import BoundaryEdgeHandle, BoundaryRect
+from .items.bezier import BezierCurve
+from .items.boundary import BoundaryOutline, BoundaryRect
 from .items.boxes import RectBox
 from .items.legend import Legend
-from .items.nodes import Edge, EdgeStyle, Label, Node, Vertex
+from .items.nodes import Edge, EdgeStyle, Node, Vertex
 from .items.rotate import PivotHandle
 from .items.scale import Scale
 from .settings import Settings
@@ -42,13 +42,14 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
     def __init__(self, settings: Settings, parent=None):
         super().__init__(parent)
+        self.installEventFilter(self)
+
         mid = QtWidgets.QApplication.instance().palette().mid()
         self.setBackgroundBrush(mid)
 
         self.settings = settings
         self.root = None
 
-        self.hovered_item = None
         self.boundary = None
         self.legend = None
         self.scale = None
@@ -60,200 +61,65 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.binder = Binder()
         self.reset_binder()
 
-    def event(self, event):
+    def eventFilter(self, obj, event):
         if self.settings.rotate_scene:
             return self.rotateEvent(event)
-        if event.type() == QtCore.QEvent.GraphicsSceneLeave:
-            self.handleMouseLeaveEvent(event)
-        return super().event(event)
-
-    def handleMouseLeaveEvent(self, event):
-        if self.hovered_item:
-            hover = QtWidgets.QGraphicsSceneHoverEvent()
-            # hover.type = lambda: event.type()
-            self.hovered_item.hoverLeaveEvent(hover)
-            self.hovered_item = None
-
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            item = self.getItemAtPos(event.scenePos(), ignore_edges=True, ignore_beziers=False, ignore_pivot_handle=False)
-            if item and isinstance(item, BezierHandle):
-                return super().mousePressEvent(event)
-            if item and isinstance(item, PivotHandle):
-                item.mousePressEvent(event)
-                item.grabMouse()
-                event.accept()
-            elif item and not isinstance(item, Legend) and not isinstance(item, Scale):
-                item.mousePressEvent(event)
-                item.grabMouse()
-                event.accept()
-            else:
-                return super().mousePressEvent(event)
-        elif event.button() == QtCore.Qt.RightButton:
-            item = self.getItemAtPos(
-                event.scenePos(),
-                ignore_edges=True,
-                ignore_labels=True,
-                ignore_boundary_handles=True,
-                ignore_legend=True,
-                ignore_scale=True,
-                ignore_pivot_handle=True,
-                ignore_beziers=True,
-            )
-            if isinstance(item, Node):
-                self.nodeSelected.emit(item.name)
-        self.mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            item = self.mouseGrabberItem()
-            if item:
-                item.mouseReleaseEvent(event)
-                item.ungrabMouse()
-                event.accept()
-        self.mouseMoveEvent(event)
-
-    def mouseDoubleClickEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            item = self.getItemAtPos(event.scenePos())
-            if item:
-                item.mouseDoubleClickEvent(event)
-                item.mouseReleaseEvent(event)
-                event.accept()
-
-    def mouseMoveEvent(self, event):
-        if self.mouseGrabberItem() or event.buttons():
-            super().mouseMoveEvent(event)
-            return
-
-        event.accept()
-
-        hover = self._hoverEventFromMouseEvent(event)
-        item = self.getItemAtPos(event.scenePos(), ignore_pivot_handle=False)
-
-        if item and isinstance(item, PivotHandle):
-            item.hoverMoveEvent(hover)
-            return
-
-        if self.hovered_item:
-            if item == self.hovered_item:
-                item.hoverMoveEvent(hover)
-                return
-            self.hovered_item.hoverLeaveEvent(hover)
-
-        self.hovered_item = item
-        if item:
-            item.hoverEnterEvent(hover)
-        else:
-            super().mouseMoveEvent(event)
+        return super().eventFilter(obj, event)
 
     def rotateEvent(self, event):
         grabber = self.mouseGrabberItem()
         if isinstance(grabber, PivotHandle):
-            return super().event(event)
+            return False
 
         if event.type() == QtCore.QEvent.GraphicsSceneMouseMove:
-            item = self.getItemAtPos(event.scenePos(), ignore_pivot_handle=False)
-            if isinstance(item, PivotHandle):
+            if self.getItemAtPosByType(event.scenePos(), PivotHandle):
                 self.pivot.set_hovered(True)
-                return super().event(event)
-            else:
-                self.pivot.set_hovered(False)
-                if self.rotating:
-                    vertices = (item for item in self.items() if isinstance(item, Vertex))
-                    for vertex in vertices:
-                        vertex.moveRotationally(event)
+                return False
 
-                event.accept()
-                return True
+            self.pivot.set_hovered(False)
+            if self.rotating:
+                vertices = (item for item in self.items() if isinstance(item, Vertex))
+                for vertex in vertices:
+                    vertex.moveRotationally(event)
+            return True
 
         elif event.type() == QtCore.QEvent.GraphicsSceneMousePress:
-            item = self.getItemAtPos(event.scenePos(), ignore_pivot_handle=False)
-            if item and isinstance(item, PivotHandle):
-                return super().event(event)
-            else:
-                center = self.pivot.pos()
-                vertices = (item for item in self.items() if isinstance(item, Vertex))
-                for vertex in vertices:
-                    vertex.lockPosition(event, center=center)
-                    vertex.in_scene_rotation = True
-                self.rotating = True
-                event.accept()
-                return True
+            if self.getItemAtPosByType(event.scenePos(), PivotHandle):
+                return False
+
+            center = self.pivot.pos()
+            vertices = (item for item in self.items() if isinstance(item, Vertex))
+            for vertex in vertices:
+                vertex.lockPosition(event, center=center)
+                vertex.in_scene_rotation = True
+            self.rotating = True
+            return True
 
         elif event.type() == QtCore.QEvent.GraphicsSceneMouseRelease:
-            item = self.getItemAtPos(event.scenePos(), ignore_pivot_handle=False)
-            if item and isinstance(item, PivotHandle):
-                return super().event(event)
-            else:
-                vertices = (item for item in self.items() if isinstance(item, Vertex))
-                for vertex in vertices:
-                    vertex.in_scene_rotation = False
-                self.rotating = False
-                event.accept()
-                return True
 
-        return super().event(event)
+            vertices = (item for item in self.items() if isinstance(item, Vertex))
+            for vertex in vertices:
+                vertex.in_scene_rotation = False
+            self.rotating = False
+            return True
 
-    def _hoverEventFromMouseEvent(self, mouse):
-        hover = QtWidgets.QGraphicsSceneHoverEvent()
-        # hover.widget = lambda: mouse.widget()
-        hover.setPos(mouse.pos())
-        hover.setScenePos(mouse.scenePos())
-        hover.setScreenPos(mouse.screenPos())
-        hover.setLastPos(mouse.lastPos())
-        hover.setLastScenePos(mouse.lastScenePos())
-        hover.setLastScreenPos(mouse.lastScreenPos())
-        hover.setModifiers(mouse.modifiers())
-        hover.setAccepted(mouse.isAccepted())
-        return hover
+        return False
 
-    def getItemAtPos(
-            self, pos,
-            ignore_edges=False,
-            ignore_labels=None,
-            ignore_boundary_handles=True,
-            ignore_legend=False,
-            ignore_scale=False,
-            ignore_pivot_handle=True,
-            ignore_beziers=False,
-    ):
-        if ignore_labels is None:
-            ignore_labels = not self.settings.label_movement
+    def getItemAtPosByType(self, pos, *types):
+        if not types:
+            types = [QtWidgets.QGraphicsItem]
+        for item in self.items(pos):
+            if any((isinstance(item, type) for type in types)):
+                return item
+        return None
 
-        point = QtGui.QVector2D(pos.x(), pos.y())
-        closest_edge_item = None
-        closest_edge_distance = float('inf')
-        for item in super().items(pos):
-            if isinstance(item, PivotHandle) and not ignore_pivot_handle:
-                return item
-            if isinstance(item, Scale) and not ignore_legend:
-                return item
-            if isinstance(item, Legend) and not ignore_scale:
-                return item
-            if isinstance(item, BezierHandle) and not ignore_beziers:
-                return item
-            if isinstance(item, BezierCurve) and not ignore_beziers:
-                return item
-            if isinstance(item, Vertex):
-                return item
-            if isinstance(item, Label):
-                if not ignore_labels:
-                    return item
-            if isinstance(item, Edge) and not ignore_edges:
-                line = item.line()
-                p1 = item.mapToScene(line.p1())
-                p1 = QtGui.QVector2D(p1.x(), p1.y())
-                unit = line.unitVector()
-                unit = QtGui.QVector2D(unit.dx(), unit.dy())
-                distance = point.distanceToLine(p1, unit)
-                if distance < closest_edge_distance:
-                    closest_edge_distance = distance
-                    closest_edge_item = item
-            if isinstance(item, BoundaryEdgeHandle) and not ignore_boundary_handles:
-                return item
-        if closest_edge_item:
-            return closest_edge_item
+    def getItemAtPosByTypeExcluded(self, pos, *types):
+        if not types:
+            raise TypeError('Must provide at least one type')
+        for item in self.items(pos):
+            if any((isinstance(item, type) for type in types)):
+                continue
+            return item
         return None
 
     def set_boundary_rect(self, x=0, y=0, w=0, h=0):
@@ -338,6 +204,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.scale = Scale(self.settings)
             self.addItem(self.scale)
             self.binder.bind(self.settings.scale.properties.marks, self.scale.set_marks)
+            self.binder.bind(self.settings.properties.label_movement, self.scale.set_labels_locked, lambda x: not x)
             self.binder.bind(self.settings.properties.highlight_color, self.scale.set_highlight_color)
             self.binder.bind(self.settings.properties.pen_width_nodes, self.scale.set_pen_width)
             self.binder.bind(self.settings.properties.font, self.scale.set_label_font)
@@ -648,13 +515,13 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def mousePressEvent(self, event):
         pos = self.mapToScene(event.pos())
-        item = self.scene().getItemAtPos(pos, ignore_boundary_handles=False)
+        item = self.scene().getItemAtPosByTypeExcluded(pos, BoundaryRect, BoundaryOutline, RectBox)
         if event.button() == QtCore.Qt.LeftButton:
             if self.rotate_mode:
                 self.rotating = True
                 pos = self.mapToScene(event.pos())
-                item = self.scene().getItemAtPos(pos, ignore_pivot_handle=False)
-                if isinstance(item, PivotHandle):
+                pivot = self.scene().getItemAtPosByType(pos, PivotHandle)
+                if pivot:
                     self.viewport().setCursor(QtCore.Qt.ArrowCursor)
                 else:
                     self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)
@@ -678,11 +545,12 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def mouseMoveEvent(self, event):
         super().mouseMoveEvent(event)
+
         if self.rotate_mode:
             pos = self.mapToScene(event.pos())
-            item = self.scene().getItemAtPos(pos, ignore_pivot_handle=False)
+            pivot = self.scene().getItemAtPosByType(pos, PivotHandle)
             grabber = self.scene().mouseGrabberItem()
-            if grabber or isinstance(item, PivotHandle):
+            if grabber or pivot:
                 self.viewport().setCursor(QtCore.Qt.ArrowCursor)
             elif self.rotating:
                 self.viewport().setCursor(QtCore.Qt.ClosedHandCursor)

@@ -76,6 +76,7 @@ class Legend(QtWidgets.QGraphicsRectItem):
     def __init__(self, divisions=None, parent=None):
         super().__init__(parent)
 
+        self.setCursor(QtCore.Qt.ArrowCursor)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setAcceptHoverEvents(True)
         self.setBrush(QtCore.Qt.white)

@@ -95,11 +95,6 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
 
     @override
     def mousePressEvent(self, event):
-        if self.scene().getItemAtPos(event.scenePos()):
-            self.item_block = True
-            return
-        self.item_block = False
-
         super().mousePressEvent(event)
         self.locked_rect = self.rect()
         self.locked_pos = event.scenePos()

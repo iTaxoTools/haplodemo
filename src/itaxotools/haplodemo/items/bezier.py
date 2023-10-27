@@ -36,6 +36,7 @@ class BezierHandle(QtWidgets.QGraphicsEllipseItem):
         super().__init__(-r, -r, r * 2, r * 2)
         self.parent = parent
 
+        self.setCursor(QtCore.Qt.ArrowCursor)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setPen(QtGui.QPen(QtCore.Qt.gray, 1))
@@ -74,6 +75,7 @@ class BezierHandlePhantom(QtWidgets.QGraphicsEllipseItem):
 class BezierCurve(QtWidgets.QGraphicsPathItem):
     def __init__(self, node1: Vertex, node2: Vertex, parent=None):
         super().__init__(parent)
+        self.setCursor(QtCore.Qt.ArrowCursor)
         self.setZValue(-20)
 
         self.node1 = node1

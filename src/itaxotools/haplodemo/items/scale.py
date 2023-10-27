@@ -46,6 +46,7 @@ class Scale(QtWidgets.QGraphicsItem):
 
         self.set_marks(marks)
 
+        self.setCursor(QtCore.Qt.ArrowCursor)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setAcceptHoverEvents(True)
         self.setZValue(70)
@@ -168,3 +169,7 @@ class Scale(QtWidgets.QGraphicsItem):
             label.set_font(self.font)
             label.recenter()
             self.labels.append(label)
+
+    def set_labels_locked(self, value):
+        for label in self.labels:
+            label.set_locked(value)
