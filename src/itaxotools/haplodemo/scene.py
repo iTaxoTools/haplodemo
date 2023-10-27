@@ -28,10 +28,12 @@ from itaxotools.common.bindings import Binder
 from .items.bezier import BezierCurve
 from .items.boundary import BoundaryOutline, BoundaryRect
 from .items.boxes import RectBox
+from .items.edges import Edge
 from .items.legend import Legend
-from .items.nodes import Edge, EdgeStyle, Node, Vertex
+from .items.nodes import Node, Vertex
 from .items.rotate import PivotHandle
 from .items.scale import Scale
+from .items.types import EdgeStyle
 from .settings import Settings
 
 

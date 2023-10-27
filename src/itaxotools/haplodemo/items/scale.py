@@ -20,7 +20,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import override
 
-from .nodes import Label
+from .labels import Label
 from .types import Direction
 
 
