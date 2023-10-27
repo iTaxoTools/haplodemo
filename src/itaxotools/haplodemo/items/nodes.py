@@ -786,9 +786,13 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
             self.locked_center = center
 
         if not self.isMovementRotational():
-            positions = [item.pos() for item in self.edges.keys()]
-            self.snap_axis_xs = [pos.x() for pos in positions]
-            self.snap_axis_ys = [pos.y() for pos in positions]
+            if self.parent or not self.isMovementRecursive():
+                positions = [item.pos() for item in self.edges.keys()]
+                self.snap_axis_xs = [pos.x() for pos in positions]
+                self.snap_axis_ys = [pos.y() for pos in positions]
+            else:
+                self.snap_axis_xs = []
+                self.snap_axis_ys = []
 
     def applyTranspose(self, diff):
         self.setPos(self.locked_pos + diff)
@@ -810,7 +814,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         epos = event.scenePos()
         diff = epos - self.locked_event_pos
 
-        if self._snapping_setting:
+        if self._snapping_setting and self.snap_axis_xs and self.snap_axis_ys:
 
             new_pos = self.locked_pos + diff
 
