@@ -185,6 +185,7 @@ class MemberTreeModel(QtCore.QAbstractItemModel):
             for row, node in enumerate(self.root_item.children)
         })
 
+    @override
     def index(self, row, column, parent=QtCore.QModelIndex()):
         if not self.hasIndex(row, column, parent):
             return QtCore.QModelIndex()
@@ -197,6 +198,7 @@ class MemberTreeModel(QtCore.QAbstractItemModel):
             return self.createIndex(row, column, child_item)
         return QtCore.QModelIndex()
 
+    @override
     def parent(self, index):
         if not index.isValid():
             return QtCore.QModelIndex()
@@ -206,6 +208,7 @@ class MemberTreeModel(QtCore.QAbstractItemModel):
             return QtCore.QModelIndex()
         return self.createIndex(parent_item.index, 0, parent_item)
 
+    @override
     def rowCount(self, parent=QtCore.QModelIndex()):
         if parent.column() > 0:
             return 0
@@ -215,9 +218,11 @@ class MemberTreeModel(QtCore.QAbstractItemModel):
             parent_item = parent.internalPointer()
         return len(parent_item.children)
 
+    @override
     def columnCount(self, parent=QtCore.QModelIndex()):
         return 1
 
+    @override
     def data(self, index, role = QtCore.Qt.DisplayRole):
         if not index.isValid():
             return None

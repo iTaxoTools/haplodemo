@@ -18,6 +18,8 @@
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from typing import Callable
+
 from itaxotools.common.utility import override
 
 from .models import DivisionListModel, MemberTreeModel
@@ -67,6 +69,11 @@ class MemberView(QtWidgets.QTreeView):
 
     def __init__(self, members: MemberTreeModel):
         super().__init__()
+        self._maximum_string_length = 0
+        self._string_padding = 60
+        self._minimum_width = 140
+        self._maximum_width = 360
+
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
         self.setAlternatingRowColors(True)
         self.setHeaderHidden(True)
@@ -75,10 +82,53 @@ class MemberView(QtWidgets.QTreeView):
     @override
     def setModel(self, model: MemberTreeModel):
         if self.model():
-            self.model().modelReset.disconnect(self.expandAll)
+            self.model().modelReset.disconnect(self.handle_model_reset)
         super().setModel(model)
-        model.modelReset.connect(self.expandAll)
+        model.modelReset.connect(self.handle_model_reset)
         self.expandAll()
+
+    @override
+    def setFont(self, font):
+        super().setFont(font)
+        self.update_maximum_string_length()
+
+    @override
+    def minimumSizeHint(self) -> QtCore.QSize:
+        hint = super().sizeHint()
+        return QtCore.QSize(self._minimum_width, hint.height())
+
+    @override
+    def sizeHint(self) -> QtCore.QSize:
+        hint = super().sizeHint()
+        width = self._maximum_string_length + self._string_padding
+        width = max(width, self._minimum_width)
+        width = min(width, self._maximum_width)
+        return QtCore.QSize(width, hint.height())
+
+    def handle_model_reset(self):
+        self.expandAll()
+        self.update_maximum_string_length()
+
+    def update_maximum_string_length(self):
+        metrics = QtGui.QFontMetrics(self.font())
+        length = self.get_maximum_string_length(metrics.horizontalAdvance)
+        self._maximum_string_length = length
+
+    def get_maximum_string_length(self, pixels_from_string: Callable[[str], int], parent=QtCore.QModelIndex()) -> int:
+        model = self.model()
+        rows = model.rowCount(parent)
+        lengths = [0]
+
+        for row in range(rows):
+            index = model.index(row, 0, parent)
+            data = model.data(index)
+            lengths.append(pixels_from_string(data))
+
+            if model.hasChildren(index):
+                max_children_length = self.get_maximum_string_length(pixels_from_string, index)
+                lengths.append(max_children_length)
+
+        return max(lengths)
 
     @override
     def selectionChanged(self, selected, deselected):
