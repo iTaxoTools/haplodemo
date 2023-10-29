@@ -63,10 +63,12 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self._snapping_setting = None
         self._rotational_setting = None
         self._recursive_setting = None
+        self._click_deselects = False
         self.in_scene_rotation = False
         self._highlight_color = QtCore.Qt.magenta
         self._pen_high_increment = 4
         self._pen_width = 2
+        self._pen = QtGui.QPen(QtCore.Qt.black, 2)
         self._debug = False
 
         self.update_z_value()
@@ -74,6 +76,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.setAcceptHoverEvents(True)
         self.setCursor(QtCore.Qt.ArrowCursor)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
         self.setPen(QtCore.Qt.NoPen)
         self.setBrush(self.pen().color())
@@ -89,13 +92,30 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
 
         center = QtCore.QPointF(0, 0)
         # Unless we use QPointF, bubble size isn't right
-        Edge.paintBubble(self, painter, center, radius, radius_high)
+        self.paintBubble(painter, center, radius, radius_high)
 
         if self._debug:
             painter.setPen(QtCore.Qt.green)
             painter.drawRect(self.rect())
             painter.drawLine(-4, 0, 4, 0)
             painter.drawLine(0, -4, 0, 4)
+
+    def paintBubble(self, painter, point, r=2.5, h=6):
+        # Replicates Edge.paintBubble(), but can also be selected
+        painter.setPen(QtCore.Qt.NoPen)
+        if self.isSelected():
+            painter.save()
+            painter.setPen(self._pen)
+            painter.setBrush(self._highlight_color)
+            painter.drawEllipse(point, h + r/2, h + r/2)
+            painter.restore()
+        elif self.state_hovered:
+            painter.save()
+            painter.setBrush(self._highlight_color)
+            painter.drawEllipse(point, h, h)
+            painter.restore()
+        painter.setBrush(QtCore.Qt.black)
+        painter.drawEllipse(point, r, r)
 
     @override
     def boundingRect(self):
@@ -105,7 +125,8 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     @override
     def shape(self):
         path = QtGui.QPainterPath()
-        path.addEllipse(self.rect().adjusted(-3, -3, 3, 3))
+        x = self._pen_width + self._pen_high_increment * 1.4
+        path.addEllipse(self.rect().adjusted(-x, -x, x, x))
         return path
 
     @override
@@ -134,6 +155,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     @override
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
+            self._click_deselects = self.isSelected()
             center = self.parent.scenePos() if self.parent else None
             for edge in self.edges.values():
                 edge.lockLabelPosition()
@@ -150,9 +172,12 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
         self.set_pressed(False)
+        if self.isSelected() and self._click_deselects:
+            self.setSelected(False)
 
     @override
     def mouseMoveEvent(self, event):
+        self._click_deselects = False
         if self.isMovementRotational():
             return self.moveRotationally(event)
         return self.moveOrthogonally(event)
@@ -215,6 +240,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def set_pen_width(self, value):
         r = value
         self._pen_width = value
+        self._pen = QtGui.QPen(QtCore.Qt.black, value)
         self.prepareGeometryChange()
         self.setRect(-r, -r, 2 * r, 2 * r)
 
@@ -396,6 +422,7 @@ class Node(Vertex):
 
         self._pen = QtGui.QPen(QtCore.Qt.black, 2)
         self._pen_high = QtGui.QPen(self._highlight_color, 4)
+        self._pen_selected = QtGui.QPen(self._highlight_color, 18)
         self._pen_high_increment = 2
         self._pen_width = 2
 
@@ -423,6 +450,7 @@ class Node(Vertex):
     def paint(self, painter, options, widget=None):
         self.paint_node(painter)
         self.paint_pies(painter)
+        self.paint_outline(painter)
 
         if self._debug:
             painter.setPen(QtCore.Qt.green)
@@ -435,7 +463,7 @@ class Node(Vertex):
         if self.pies:
             painter.setPen(QtCore.Qt.NoPen)
         else:
-            painter.setPen(self.get_border_pen())
+            painter.setPen(self._pen)
         painter.setBrush(self.brush())
         painter.drawEllipse(self.rect())
         painter.restore()
@@ -454,8 +482,22 @@ class Node(Vertex):
             starting_angle += span
 
         painter.setBrush(QtCore.Qt.NoBrush)
-        painter.setPen(self.get_border_pen())
+        painter.setPen(self._pen)
         painter.drawEllipse(self.rect())
+        painter.restore()
+
+    def paint_outline(self, painter):
+        painter.save()
+        painter.setBrush(QtCore.Qt.NoBrush)
+
+        if self.isSelected():
+            painter.setPen(self._pen_selected)
+            painter.drawEllipse(self.rect())
+            painter.setPen(self._pen)
+            painter.drawEllipse(self.rect())
+        elif self.is_highlighted():
+            painter.setPen(self._pen_high)
+            painter.drawEllipse(self.rect())
         painter.restore()
 
     def update_colors(self, color_map):
@@ -476,11 +518,6 @@ class Node(Vertex):
             span = int(5760 * weight / total_weight)
             self.pies[color] = span
 
-    def get_border_pen(self):
-        if self.is_highlighted():
-            return self._pen_high
-        return self._pen
-
     def set_highlight_color(self, value):
         self._highlight_color = value
         self.update_pens()
@@ -492,6 +529,7 @@ class Node(Vertex):
     def update_pens(self):
         self._pen = QtGui.QPen(QtCore.Qt.black, self._pen_width)
         self._pen_high = QtGui.QPen(self._highlight_color, self._pen_width + self._pen_high_increment)
+        self._pen_selected = QtGui.QPen(self._highlight_color, self._pen_width + self._pen_high_increment * 4)
         self.update()
 
     def set_label_font(self, value):
