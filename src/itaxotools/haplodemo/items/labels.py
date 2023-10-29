@@ -20,19 +20,17 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import override
 
-from .protocols import HoverableItem
+from .protocols import HighlightableItem, HoverableItem
 from .types import Direction
 
 
-class Label(HoverableItem, QtWidgets.QGraphicsItem):
+class Label(HighlightableItem, QtWidgets.QGraphicsItem):
     def __init__(self, text, parent):
         super().__init__(parent)
         self.setCursor(QtCore.Qt.ArrowCursor)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
-        self.setAcceptHoverEvents(True)
 
-        self._highlight_color = QtCore.Qt.magenta
         self._white_outline = False
         self._anchor = Direction.Center
         self._debug = False
@@ -121,7 +119,7 @@ class Label(HoverableItem, QtWidgets.QGraphicsItem):
 
     def paint_outline(self, painter):
         if self.isHighlighted() or self.parentItem() and self.parentItem().isSelected():
-            color = self._highlight_color
+            color = self.highlight_color()
         elif self._white_outline:
             color = QtCore.Qt.white
         else:
@@ -144,9 +142,6 @@ class Label(HoverableItem, QtWidgets.QGraphicsItem):
 
     def set_locked(self, value):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, not value)
-
-    def set_highlight_color(self, value):
-        self._highlight_color = value
 
     def set_font(self, font):
         if font is None:

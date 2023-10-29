@@ -26,10 +26,10 @@ from itaxotools.common.utility import override
 
 from .edges import Edge
 from .labels import Label
-from .protocols import HoverableItem
+from .protocols import HighlightableItem
 
 
-class Vertex(HoverableItem, QtWidgets.QGraphicsEllipseItem):
+class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, r=2.5):
         super().__init__(-r, -r, r * 2, r * 2)
 
@@ -65,7 +65,6 @@ class Vertex(HoverableItem, QtWidgets.QGraphicsEllipseItem):
         self._recursive_setting = None
         self._click_deselects = False
         self.in_scene_rotation = False
-        self._highlight_color = QtCore.Qt.magenta
         self._pen_high_increment = 4
         self._pen_width = 2
         self._pen = QtGui.QPen(QtCore.Qt.black, 2)
@@ -73,7 +72,6 @@ class Vertex(HoverableItem, QtWidgets.QGraphicsEllipseItem):
 
         self.update_z_value()
 
-        self.setAcceptHoverEvents(True)
         self.setCursor(QtCore.Qt.ArrowCursor)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
@@ -106,12 +104,12 @@ class Vertex(HoverableItem, QtWidgets.QGraphicsEllipseItem):
         if self.isSelected():
             painter.save()
             painter.setPen(self._pen)
-            painter.setBrush(self._highlight_color)
+            painter.setBrush(self.highlight_color())
             painter.drawEllipse(point, h + r / 2, h + r / 2)
             painter.restore()
         elif self.is_hovered():
             painter.save()
-            painter.setBrush(self._highlight_color)
+            painter.setBrush(self.highlight_color())
             painter.drawEllipse(point, h, h)
             painter.restore()
         painter.setBrush(QtCore.Qt.black)
@@ -232,9 +230,6 @@ class Vertex(HoverableItem, QtWidgets.QGraphicsEllipseItem):
 
     def set_recursive_setting(self, value):
         self._recursive_setting = value
-
-    def set_highlight_color(self, value):
-        self._highlight_color = value
 
     def set_pen_width(self, value):
         r = value
@@ -420,8 +415,8 @@ class Node(Vertex):
         self.pies = dict()
 
         self._pen = QtGui.QPen(QtCore.Qt.black, 2)
-        self._pen_high = QtGui.QPen(self._highlight_color, 4)
-        self._pen_selected = QtGui.QPen(self._highlight_color, 18)
+        self._pen_high = QtGui.QPen(self.highlight_color(), 4)
+        self._pen_selected = QtGui.QPen(self.highlight_color(), 18)
         self._pen_high_increment = 2
         self._pen_width = 2
 
@@ -515,8 +510,10 @@ class Node(Vertex):
             span = int(5760 * weight / total_weight)
             self.pies[color] = span
 
+    @override
     def set_highlight_color(self, value):
-        self._highlight_color = value
+        super().set_highlight_color(value)
+        self.label.set_highlight_color(value)
         self.update_pens()
 
     def set_pen_width(self, value):
@@ -525,8 +522,8 @@ class Node(Vertex):
 
     def update_pens(self):
         self._pen = QtGui.QPen(QtCore.Qt.black, self._pen_width)
-        self._pen_high = QtGui.QPen(self._highlight_color, self._pen_width + self._pen_high_increment)
-        self._pen_selected = QtGui.QPen(self._highlight_color, self._pen_width + self._pen_high_increment * 4)
+        self._pen_high = QtGui.QPen(self.highlight_color(), self._pen_width + self._pen_high_increment)
+        self._pen_selected = QtGui.QPen(self.highlight_color(), self._pen_width + self._pen_high_increment * 4)
         self.update()
 
     def set_label_font(self, value):

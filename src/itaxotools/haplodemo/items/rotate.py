@@ -20,19 +20,17 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import override
 
-from .protocols import HoverableItem
+from .protocols import HighlightableItem
 
 
-class PivotHandle(HoverableItem, QtWidgets.QGraphicsEllipseItem):
+class PivotHandle(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
     def __init__(self, r=10):
         super().__init__(-r, -r, r * 2, r * 2)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
-        self.setAcceptHoverEvents(True)
         self.setZValue(90)
 
-        self._highlight_color = QtCore.Qt.magenta
         self._pen = QtGui.QPen(QtCore.Qt.black, 1)
-        self._pen_high = QtGui.QPen(self._highlight_color, 2)
+        self._pen_high = QtGui.QPen(self.highlight_color(), 2)
 
         self.locked_pos = None
         self.locked_cursor = None
@@ -101,10 +99,10 @@ class PivotHandle(HoverableItem, QtWidgets.QGraphicsEllipseItem):
         diff = (epos - self.locked_cursor).toPoint()
         self.setPos(self.locked_pos + diff)
 
+    @override
     def set_highlight_color(self, value):
-        self._highlight_color = value
+        super().set_highlight_color(value)
         self.update_pens()
-        self.update()
 
     def adjust_scale(self, scale=1.0):
         self.scale = scale
@@ -118,5 +116,6 @@ class PivotHandle(HoverableItem, QtWidgets.QGraphicsEllipseItem):
 
     def update_pens(self):
         self._pen = QtGui.QPen(QtCore.Qt.black, 1 / self.scale)
-        self._pen_high = QtGui.QPen(self._highlight_color, 4 / self.scale)
+        self._pen_high = QtGui.QPen(self.highlight_color(), 4 / self.scale)
         self._pen_high.setCapStyle(QtCore.Qt.RoundCap)
+        self.update()

@@ -21,18 +21,17 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from itaxotools.common.utility import override
 
 from .labels import Label
-from .protocols import HoverableItem
+from .protocols import HighlightableItem
 from .types import Direction
 
 
-class Scale(HoverableItem, QtWidgets.QGraphicsItem):
+class Scale(HighlightableItem, QtWidgets.QGraphicsItem):
     def __init__(self, settings, marks=[1, 10, 100], parent=None):
         super().__init__(parent)
         self.settings = settings
 
-        self._highlight_color = QtCore.Qt.magenta
         self._pen = QtGui.QPen(QtCore.Qt.black, 2)
-        self._pen_high = QtGui.QPen(self._highlight_color, 4)
+        self._pen_high = QtGui.QPen(self.highlight_color(), 4)
         self._pen_high_increment = 4
         self._pen_width = 2
 
@@ -48,7 +47,6 @@ class Scale(HoverableItem, QtWidgets.QGraphicsItem):
 
         self.setCursor(QtCore.Qt.ArrowCursor)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
-        self.setAcceptHoverEvents(True)
         self.setZValue(70)
 
     @override
@@ -101,12 +99,12 @@ class Scale(HoverableItem, QtWidgets.QGraphicsItem):
         for label in self.labels:
             label.set_font(font)
 
+    @override
     def set_highlight_color(self, value):
-        self._highlight_color = value
+        super().set_highlight_color(value)
         self.update_pens()
         for label in self.labels:
             label.set_highlight_color(value)
-        self.update()
 
     def set_pen_width(self, value):
         self._pen_width = value
@@ -114,7 +112,7 @@ class Scale(HoverableItem, QtWidgets.QGraphicsItem):
 
     def update_pens(self):
         self._pen = QtGui.QPen(QtCore.Qt.black, self._pen_width)
-        self._pen_high = QtGui.QPen(self._highlight_color, self._pen_width + self._pen_high_increment)
+        self._pen_high = QtGui.QPen(self.highlight_color(), self._pen_width + self._pen_high_increment)
         self._pen_high.setCapStyle(QtCore.Qt.RoundCap)
 
     def get_extended_rect(self):
@@ -152,7 +150,7 @@ class Scale(HoverableItem, QtWidgets.QGraphicsItem):
 
         for size, radius in zip(self.marks, self.radii):
             label = Label(str(size), self)
-            label.set_highlight_color(self._highlight_color)
+            label.set_highlight_color(self.highlight_color())
             label.set_anchor(Direction.Right)
             label.setPos(radius * 2, self.padding + self.font_height / 2)
             label.set_font(self.font)

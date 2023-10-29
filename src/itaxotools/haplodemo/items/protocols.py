@@ -22,6 +22,8 @@ and not subclass QtWidgets.QGraphicsItem. Instead, we assume that
 the next item in the MRO is a subclass of QtWidgets.QGraphicsItem.
 """
 
+from PySide6 import QtCore
+
 from itaxotools.common.utility import override
 
 
@@ -47,6 +49,19 @@ class HoverableItem:
 
     def is_hovered(self):
         return self._state_hovered
+
+
+class HighlightableItem(HoverableItem):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._highlight_color = QtCore.Qt.magenta
+
+    def set_highlight_color(self, value):
+        self._highlight_color = value
+        super().update()
+
+    def highlight_color(self):
+        return self._highlight_color
 
 
 class IgnorableItem:

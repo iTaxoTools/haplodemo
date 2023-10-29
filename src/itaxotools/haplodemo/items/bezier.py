@@ -22,7 +22,7 @@ from itaxotools.common.utility import override
 
 from ..utility import shapeFromPath
 from .nodes import Vertex
-from .protocols import HoverableItem
+from .protocols import HighlightableItem
 
 
 class BezierHandleLine(QtWidgets.QGraphicsLineItem):
@@ -31,14 +31,15 @@ class BezierHandleLine(QtWidgets.QGraphicsLineItem):
         self.setPen(QtGui.QPen(QtGui.QColor('#333'), 1))
 
 
-class BezierHandle(HoverableItem, QtWidgets.QGraphicsEllipseItem):
+class BezierHandle(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
     def __init__(self, parent, point, r):
         """This is drawn above all other items"""
         super().__init__(-r, -r, r * 2, r * 2)
+        self.set_highlight_color(parent.parentItem().highlight_color())
         self.parent = parent
 
         self._pen = QtGui.QPen(QtCore.Qt.gray, 1)
-        self._pen_high = QtGui.QPen(QtCore.Qt.green, 4)
+        self._pen_high = QtGui.QPen(self.highlight_color(), 4)
 
         self.setCursor(QtCore.Qt.ArrowCursor)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
@@ -89,7 +90,7 @@ class BezierHandlePhantom(QtWidgets.QGraphicsEllipseItem):
         return super().itemChange(change, value)
 
 
-class BezierCurve(HoverableItem, QtWidgets.QGraphicsPathItem):
+class BezierCurve(HighlightableItem, QtWidgets.QGraphicsPathItem):
     def __init__(self, node1: Vertex, node2: Vertex, parent=None):
         super().__init__(parent)
         self.setCursor(QtCore.Qt.ArrowCursor)
@@ -110,8 +111,10 @@ class BezierCurve(HoverableItem, QtWidgets.QGraphicsPathItem):
         self.h1 = None
         self.h2 = None
 
+        self._pen_width = 2
+        self._pen_high_increment = 4
         self._pen = QtGui.QPen(QtCore.Qt.red, 2, QtCore.Qt.DotLine)
-        self._pen_high = QtGui.QPen(QtCore.Qt.green, 6)
+        self._pen_high = QtGui.QPen(self.highlight_color(), 6)
         self._pen_shape = QtGui.QPen(QtCore.Qt.black, 12)
 
         self.setPen(self._pen_shape)
@@ -141,6 +144,25 @@ class BezierCurve(HoverableItem, QtWidgets.QGraphicsPathItem):
             self.remove_controls()
         else:
             self.add_controls()
+
+    @override
+    def set_highlight_color(self, value):
+        super().set_highlight_color(value)
+        self.update_pens()
+        if self.h1:
+            self.h1.set_highlight_color(value)
+        if self.h2:
+            self.h2.set_highlight_color(value)
+
+    def set_pen_width(self, value):
+        self._pen_width = value
+        self.update_pens()
+
+    def update_pens(self):
+        self._pen = QtGui.QPen(QtCore.Qt.red, self._pen_width, QtCore.Qt.DotLine)
+        self._pen_high = QtGui.QPen(self.highlight_color(), self._pen_width + self._pen_high_increment)
+        self._pen_shape = QtGui.QPen(QtCore.Qt.black, self._pen_width + self._pen_high_increment * 2)
+        self.update()
 
     def get_control_point_for_node(self, node):
         if node == self.node1:

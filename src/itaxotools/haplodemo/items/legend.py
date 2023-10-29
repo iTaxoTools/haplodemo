@@ -20,7 +20,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import override
 
-from .protocols import HoverableItem
+from .protocols import HighlightableItem
 
 
 class LegendBubble(QtWidgets.QGraphicsEllipseItem):
@@ -73,20 +73,18 @@ class LegendItem(QtWidgets.QGraphicsItem):
         self.bubble.setPen(QtGui.QPen(QtCore.Qt.black, value))
 
 
-class Legend(HoverableItem, QtWidgets.QGraphicsRectItem):
+class Legend(HighlightableItem, QtWidgets.QGraphicsRectItem):
 
     def __init__(self, divisions=None, parent=None):
         super().__init__(parent)
 
         self.setCursor(QtCore.Qt.ArrowCursor)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
-        self.setAcceptHoverEvents(True)
         self.setBrush(QtCore.Qt.white)
         self.setZValue(50)
 
         self.setRect(0, 0, 50, 50)
 
-        self._highlight_color = QtCore.Qt.magenta
         self._pen_width = 1
 
         self.font = QtGui.QFont()
@@ -103,7 +101,7 @@ class Legend(HoverableItem, QtWidgets.QGraphicsRectItem):
     @override
     def set_hovered(self, hovered):
         if hovered:
-            self.setPen(QtGui.QPen(self._highlight_color, 4))
+            self.setPen(QtGui.QPen(self.highlight_color(), 4))
         else:
             self.setPen(QtGui.QPen(QtCore.Qt.black, 1))
         super().set_hovered(hovered)
@@ -135,9 +133,6 @@ class Legend(HoverableItem, QtWidgets.QGraphicsRectItem):
     def update_colors(self, color_map):
         for item in self.childItems():
             item.update_color(color_map)
-
-    def set_highlight_color(self, color):
-        self._highlight_color = color
 
     def set_pen_width(self, value):
         self._pen_width = value

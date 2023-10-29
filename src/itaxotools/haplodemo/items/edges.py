@@ -24,15 +24,14 @@ from itaxotools.common.utility import override
 
 from ..utility import shapeFromPath
 from .labels import Label
-from .protocols import HoverableItem
+from .protocols import HighlightableItem
 from .types import EdgeDecoration, EdgeStyle
 
 
-class Edge(HoverableItem, QtWidgets.QGraphicsLineItem):
+class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
     def __init__(self, node1: QtWidgets.QGraphicsItem, node2: QtWidgets.QGraphicsItem, weight=1):
         super().__init__()
         self.setCursor(QtCore.Qt.ArrowCursor)
-        self.setAcceptHoverEvents(True)
         self.weight = weight
         self.segments = weight
         self.node1 = node1
@@ -42,9 +41,8 @@ class Edge(HoverableItem, QtWidgets.QGraphicsLineItem):
         self.locked_label_pos = None
         self.locked_label_rect_pos = None
 
-        self._highlight_color = QtCore.Qt.magenta
         self._pen = QtGui.QPen(QtCore.Qt.black, 2)
-        self._pen_high = QtGui.QPen(self._highlight_color, 4)
+        self._pen_high = QtGui.QPen(self.highlight_color(), 4)
         self._pen_high_increment = 4
         self._pen_width = 2
 
@@ -135,7 +133,7 @@ class Edge(HoverableItem, QtWidgets.QGraphicsLineItem):
         painter.setPen(QtCore.Qt.NoPen)
         if self.is_hovered():
             painter.save()
-            painter.setBrush(self._highlight_color)
+            painter.setBrush(self.highlight_color())
             painter.drawEllipse(point, h, h)
             painter.restore()
         painter.setBrush(QtCore.Qt.black)
@@ -202,7 +200,7 @@ class Edge(HoverableItem, QtWidgets.QGraphicsLineItem):
 
         if self.is_hovered():
             painter.save()
-            pen = QtGui.QPen(self._highlight_color, 6)
+            pen = QtGui.QPen(self.highlight_color(), 6)
             painter.setPen(pen)
             painter.drawLine(bar)
             painter.restore()
@@ -215,7 +213,7 @@ class Edge(HoverableItem, QtWidgets.QGraphicsLineItem):
         painter.save()
         line = self.line()
         if self.is_hovered():
-            pen = QtGui.QPen(self._highlight_color, radius_high, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap)
+            pen = QtGui.QPen(self.highlight_color(), radius_high, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap)
             painter.setPen(pen)
             painter.drawLine(line)
         pen = QtGui.QPen(QtCore.Qt.black, radius, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap)
@@ -242,8 +240,10 @@ class Edge(HoverableItem, QtWidgets.QGraphicsLineItem):
     def set_label_font(self, value):
         self.label.set_font(value)
 
+    @override
     def set_highlight_color(self, value):
-        self._highlight_color = value
+        super().set_highlight_color(value)
+        self.label.set_highlight_color(value)
         self.update_pens()
 
     def set_pen_width(self, value):
@@ -258,7 +258,7 @@ class Edge(HoverableItem, QtWidgets.QGraphicsLineItem):
             style = QtCore.Qt.DotLine
 
         self._pen = QtGui.QPen(QtCore.Qt.black, self._pen_width, style, cap)
-        self._pen_high = QtGui.QPen(self._highlight_color, self._pen_width + self._pen_high_increment)
+        self._pen_high = QtGui.QPen(self.highlight_color(), self._pen_width + self._pen_high_increment)
         self.update()
 
     def resetLabelPosition(self, offset: bool | None):

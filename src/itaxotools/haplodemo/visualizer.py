@@ -300,7 +300,6 @@ class Visualizer:
         self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
         self.binder.bind(self.settings.properties.recursive_movement, item.set_recursive_setting)
         self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
-        self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
         self.binder.bind(self.settings.properties.pen_width_nodes, item.set_pen_width)
         self.binder.bind(self.settings.properties.font, item.set_label_font)
@@ -310,7 +309,6 @@ class Visualizer:
         item = Edge(*args, **kwargs)
         self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
         self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
-        self.binder.bind(self.settings.properties.highlight_color, item.label.set_highlight_color)
         self.binder.bind(self.settings.properties.pen_width_edges, item.set_pen_width)
         self.binder.bind(self.settings.properties.font, item.set_label_font)
         return item
@@ -325,6 +323,8 @@ class Visualizer:
 
     def create_bezier(self, node1, node2):
         item = BezierCurve(node1, node2)
+        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
+        self.binder.bind(self.settings.properties.pen_width_edges, item.set_pen_width)
         node1.beziers[node2] = item
         node2.beziers[node1] = item
         self.scene.addItem(item)
