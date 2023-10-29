@@ -314,6 +314,7 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         for bezier in self.beziers.values():
             locked_bezier_pos = self.locked_beziers[bezier]
             bezier.set_control_point_for_node(self, locked_bezier_pos + diff)
+            bezier.adjust_position()
 
     def applyTransform(self, transform):
         pos = transform.map(self.locked_pos)
@@ -323,6 +324,7 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
             locked_bezier_pos = self.locked_beziers[bezier]
             new_bezier_pos = transform.map(locked_bezier_pos)
             bezier.set_control_point_for_node(self, new_bezier_pos)
+            bezier.adjust_position()
 
     def moveOrthogonally(self, event):
         epos = event.scenePos()
