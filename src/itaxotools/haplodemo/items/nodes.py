@@ -107,7 +107,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
             painter.save()
             painter.setPen(self._pen)
             painter.setBrush(self._highlight_color)
-            painter.drawEllipse(point, h + r/2, h + r/2)
+            painter.drawEllipse(point, h + r / 2, h + r / 2)
             painter.restore()
         elif self.state_hovered:
             painter.save()
@@ -432,14 +432,12 @@ class Node(Vertex):
     @override
     def hoverEnterEvent(self, event):
         super().hoverEnterEvent(event)
-        self.label.state_hovered = True
-        self.label.update()
+        self.label.set_hovered(True)
 
     @override
     def hoverLeaveEvent(self, event):
         super().hoverLeaveEvent(event)
-        self.label.state_hovered = False
-        self.label.update()
+        self.label.set_hovered(False)
 
     @override
     def mouseDoubleClickEvent(self, event):

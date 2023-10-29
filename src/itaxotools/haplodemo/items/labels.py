@@ -80,17 +80,15 @@ class Label(QtWidgets.QGraphicsItem):
     def hoverEnterEvent(self, event):
         super().hoverEnterEvent(event)
         self.set_hovered(True)
-        parent = self.parentItem()
-        if parent:
-            parent.set_hovered(True)
 
     @override
     def hoverLeaveEvent(self, event):
         super().hoverLeaveEvent(event)
-        self.set_hovered(False)
+        hover = False
         parent = self.parentItem()
-        if parent:
-            parent.set_hovered(False)
+        if hasattr(parent, 'state_hovered'):
+            hover = parent.state_hovered
+        self.set_hovered(hover)
 
     @override
     def boundingRect(self):
@@ -122,7 +120,7 @@ class Label(QtWidgets.QGraphicsItem):
             painter.drawLine(0, -4, 0, 4)
 
     def paint_outline(self, painter):
-        if self.isHighlighted():
+        if self.isHighlighted() or self.parentItem() and self.parentItem().isSelected():
             color = self._highlight_color
         elif self._white_outline:
             color = QtCore.Qt.white
