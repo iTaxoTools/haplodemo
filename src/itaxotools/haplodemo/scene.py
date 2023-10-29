@@ -41,7 +41,6 @@ from .settings import Settings
 class GraphicsScene(QtWidgets.QGraphicsScene):
     boundaryPlaced = QtCore.Signal()
     rotateModeChanged = QtCore.Signal(bool)
-    nodeSelected = QtCore.Signal(str)
 
     def __init__(self, settings: Settings, parent=None):
         super().__init__(parent)

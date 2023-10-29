@@ -18,12 +18,15 @@
 
 from __future__ import annotations
 
+from PySide6 import QtCore
+
 from collections import Counter, defaultdict
 from itertools import combinations
 from typing import Callable
 
 import networkx as nx
 from itaxotools.common.bindings import Binder
+from itaxotools.common.utility import Guard
 
 from .items.bezier import BezierCurve
 from .items.boxes import RectBox
@@ -36,10 +39,13 @@ from .settings import Settings
 from .types import HaploGraph, HaploTreeNode, LayoutType
 
 
-class Visualizer:
+class Visualizer(QtCore.QObject):
     """Map haplotype network datatypes to graphics scene items"""
+    nodeSelected = QtCore.Signal(str)
+    nodeIndexSelected = QtCore.Signal(QtCore.QModelIndex)
 
     def __init__(self, scene: GraphicsScene, settings: Settings):
+        super().__init__()
         self.scene = scene
         self.settings = settings
 
@@ -47,11 +53,14 @@ class Visualizer:
 
         self.items: dict[str, Vertex] = {}
         self.members: dict[str, set[str]] = defaultdict(set)
+        self.member_indices: dict[str, QtCore.QModelIndex] = defaultdict(QtCore.QModelIndex)
         self.partition: dict[str, str] = defaultdict(str)
         self.graph: HaploGraph = None
         self.tree: HaploTreeNode = None
 
-        self.scene.nodeSelected.connect(self.handle_node_selected)
+        self._member_select_guard = Guard()
+
+        self.scene.selectionChanged.connect(self.handle_selection_changed)
         self.settings.properties.partition_index.notify.connect(self.handle_partition_selected)
 
     def clear(self):
@@ -72,6 +81,7 @@ class Visualizer:
 
     def update_members_setting(self):
         self.settings.members.set_dict(self.members)
+        self.member_indices = self.settings.members.get_index_map()
 
     def set_divisions(self, divisions: list[str]):
         self.settings.divisions.set_divisions_from_keys(divisions)
@@ -129,7 +139,7 @@ class Visualizer:
             item = self.create_node(x, y, size, id, dict(node.pops), radius_for_size)
             radius = item.radius / self.settings.edge_length
         else:
-            item = self.create_vertex(x, y)
+            item = self.create_vertex(x, y, name=id)
             radius = 0
 
         self.items[id] = item
@@ -168,7 +178,7 @@ class Visualizer:
                 item = self.create_node(x, y, size, id, dict(node.pops), radius_for_size)
                 radius = item.radius / self.settings.edge_length
             else:
-                item = self.create_vertex(x, y)
+                item = self.create_vertex(x, y, name=id)
                 radius = 0
 
             self.items[id] = item
@@ -345,10 +355,31 @@ class Visualizer:
             self.scene.addItem(sibling)
         return edge
 
-    def handle_node_selected(self, name):
-        print('>', name, ':', self.members[name])
-
     def handle_partition_selected(self, index):
         partition = index.data(PartitionListModel.PartitionRole)
         if partition is not None:
             self.set_partition(partition.map)
+
+    def handle_selection_changed(self):
+        selection = self.scene.selectedItems()
+        selection = [item for item in selection if isinstance(item, Vertex)]
+
+        node = selection[0] if selection else None
+        name = node.name if node else ''
+        index = self.member_indices[name]
+
+        if not self._member_select_guard:
+            self.nodeSelected.emit(node)
+            self.nodeIndexSelected.emit(index)
+
+    def select_node_by_name(self, name: str):
+        with self._member_select_guard:
+
+            for item in self.scene.selectedItems():
+                item.setSelected(False)
+
+            if not name:
+                return
+
+            item = self.items[name]
+            item.setSelected(True)

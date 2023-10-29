@@ -180,10 +180,10 @@ class MemberTreeModel(QtCore.QAbstractItemModel):
         self.endResetModel()
 
     def get_index_map(self) -> dict[str, QtCore.QModelIndex]:
-        return {
+        return defaultdict(QtCore.QModelIndex, {
             node.name: self.createIndex(row, 0, node)
             for row, node in enumerate(self.root_item.children)
-        }
+        })
 
     def index(self, row, column, parent=QtCore.QModelIndex()):
         if not self.hasIndex(row, column, parent):
@@ -218,7 +218,7 @@ class MemberTreeModel(QtCore.QAbstractItemModel):
     def columnCount(self, parent=QtCore.QModelIndex()):
         return 1
 
-    def data(self, index, role):
+    def data(self, index, role = QtCore.Qt.DisplayRole):
         if not index.isValid():
             return None
         if role != QtCore.Qt.DisplayRole:

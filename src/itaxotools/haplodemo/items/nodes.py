@@ -30,9 +30,10 @@ from .protocols import HighlightableItem
 
 
 class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
-    def __init__(self, x, y, r=2.5):
+    def __init__(self, x: float, y: float, r: float = 2.5, name: str = None):
         super().__init__(-r, -r, r * 2, r * 2)
 
+        self.name = name
         self.parent = None
         self.boxes = list()
         self.children = list()
@@ -398,8 +399,7 @@ class Node(Vertex):
         weights: dict[str, int],
         radius_for_size: Callable[[int], float] = None,
     ):
-        super().__init__(x, y, r)
-        self.name = name
+        super().__init__(x, y, r, name)
         self.weights = weights
         self.radius_for_size = radius_for_size
         self.pies = dict()

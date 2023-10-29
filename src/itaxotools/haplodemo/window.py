@@ -228,6 +228,9 @@ class Window(QtWidgets.QWidget):
         self.binder.bind(settings.properties.palette, palette_selector.setValue)
         self.binder.bind(settings.properties.palette, ColorDelegate.setCustomColors)
 
+        self.binder.bind(visualizer.nodeIndexSelected, member_view.select)
+        self.binder.bind(member_view.nodeSelected, visualizer.select_node_by_name)
+
         self.binder.bind(settings.properties.snapping_movement, toggle_snapping.setChecked)
         self.binder.bind(toggle_snapping.toggled, settings.properties.snapping_movement)
 
@@ -261,7 +264,7 @@ class Window(QtWidgets.QWidget):
         self.quick_save_action = action
         self.addAction(action)
 
-        self.demos.load_demo_fields()
+        self.demos.load_demo_members_tree()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

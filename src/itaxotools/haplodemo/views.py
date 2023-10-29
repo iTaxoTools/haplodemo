@@ -18,7 +18,9 @@
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from itaxotools.haplodemo.models import DivisionListModel, MemberTreeModel
+from itaxotools.common.utility import override
+
+from .models import DivisionListModel, MemberTreeModel
 
 
 class ColorDelegate(QtWidgets.QStyledItemDelegate):
@@ -61,12 +63,16 @@ class DivisionView(QtWidgets.QListView):
 
 
 class MemberView(QtWidgets.QTreeView):
+    nodeSelected = QtCore.Signal(str)
+
     def __init__(self, members: MemberTreeModel):
         super().__init__()
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        self.setAlternatingRowColors(True)
         self.setHeaderHidden(True)
         self.setModel(members)
 
+    @override
     def setModel(self, model: MemberTreeModel):
         if self.model():
             self.model().modelReset.disconnect(self.expandAll)
@@ -74,11 +80,24 @@ class MemberView(QtWidgets.QTreeView):
         model.modelReset.connect(self.expandAll)
         self.expandAll()
 
-    def select(self, index: QtCore.QModelIndex | None):
-        if index is None or not index.isValid():
-            self.clearSelection()
-            index_top = self.model().index(0, 0)
-            self.scrollTo(index_top)
+    @override
+    def selectionChanged(self, selected, deselected):
+        super().selectionChanged(selected, deselected)
+        indices = selected.indexes()
+        if not indices:
+            self.nodeSelected.emit(None)
+            return
+
+        index = indices[0]
+        parent_index = self.model().parent(index)
+        if parent_index.isValid():
+            index = parent_index
+        name = self.model().data(index)
+        self.nodeSelected.emit(name)
+
+    def select(self, index: QtCore.QModelIndex):
+        self.clearSelection()
+        if not index.isValid():
             return
         self.selectionModel().select(index, QtCore.QItemSelectionModel.Select)
         self.scrollTo(index)
