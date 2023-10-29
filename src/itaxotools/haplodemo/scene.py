@@ -657,8 +657,10 @@ class GraphicsView(QtWidgets.QGraphicsView):
         else:
             source = self.viewport().rect()
 
+        scale = self.transform().m11()
+
         source = self.mapFromScene(source).boundingRect()
-        target = QtCore.QRect(0, 0, source.width(), source.height())
+        target = QtCore.QRect(0, 0, source.width() / scale, source.height() / scale)
 
         return (target, source)
 
@@ -709,10 +711,6 @@ class GraphicsView(QtWidgets.QGraphicsView):
         with self.prepare_export(file):
 
             target, source = self.get_render_rects()
-
-            # Double PNG canvas
-            target.setWidth(target.width() * 2)
-            target.setHeight(target.height() * 2)
 
             pixmap = QtGui.QPixmap(target.width(), target.height())
             pixmap.fill(QtCore.Qt.white)
