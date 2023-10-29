@@ -22,7 +22,7 @@ from itaxotools.common.utility import override
 
 from ..utility import shapeFromPath
 from .nodes import Vertex
-from .protocols import HighlightableItem
+from .protocols import HighlightableItem, SoloMovableItem
 
 
 class BezierHandleLine(QtWidgets.QGraphicsLineItem):
@@ -31,7 +31,7 @@ class BezierHandleLine(QtWidgets.QGraphicsLineItem):
         self.setPen(QtGui.QPen(QtGui.QColor('#333'), 1))
 
 
-class BezierHandle(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
+class BezierHandle(HighlightableItem, SoloMovableItem, QtWidgets.QGraphicsEllipseItem):
     def __init__(self, parent, point, r):
         """This is drawn above all other items"""
         super().__init__(-r, -r, r * 2, r * 2)

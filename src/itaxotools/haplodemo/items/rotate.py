@@ -20,10 +20,10 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import override
 
-from .protocols import HighlightableItem
+from .protocols import HighlightableItem, SoloMovableItem
 
 
-class PivotHandle(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
+class PivotHandle(HighlightableItem, SoloMovableItem, QtWidgets.QGraphicsEllipseItem):
     def __init__(self, r=10):
         super().__init__(-r, -r, r * 2, r * 2)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)

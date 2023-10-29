@@ -22,7 +22,7 @@ and not subclass QtWidgets.QGraphicsItem. Instead, we assume that
 the next item in the MRO is a subclass of QtWidgets.QGraphicsItem.
 """
 
-from PySide6 import QtCore
+from PySide6 import QtCore, QtWidgets
 
 from itaxotools.common.utility import override
 
@@ -65,6 +65,37 @@ class HighlightableItem(HoverableItem):
 
     def is_highlighted(self):
         return self._state_hovered
+
+
+class SoloMovableItem:
+    """
+    By default, moving an item also moves other selected items.
+    This class avoids this behaviour, moving only the item itself.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        super().setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
+        super().setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+        self._locked_drag_pos = None
+
+    @override
+    def mousePressEvent(self, event):
+        self._locked_drag_pos = event.pos()
+        super().mousePressEvent(event)
+
+    @override
+    def mouseMoveEvent(self, event):
+        if self._locked_drag_pos:
+            delta = event.pos() - self._locked_drag_pos
+            super().setPos(super().pos() + delta)
+        else:
+            super().mouseMoveEvent(event)
+
+    @override
+    def mouseReleaseEvent(self, event):
+        self._locked_drag_pos = None
+        super().mouseReleaseEvent(event)
 
 
 class IgnorableItem:

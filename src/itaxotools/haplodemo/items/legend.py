@@ -20,7 +20,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import override
 
-from .protocols import HighlightableItem
+from .protocols import HighlightableItem, SoloMovableItem
 
 
 class LegendBubble(QtWidgets.QGraphicsEllipseItem):
@@ -73,7 +73,7 @@ class LegendItem(QtWidgets.QGraphicsItem):
         self.bubble.setPen(QtGui.QPen(QtCore.Qt.black, value))
 
 
-class Legend(HighlightableItem, QtWidgets.QGraphicsRectItem):
+class Legend(HighlightableItem, SoloMovableItem, QtWidgets.QGraphicsRectItem):
 
     def __init__(self, divisions=None, parent=None):
         super().__init__(parent)

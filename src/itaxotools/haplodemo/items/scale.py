@@ -21,11 +21,11 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from itaxotools.common.utility import override
 
 from .labels import Label
-from .protocols import HighlightableItem
+from .protocols import HighlightableItem, SoloMovableItem
 from .types import Direction
 
 
-class Scale(HighlightableItem, QtWidgets.QGraphicsItem):
+class Scale(HighlightableItem, SoloMovableItem, QtWidgets.QGraphicsItem):
     def __init__(self, settings, marks=[1, 10, 100], parent=None):
         super().__init__(parent)
         self.settings = settings
@@ -46,7 +46,6 @@ class Scale(HighlightableItem, QtWidgets.QGraphicsItem):
         self.set_marks(marks)
 
         self.setCursor(QtCore.Qt.ArrowCursor)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setZValue(70)
 
     @override
