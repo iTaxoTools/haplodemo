@@ -25,7 +25,7 @@ setup(
     python_requires='>=3.10.2, <4',
     install_requires=[
         'itaxotools-common==0.3.0',
-        'pyside6>=6.1.1, <6.5',
+        'pyside6>=6.6.0',
         'networkx',
         'numpy',
     ],

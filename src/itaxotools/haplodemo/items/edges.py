@@ -225,7 +225,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
         painter.restore()
 
     def update_z_value(self, hover=False):
-        z = - 5 if hover else - 10
+        z = -21 if hover else -22
         self.setZValue(z)
 
     def set_style(self, style):

@@ -22,6 +22,7 @@ from itaxotools.common.utility import override
 
 from ..utility import shapeFromPath
 from .nodes import Vertex
+from .protocols import HoverableItem
 
 
 class BezierHandleLine(QtWidgets.QGraphicsLineItem):
@@ -30,11 +31,14 @@ class BezierHandleLine(QtWidgets.QGraphicsLineItem):
         self.setPen(QtGui.QPen(QtGui.QColor('#333'), 1))
 
 
-class BezierHandle(QtWidgets.QGraphicsEllipseItem):
+class BezierHandle(HoverableItem, QtWidgets.QGraphicsEllipseItem):
     def __init__(self, parent, point, r):
         """This is drawn above all other items"""
         super().__init__(-r, -r, r * 2, r * 2)
         self.parent = parent
+
+        self._pen = QtGui.QPen(QtCore.Qt.gray, 1)
+        self._pen_high = QtGui.QPen(QtCore.Qt.green, 4)
 
         self.setCursor(QtCore.Qt.ArrowCursor)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
@@ -51,6 +55,19 @@ class BezierHandle(QtWidgets.QGraphicsEllipseItem):
             pos = self.pos() - start_point
             self.parent.setPos(pos)
         return super().itemChange(change, value)
+
+    @override
+    def paint(self, painter, options, widget=None):
+        painter.save()
+        rect = self.rect()
+        if self.is_hovered():
+            rect = self.rect().adjusted(-2, -2, 2, 2)
+            painter.setPen(self._pen_high)
+        else:
+            painter.setPen(self._pen)
+        painter.setBrush(self.brush())
+        painter.drawEllipse(rect)
+        painter.restore()
 
 
 class BezierHandlePhantom(QtWidgets.QGraphicsEllipseItem):
@@ -72,11 +89,11 @@ class BezierHandlePhantom(QtWidgets.QGraphicsEllipseItem):
         return super().itemChange(change, value)
 
 
-class BezierCurve(QtWidgets.QGraphicsPathItem):
+class BezierCurve(HoverableItem, QtWidgets.QGraphicsPathItem):
     def __init__(self, node1: Vertex, node2: Vertex, parent=None):
         super().__init__(parent)
         self.setCursor(QtCore.Qt.ArrowCursor)
-        self.setZValue(-20)
+        self.update_z_value()
 
         self.node1 = node1
         self.node2 = node2
@@ -94,6 +111,7 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
         self.h2 = None
 
         self._pen = QtGui.QPen(QtCore.Qt.red, 2, QtCore.Qt.DotLine)
+        self._pen_high = QtGui.QPen(QtCore.Qt.green, 6)
         self._pen_shape = QtGui.QPen(QtCore.Qt.black, 12)
 
         self.setPen(self._pen_shape)
@@ -110,6 +128,9 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
     @override
     def paint(self, painter, options, widget=None):
         painter.save()
+        if self.is_hovered():
+            painter.setPen(self._pen_high)
+            painter.drawPath(self.path())
         painter.setPen(self._pen)
         painter.drawPath(self.path())
         painter.restore()
@@ -136,6 +157,14 @@ class BezierCurve(QtWidgets.QGraphicsPathItem):
             self.c2 = point
             return
         raise ValueError('node not in bezier')
+
+    def update_z_value(self, hover=False):
+        z = -11 if hover else -12
+        self.setZValue(z)
+
+    def set_hovered(self, value):
+        super().set_hovered(value)
+        self.update_z_value(value)
 
     def add_controls(self):
         self.l1 = BezierHandleLine(self, self.p1, self.c1)
