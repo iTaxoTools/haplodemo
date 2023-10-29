@@ -31,6 +31,7 @@ from .items.boxes import RectBox
 from .items.edges import Edge
 from .items.legend import Legend
 from .items.nodes import Node, Vertex
+from .items.protocols import HoverableItem
 from .items.rotate import PivotHandle
 from .items.scale import Scale
 from .items.types import EdgeStyle
@@ -595,24 +596,59 @@ class GraphicsView(QtWidgets.QGraphicsView):
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
 
     @contextmanager
-    def prepare_export(self):
+    def prepare_export(self, file: str):
         """Make sure the scene is clean and ready for a snapshot"""
-        event = QtWidgets.QGraphicsSceneEvent(QtCore.QEvent.GraphicsSceneLeave)
-        self.scene().handleMouseLeaveEvent(event)
 
-        white = QtCore.Qt.white
-        self.scene().setBackgroundBrush(white)
+        self.check_file_busy(file)
 
-        if self.scene().boundary:
-            self.scene().boundary.setVisible(False)
+        selection = []
+        beziers_with_controls = []
+        hovered_items = []
 
-        yield
+        try:
 
-        if self.scene().boundary:
-            self.scene().boundary.setVisible(True)
+            white = QtCore.Qt.white
+            self.scene().setBackgroundBrush(white)
 
-        mid = QtWidgets.QApplication.instance().palette().mid()
-        self.scene().setBackgroundBrush(mid)
+            selection = list(self.scene().selectedItems())
+            for item in selection:
+                item.setSelected(False)
+
+            beziers_with_controls = [item for item in self.scene().items() if isinstance(item, BezierCurve) and item.h1]
+            for bezier in beziers_with_controls:
+                bezier.remove_controls()
+
+            hovered_items = [item for item in self.scene().items() if isinstance(item, HoverableItem) and item.is_hovered()]
+            for item in hovered_items:
+                item.set_hovered(False)
+
+            if self.scene().settings.rotate_scene:
+                self.scene().pivot.setVisible(False)
+
+            if self.scene().boundary:
+                self.scene().boundary.setVisible(False)
+
+            yield
+
+        finally:
+
+            if self.scene().boundary:
+                self.scene().boundary.setVisible(True)
+
+            if self.scene().settings.rotate_scene:
+                self.scene().pivot.setVisible(True)
+
+            for item in hovered_items:
+                item.set_hovered(True)
+
+            for bezier in beziers_with_controls:
+                bezier.add_controls()
+
+            for item in selection:
+                item.setSelected(True)
+
+            mid = QtWidgets.QApplication.instance().palette().mid()
+            self.scene().setBackgroundBrush(mid)
 
     def get_render_rects(self) -> tuple[QtCore.QRect, QtCore.QRect]:
         """Return a tuple of rects for rendering: (target, source)"""
@@ -626,8 +662,19 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
         return (target, source)
 
+    def check_file_busy(self, file: str):
+        try:
+            with open(file, 'ab') as _:
+                pass
+        except Exception as exception:
+            raise Exception(f'Unable to open file: {repr(file)}. Is it being used by another program?') from exception
+
+    def check_painter_begin(self, ok: bool, file: str):
+        if not ok:
+            raise Exception(f'Unable to paint file: {repr(file)}')
+
     def export_svg(self, file: str):
-        with self.prepare_export():
+        with self.prepare_export(file):
 
             target, source = self.get_render_rects()
 
@@ -637,12 +684,13 @@ class GraphicsView(QtWidgets.QGraphicsView):
             generator.setViewBox(target)
 
             painter = QtGui.QPainter()
-            painter.begin(generator)
+            ok = painter.begin(generator)
+            self.check_painter_begin(ok, file)
             self.render(painter, target, source)
             painter.end()
 
     def export_pdf(self, file: str):
-        with self.prepare_export():
+        with self.prepare_export(file):
 
             target, source = self.get_render_rects()
             size = QtCore.QSizeF(target.width(), target.height())
@@ -652,12 +700,13 @@ class GraphicsView(QtWidgets.QGraphicsView):
             writer.setPageSize(page_size)
 
             painter = QtGui.QPainter()
-            painter.begin(writer)
+            ok = painter.begin(writer)
+            self.check_painter_begin(ok, file)
             self.render(painter, QtCore.QRect(), source)
             painter.end()
 
     def export_png(self, file: str):
-        with self.prepare_export():
+        with self.prepare_export(file):
 
             target, source = self.get_render_rects()
 
@@ -669,7 +718,8 @@ class GraphicsView(QtWidgets.QGraphicsView):
             pixmap.fill(QtCore.Qt.white)
 
             painter = QtGui.QPainter()
-            painter.begin(pixmap)
+            ok = painter.begin(pixmap)
+            self.check_painter_begin(ok, file)
             painter.setRenderHint(QtGui.QPainter.Antialiasing)
             self.render(painter, target, source)
             painter.end()
