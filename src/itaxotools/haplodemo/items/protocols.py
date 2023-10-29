@@ -63,6 +63,9 @@ class HighlightableItem(HoverableItem):
     def highlight_color(self):
         return self._highlight_color
 
+    def is_highlighted(self):
+        return self._state_hovered
+
 
 class IgnorableItem:
     def __init__(self, *args, **kwargs):

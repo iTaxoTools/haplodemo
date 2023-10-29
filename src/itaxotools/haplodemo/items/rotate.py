@@ -50,7 +50,7 @@ class PivotHandle(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
 
     @override
     def paint(self, painter, option, widget=None):
-        if self.is_hovered():
+        if self.is_highlighted():
             painter.setPen(self._pen_high)
             self.paint_pivot(painter)
 

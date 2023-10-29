@@ -61,7 +61,7 @@ class BezierHandle(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
     def paint(self, painter, options, widget=None):
         painter.save()
         rect = self.rect()
-        if self.is_hovered():
+        if self.is_highlighted():
             rect = self.rect().adjusted(-2, -2, 2, 2)
             painter.setPen(self._pen_high)
         else:
@@ -131,7 +131,7 @@ class BezierCurve(HighlightableItem, QtWidgets.QGraphicsPathItem):
     @override
     def paint(self, painter, options, widget=None):
         painter.save()
-        if self.is_hovered():
+        if self.is_highlighted():
             painter.setPen(self._pen_high)
             painter.drawPath(self.path())
         painter.setPen(self._pen)

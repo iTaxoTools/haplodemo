@@ -64,7 +64,7 @@ class Scale(HighlightableItem, QtWidgets.QGraphicsItem):
 
     @override
     def paint(self, painter, options, widget=None):
-        if self.is_hovered():
+        if self.is_highlighted():
             painter.setPen(self._pen_high)
             self.paint_marks(painter)
 

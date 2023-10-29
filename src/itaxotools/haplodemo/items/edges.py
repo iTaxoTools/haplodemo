@@ -87,7 +87,7 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
     def paint(self, painter, options, widget=None):
         painter.save()
 
-        if self.is_hovered():
+        if self.is_highlighted():
             self.paintHoverLine(painter)
 
         painter.setPen(self._pen)
@@ -131,7 +131,7 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
 
     def paintBubble(self, painter, point, r=2.5, h=6):
         painter.setPen(QtCore.Qt.NoPen)
-        if self.is_hovered():
+        if self.is_highlighted():
             painter.save()
             painter.setBrush(self.highlight_color())
             painter.drawEllipse(point, h, h)
@@ -198,7 +198,7 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
         bar = bar.translated(point)
         bar = QtCore.QLineF(bar.pointAt(-1), bar.pointAt(1))
 
-        if self.is_hovered():
+        if self.is_highlighted():
             painter.save()
             pen = QtGui.QPen(self.highlight_color(), 6)
             painter.setPen(pen)
@@ -212,7 +212,7 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
 
         painter.save()
         line = self.line()
-        if self.is_hovered():
+        if self.is_highlighted():
             pen = QtGui.QPen(self.highlight_color(), radius_high, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap)
             painter.setPen(pen)
             painter.drawLine(line)

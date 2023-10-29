@@ -45,8 +45,6 @@ class Label(HighlightableItem, QtWidgets.QGraphicsItem):
         self.rect = self.getTextRect()
         self.outline = self.getTextOutline()
 
-        self.state_pressed = False
-
         self.locked_rect = self.rect
         self.locked_pos = QtCore.QPointF(0, 0)
 
@@ -118,7 +116,7 @@ class Label(HighlightableItem, QtWidgets.QGraphicsItem):
             painter.drawLine(0, -4, 0, 4)
 
     def paint_outline(self, painter):
-        if self.isHighlighted() or self.parentItem() and self.parentItem().isSelected():
+        if self.is_highlighted() or self.parentItem() and self.parentItem().isSelected():
             color = self.highlight_color()
         elif self._white_outline:
             color = QtCore.Qt.white
@@ -157,13 +155,6 @@ class Label(HighlightableItem, QtWidgets.QGraphicsItem):
     def setRect(self, rect):
         self.prepareGeometryChange()
         self.rect = rect
-
-    def isHighlighted(self):
-        if self.state_pressed:
-            return True
-        if self.is_hovered():
-            return True
-        return False
 
     def getTextRect(self):
         match self._anchor:

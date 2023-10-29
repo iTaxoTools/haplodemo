@@ -58,8 +58,6 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         self.snap_axis_xs = []
         self.snap_axis_ys = []
 
-        self.state_pressed = False
-
         self._snapping_setting = None
         self._rotational_setting = None
         self._recursive_setting = None
@@ -107,7 +105,7 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
             painter.setBrush(self.highlight_color())
             painter.drawEllipse(point, h + r / 2, h + r / 2)
             painter.restore()
-        elif self.is_hovered():
+        elif self.is_highlighted():
             painter.save()
             painter.setBrush(self.highlight_color())
             painter.drawEllipse(point, h, h)
@@ -164,12 +162,10 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
                     Edge.lockLabelPosition, [], {})
 
         super().mousePressEvent(event)
-        self.set_pressed(True)
 
     @override
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
-        self.set_pressed(False)
         if self.isSelected() and self._click_deselects:
             self.setSelected(False)
 
@@ -180,19 +176,17 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
             return self.moveRotationally(event)
         return self.moveOrthogonally(event)
 
+    @override
+    def mouseDoubleClickEvent(self, event):
+        super().mouseDoubleClickEvent(event)
+        self._click_deselects = False
+
     def update_z_value(self, hover=False):
         weight = self.weight
         if hover:
             weight -= 1
         z = 1 / (weight + 2)
         self.setZValue(z)
-
-    def is_highlighted(self):
-        if self.state_pressed:
-            return True
-        if self.is_hovered():
-            return True
-        return False
 
     def addChild(self, item, edge):
         item.parent = self
@@ -207,10 +201,6 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         self.siblings.append(item)
         item.siblings.append(self)
         edge.adjustPosition()
-
-    def set_pressed(self, value):
-        self.state_pressed = value
-        self.update()
 
     def set_hovered(self, value):
         if self.parent and any((
