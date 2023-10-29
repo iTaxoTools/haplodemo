@@ -20,10 +20,11 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import override
 
-from itaxotools.haplodemo.items.types import Direction
+from .protocols import HoverableItem
+from .types import Direction
 
 
-class Label(QtWidgets.QGraphicsItem):
+class Label(HoverableItem, QtWidgets.QGraphicsItem):
     def __init__(self, text, parent):
         super().__init__(parent)
         self.setCursor(QtCore.Qt.ArrowCursor)
@@ -46,7 +47,6 @@ class Label(QtWidgets.QGraphicsItem):
         self.rect = self.getTextRect()
         self.outline = self.getTextOutline()
 
-        self.state_hovered = False
         self.state_pressed = False
 
         self.locked_rect = self.rect
@@ -86,8 +86,8 @@ class Label(QtWidgets.QGraphicsItem):
         super().hoverLeaveEvent(event)
         hover = False
         parent = self.parentItem()
-        if hasattr(parent, 'state_hovered'):
-            hover = parent.state_hovered
+        if isinstance(parent, HoverableItem):
+            hover = parent.is_hovered()
         self.set_hovered(hover)
 
     @override
@@ -148,10 +148,6 @@ class Label(QtWidgets.QGraphicsItem):
     def set_highlight_color(self, value):
         self._highlight_color = value
 
-    def set_hovered(self, value):
-        self.state_hovered = value
-        self.update()
-
     def set_font(self, font):
         if font is None:
             return
@@ -170,7 +166,7 @@ class Label(QtWidgets.QGraphicsItem):
     def isHighlighted(self):
         if self.state_pressed:
             return True
-        if self.state_hovered:
+        if self.is_hovered():
             return True
         return False
 

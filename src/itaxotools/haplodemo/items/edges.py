@@ -22,12 +22,13 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import override
 
-from itaxotools.haplodemo.items.labels import Label
-from itaxotools.haplodemo.items.types import EdgeDecoration, EdgeStyle
-from itaxotools.haplodemo.utility import shapeFromPath
+from ..utility import shapeFromPath
+from .labels import Label
+from .protocols import HoverableItem
+from .types import EdgeDecoration, EdgeStyle
 
 
-class Edge(QtWidgets.QGraphicsLineItem):
+class Edge(HoverableItem, QtWidgets.QGraphicsLineItem):
     def __init__(self, node1: QtWidgets.QGraphicsItem, node2: QtWidgets.QGraphicsItem, weight=1):
         super().__init__()
         self.setCursor(QtCore.Qt.ArrowCursor)
@@ -38,7 +39,6 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.node2 = node2
 
         self.style = EdgeStyle.Bubbles
-        self.state_hovered = False
         self.locked_label_pos = None
         self.locked_label_rect_pos = None
 
@@ -89,7 +89,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
     def paint(self, painter, options, widget=None):
         painter.save()
 
-        if self.state_hovered:
+        if self.is_hovered():
             self.paintHoverLine(painter)
 
         painter.setPen(self._pen)
@@ -133,7 +133,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
     def paintBubble(self, painter, point, r=2.5, h=6):
         painter.setPen(QtCore.Qt.NoPen)
-        if self.state_hovered:
+        if self.is_hovered():
             painter.save()
             painter.setBrush(self._highlight_color)
             painter.drawEllipse(point, h, h)
@@ -200,7 +200,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
         bar = bar.translated(point)
         bar = QtCore.QLineF(bar.pointAt(-1), bar.pointAt(1))
 
-        if self.state_hovered:
+        if self.is_hovered():
             painter.save()
             pen = QtGui.QPen(self._highlight_color, 6)
             painter.setPen(pen)
@@ -214,7 +214,7 @@ class Edge(QtWidgets.QGraphicsLineItem):
 
         painter.save()
         line = self.line()
-        if self.state_hovered:
+        if self.is_hovered():
             pen = QtGui.QPen(self._highlight_color, radius_high, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap)
             painter.setPen(pen)
             painter.drawLine(line)
@@ -235,10 +235,9 @@ class Edge(QtWidgets.QGraphicsLineItem):
         self.update_pens()
 
     def set_hovered(self, value):
-        self.state_hovered = value
         self.label.set_hovered(value)
         self.update_z_value(value)
-        self.update()
+        super().set_hovered(value)
 
     def set_label_font(self, value):
         self.label.set_font(value)

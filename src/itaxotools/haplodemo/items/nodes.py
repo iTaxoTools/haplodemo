@@ -24,11 +24,12 @@ from typing import Callable
 
 from itaxotools.common.utility import override
 
-from itaxotools.haplodemo.items.edges import Edge
-from itaxotools.haplodemo.items.labels import Label
+from .edges import Edge
+from .labels import Label
+from .protocols import HoverableItem
 
 
-class Vertex(QtWidgets.QGraphicsEllipseItem):
+class Vertex(HoverableItem, QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, r=2.5):
         super().__init__(-r, -r, r * 2, r * 2)
 
@@ -57,7 +58,6 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.snap_axis_xs = []
         self.snap_axis_ys = []
 
-        self.state_hovered = False
         self.state_pressed = False
 
         self._snapping_setting = None
@@ -109,7 +109,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
             painter.setBrush(self._highlight_color)
             painter.drawEllipse(point, h + r / 2, h + r / 2)
             painter.restore()
-        elif self.state_hovered:
+        elif self.is_hovered():
             painter.save()
             painter.setBrush(self._highlight_color)
             painter.drawEllipse(point, h, h)
@@ -192,7 +192,7 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
     def is_highlighted(self):
         if self.state_pressed:
             return True
-        if self.state_hovered:
+        if self.is_hovered():
             return True
         return False
 
@@ -215,15 +215,14 @@ class Vertex(QtWidgets.QGraphicsEllipseItem):
         self.update()
 
     def set_hovered(self, value):
-        self.state_hovered = value
-        self.update_z_value(value)
         if self.parent and any((
             self.isMovementRotational(),
             self.isMovementRecursive())
         ):
             edge = self.edges[self.parent]
             edge.set_hovered(value)
-        self.update()
+        self.update_z_value(value)
+        super().set_hovered(value)
 
     def set_snapping_setting(self, value):
         self._snapping_setting = value

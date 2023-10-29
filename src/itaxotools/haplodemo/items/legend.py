@@ -20,6 +20,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import override
 
+from .protocols import HoverableItem
+
 
 class LegendBubble(QtWidgets.QGraphicsEllipseItem):
     def __init__(self, x, y, r, color, parent=None):
@@ -71,7 +73,7 @@ class LegendItem(QtWidgets.QGraphicsItem):
         self.bubble.setPen(QtGui.QPen(QtCore.Qt.black, value))
 
 
-class Legend(QtWidgets.QGraphicsRectItem):
+class Legend(HoverableItem, QtWidgets.QGraphicsRectItem):
 
     def __init__(self, divisions=None, parent=None):
         super().__init__(parent)
@@ -99,16 +101,12 @@ class Legend(QtWidgets.QGraphicsRectItem):
             self.set_divisions(divisions)
 
     @override
-    def hoverEnterEvent(self, event):
-        super().hoverEnterEvent(event)
-        self.setPen(QtGui.QPen(self._highlight_color, 4))
-        self.update()
-
-    @override
-    def hoverLeaveEvent(self, event):
-        super().hoverLeaveEvent(event)
-        self.setPen(QtGui.QPen(QtCore.Qt.black, 1))
-        self.update()
+    def set_hovered(self, hovered):
+        if hovered:
+            self.setPen(QtGui.QPen(self._highlight_color, 4))
+        else:
+            self.setPen(QtGui.QPen(QtCore.Qt.black, 1))
+        super().set_hovered(hovered)
 
     def update_sizes(self):
         metric = QtGui.QFontMetrics(self.font)

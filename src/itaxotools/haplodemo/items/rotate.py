@@ -20,8 +20,10 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.utility import override
 
+from .protocols import HoverableItem
 
-class PivotHandle(QtWidgets.QGraphicsEllipseItem):
+
+class PivotHandle(HoverableItem, QtWidgets.QGraphicsEllipseItem):
     def __init__(self, r=10):
         super().__init__(-r, -r, r * 2, r * 2)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
@@ -34,7 +36,6 @@ class PivotHandle(QtWidgets.QGraphicsEllipseItem):
 
         self.locked_pos = None
         self.locked_cursor = None
-        self.state_hovered = False
         self.scale = 1.0
         self.radius = 10
         self.adjust_scale()
@@ -51,7 +52,7 @@ class PivotHandle(QtWidgets.QGraphicsEllipseItem):
 
     @override
     def paint(self, painter, option, widget=None):
-        if self.state_hovered:
+        if self.is_hovered():
             painter.setPen(self._pen_high)
             self.paint_pivot(painter)
 
@@ -99,10 +100,6 @@ class PivotHandle(QtWidgets.QGraphicsEllipseItem):
         epos = event.scenePos()
         diff = (epos - self.locked_cursor).toPoint()
         self.setPos(self.locked_pos + diff)
-
-    def set_hovered(self, value):
-        self.state_hovered = value
-        self.update()
 
     def set_highlight_color(self, value):
         self._highlight_color = value

@@ -21,14 +21,14 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from itaxotools.common.utility import override
 
 from .labels import Label
+from .protocols import HoverableItem
 from .types import Direction
 
 
-class Scale(QtWidgets.QGraphicsItem):
+class Scale(HoverableItem, QtWidgets.QGraphicsItem):
     def __init__(self, settings, marks=[1, 10, 100], parent=None):
         super().__init__(parent)
         self.settings = settings
-        self.state_hovered = False
 
         self._highlight_color = QtCore.Qt.magenta
         self._pen = QtGui.QPen(QtCore.Qt.black, 2)
@@ -66,7 +66,7 @@ class Scale(QtWidgets.QGraphicsItem):
 
     @override
     def paint(self, painter, options, widget=None):
-        if self.state_hovered:
+        if self.is_hovered():
             painter.setPen(self._pen_high)
             self.paint_marks(painter)
 
@@ -86,21 +86,10 @@ class Scale(QtWidgets.QGraphicsItem):
             path.translate(0, -self.radius)
             painter.drawPath(path)
 
-    @override
-    def hoverEnterEvent(self, event):
-        super().hoverEnterEvent(event)
-        self.set_hovered(True)
-
-    @override
-    def hoverLeaveEvent(self, event):
-        super().hoverLeaveEvent(event)
-        self.set_hovered(False)
-
     def set_hovered(self, value):
-        self.state_hovered = value
+        super().set_hovered(value)
         for label in self.labels:
             label.set_hovered(value)
-        self.update()
 
     def set_label_font(self, font):
         self.font = font
