@@ -300,13 +300,19 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
             self.locked_center = center
 
         if not self.isMovementRotational():
-            if self.parent or not self.isMovementRecursive():
-                positions = [item.pos() for item in self.edges.keys()]
-                self.snap_axis_xs = [pos.x() for pos in positions]
-                self.snap_axis_ys = [pos.y() for pos in positions]
-            else:
-                self.snap_axis_xs = []
-                self.snap_axis_ys = []
+            self.snap_axis_xs = []
+            self.snap_axis_ys = []
+            if self.parent:
+                self.snap_axis_xs += [self.parent.pos().x()]
+                self.snap_axis_ys += [self.parent.pos().y()]
+            if self.children and not self.isMovementRecursive():
+                positions = [item.pos() for item in self.children]
+                self.snap_axis_xs += [pos.x() for pos in positions]
+                self.snap_axis_ys += [pos.y() for pos in positions]
+            if self.siblings:
+                positions = [item.pos() for item in self.siblings]
+                self.snap_axis_xs += [pos.x() for pos in positions]
+                self.snap_axis_ys += [pos.y() for pos in positions]
 
     def applyTranspose(self, diff):
         self.setPos(self.locked_pos + diff)
