@@ -36,11 +36,14 @@ from .items.rotate import PivotHandle
 from .items.scale import Scale
 from .items.types import EdgeStyle
 from .settings import Settings
+from .undo import MoveCommand
 
 
 class GraphicsScene(QtWidgets.QGraphicsScene):
     boundaryPlaced = QtCore.Signal()
     rotateModeChanged = QtCore.Signal(bool)
+    commandPosted = QtCore.Signal(QtGui.QUndoCommand)
+    cleared = QtCore.Signal()
 
     def __init__(self, settings: Settings, parent=None):
         super().__init__(parent)
@@ -391,6 +394,10 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         for vertex in vertices:
             vertex.adjust_scale(scale)
 
+    def handle_node_movement(self, item):
+        command = MoveCommand(item)
+        self.commandPosted.emit(command)
+
     def reset_binder(self):
         self.binder.unbind_all()
         self.binder.bind(self.settings.properties.rotate_scene, self.show_pivot)
@@ -412,6 +419,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.settings.rotate_scene = False
 
         self.root = None
+
+        self.cleared.emit()
 
 
 class GraphicsView(QtWidgets.QGraphicsView):

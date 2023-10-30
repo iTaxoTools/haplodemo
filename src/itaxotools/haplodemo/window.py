@@ -19,6 +19,7 @@
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.bindings import Binder
+from itaxotools.common.utility import AttrDict
 from itaxotools.common.widgets import HLineSeparator
 
 from .demos import DemoLoader
@@ -50,6 +51,25 @@ class Window(QtWidgets.QWidget):
         partition_selector = PartitionSelector(settings.partitions)
 
         palette_selector = PaletteSelector()
+
+        history_stack = QtGui.QUndoStack()
+        self.actions = AttrDict()
+        self.actions.undo = history_stack.createUndoAction(self, '&Undo')
+        self.actions.undo.setShortcut(QtGui.QKeySequence.Undo)
+        self.actions.redo = history_stack.createRedoAction(self, '&Redo')
+        self.actions.redo.setShortcut(QtGui.QKeySequence.Redo)
+        for action in self.actions:
+            self.addAction(action)
+
+        undo_button = QtWidgets.QPushButton('Undo')
+        undo_button.clicked.connect(history_stack.undo)
+        history_stack.canUndoChanged.connect(undo_button.setEnabled)
+        undo_button.setEnabled(history_stack.canUndo())
+
+        redo_button = QtWidgets.QPushButton('Redo')
+        redo_button.clicked.connect(history_stack.redo)
+        history_stack.canRedoChanged.connect(redo_button.setEnabled)
+        redo_button.setEnabled(history_stack.canRedo())
 
         self.node_size_dialog = NodeSizeDialog(self, scene, settings.node_sizes)
         self.edge_style_dialog = EdgeStyleDialog(self, scene)
@@ -170,6 +190,10 @@ class Window(QtWidgets.QWidget):
         dialogs.addWidget(mass_format_labels)
         dialogs.addWidget(select_font)
 
+        history = QtWidgets.QVBoxLayout()
+        history.addWidget(undo_button)
+        history.addWidget(redo_button)
+
         left_layout = QtWidgets.QVBoxLayout()
         left_layout.setContentsMargins(0, 0, 0, 0)
         left_layout.addLayout(demos)
@@ -189,6 +213,10 @@ class Window(QtWidgets.QWidget):
         right_layout = QtWidgets.QVBoxLayout()
         right_layout.setContentsMargins(0, 0, 0, 0)
         right_layout.addLayout(dialogs)
+        right_layout.addSpacing(4)
+        right_layout.addWidget(HLineSeparator(1))
+        right_layout.addSpacing(4)
+        right_layout.addLayout(history)
         right_layout.addSpacing(4)
         right_layout.addWidget(HLineSeparator(1))
         right_layout.addSpacing(4)
@@ -230,6 +258,9 @@ class Window(QtWidgets.QWidget):
 
         self.binder.bind(visualizer.nodeIndexSelected, member_view.select)
         self.binder.bind(member_view.nodeSelected, visualizer.select_node_by_name)
+
+        self.binder.bind(scene.commandPosted, history_stack.push)
+        self.binder.bind(scene.cleared, history_stack.clear)
 
         self.binder.bind(settings.properties.snapping_movement, toggle_snapping.setChecked)
         self.binder.bind(toggle_snapping.toggled, settings.properties.snapping_movement)

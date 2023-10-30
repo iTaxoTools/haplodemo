@@ -167,8 +167,11 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
     @override
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
-        if self.isSelected() and self._click_deselects:
-            self.setSelected(False)
+        if event.button() == QtCore.Qt.LeftButton:
+            if self.isSelected() and self._click_deselects:
+                self.setSelected(False)
+            if self.locked_pos != self.pos():
+                self.post_node_movement()
 
     @override
     def mouseMoveEvent(self, event):
@@ -399,6 +402,11 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         if not scale:
             return
         self.snap_axis_threshold = self.snap_axis_threshold_base + self.snap_axis_threshold_factor / scale
+
+    def post_node_movement(self):
+        if not self.scene():
+            return
+        self.scene().handle_node_movement(self)
 
 
 class Node(Vertex):
