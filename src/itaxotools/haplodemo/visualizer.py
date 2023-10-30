@@ -18,7 +18,7 @@
 
 from __future__ import annotations
 
-from PySide6 import QtCore
+from PySide6 import QtCore, QtWidgets
 
 from collections import Counter, defaultdict
 from itertools import combinations
@@ -62,6 +62,9 @@ class Visualizer(QtCore.QObject):
 
         self.scene.selectionChanged.connect(self.handle_selection_changed)
         self.settings.properties.partition_index.notify.connect(self.handle_partition_selected)
+
+        q_app = QtWidgets.QApplication.instance()
+        q_app.aboutToQuit.connect(self.handle_about_to_quit)
 
     def clear(self):
         """If visualizer is used, scene should be cleared through here to
@@ -354,6 +357,9 @@ class Visualizer(QtCore.QObject):
         if not sibling.scene():
             self.scene.addItem(sibling)
         return edge
+
+    def handle_about_to_quit(self):
+        self.scene.selectionChanged.disconnect(self.handle_selection_changed)
 
     def handle_partition_selected(self, index):
         partition = index.data(PartitionListModel.PartitionRole)
