@@ -35,8 +35,11 @@ class BezierHandle(HighlightableItem, SoloMovableItem, QtWidgets.QGraphicsEllips
     def __init__(self, parent, point, r):
         """This is drawn above all other items"""
         super().__init__(-r, -r, r * 2, r * 2)
-        self.set_highlight_color(parent.parentItem().highlight_color())
         self.parent = parent
+        self.curve = parent.parentItem()
+        self.locked_pos = None
+
+        self.set_highlight_color(self.curve.highlight_color())
 
         self._pen = QtGui.QPen(QtCore.Qt.gray, 1)
         self._pen_high = QtGui.QPen(self.highlight_color(), 4)
@@ -52,7 +55,7 @@ class BezierHandle(HighlightableItem, SoloMovableItem, QtWidgets.QGraphicsEllips
     @override
     def itemChange(self, change, value):
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
-            start_point = self.parent.parentItem().pos()
+            start_point = self.curve.pos()
             pos = self.pos() - start_point
             self.parent.setPos(pos)
         return super().itemChange(change, value)
@@ -69,6 +72,20 @@ class BezierHandle(HighlightableItem, SoloMovableItem, QtWidgets.QGraphicsEllips
         painter.setBrush(self.brush())
         painter.drawEllipse(rect)
         painter.restore()
+
+    @override
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self.locked_pos = self.pos()
+            self.curve.lock_control_points()
+        super().mousePressEvent(event)
+
+    @override
+    def mouseReleaseEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            if self.locked_pos != self.pos():
+                self.curve.post_bezier_edit()
+        super().mouseReleaseEvent(event)
 
 
 class BezierHandlePhantom(QtWidgets.QGraphicsEllipseItem):
@@ -103,8 +120,11 @@ class BezierCurve(HighlightableItem, QtWidgets.QGraphicsPathItem):
         self.p2 = node2.pos()
         self.c1 = self.p1
         self.c2 = self.p2
-        self.h1 = None
-        self.h2 = None
+
+        self.locked_p1 = self.p1
+        self.locked_p2 = self.p2
+        self.locked_c1 = self.c1
+        self.locked_c2 = self.c2
 
         self.l1 = None
         self.l2 = None
@@ -221,6 +241,7 @@ class BezierCurve(HighlightableItem, QtWidgets.QGraphicsPathItem):
         self.setPath(path)
         self.update_handle_lines()
         self.update_handle_points()
+        self.update()
 
     def update_handle_lines(self):
         if self.l1:
@@ -255,3 +276,14 @@ class BezierCurve(HighlightableItem, QtWidgets.QGraphicsPathItem):
         self.c2 = l2.pointAt(at)
 
         self.update_path()
+
+    def lock_control_points(self):
+        self.locked_p1 = self.p1
+        self.locked_p2 = self.p2
+        self.locked_c1 = self.c1
+        self.locked_c2 = self.c2
+
+    def post_bezier_edit(self):
+        if not self.scene():
+            return
+        self.scene().handle_bezier_edit(self)

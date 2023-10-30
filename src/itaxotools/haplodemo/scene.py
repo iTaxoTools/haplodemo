@@ -25,6 +25,7 @@ from math import cos, radians, sin
 
 from itaxotools.common.bindings import Binder
 
+from .history import BezierEditCommand, NodeMovementCommand
 from .items.bezier import BezierCurve
 from .items.boundary import BoundaryOutline, BoundaryRect
 from .items.boxes import RectBox
@@ -36,7 +37,6 @@ from .items.rotate import PivotHandle
 from .items.scale import Scale
 from .items.types import EdgeStyle
 from .settings import Settings
-from .undo import MoveCommand
 
 
 class GraphicsScene(QtWidgets.QGraphicsScene):
@@ -394,8 +394,12 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         for vertex in vertices:
             vertex.adjust_scale(scale)
 
-    def handle_node_movement(self, item):
-        command = MoveCommand(item)
+    def handle_node_movement(self, item: Vertex):
+        command = NodeMovementCommand(item)
+        self.commandPosted.emit(command)
+
+    def handle_bezier_edit(self, item: BezierCurve):
+        command = BezierEditCommand(item)
         self.commandPosted.emit(command)
 
     def reset_binder(self):
