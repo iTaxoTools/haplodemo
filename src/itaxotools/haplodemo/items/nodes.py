@@ -30,7 +30,7 @@ from .protocols import HighlightableItem
 
 
 class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
-    def __init__(self, x: float, y: float, r: float = 2.5, name: str = None):
+    def __init__(self, x: float, y: float, r: float = 0, name: str = None):
         super().__init__(-r, -r, r * 2, r * 2)
 
         self.name = name
