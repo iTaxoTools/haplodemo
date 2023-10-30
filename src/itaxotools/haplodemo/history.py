@@ -24,7 +24,34 @@ from .items.bezier import BezierCurve
 from .items.nodes import Vertex
 
 
-class BezierEditCommand(QtGui.QUndoCommand):
+class UndoCommand(QtGui.QUndoCommand):
+    """Keep references to all commands in order to
+    avoid corruption due to garbage collection"""
+
+    _commands = list()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._commands.append(self)
+
+    def mergeChildrenWith(self, other: UndoCommand) -> bool:
+        our_children = [self.child(x) for x in range(self.childCount())]
+        other_children = [other.child(x) for x in range(other.childCount())]
+
+        for other_child in other_children:
+            other_child_merged = False
+            for our_child in our_children:
+                merged = our_child.mergeWith(other_child)
+                if merged:
+                    other_child_merged = True
+                    break
+            if not other_child_merged:
+                return False
+
+        return True
+
+
+class BezierEditCommand(UndoCommand):
     def __init__(self, item: BezierCurve, parent=None):
         super().__init__(parent)
         self.setText('Edit bezier')
@@ -41,6 +68,7 @@ class BezierEditCommand(QtGui.QUndoCommand):
         self.new_c2 = QtCore.QPointF(item.c2)
 
     def undo(self):
+        super().undo()
         self.item.p1 = self.old_p1
         self.item.p2 = self.old_p2
         self.item.c1 = self.old_c1
@@ -48,6 +76,7 @@ class BezierEditCommand(QtGui.QUndoCommand):
         self.item.update_path()
 
     def redo(self):
+        super().redo()
         self.item.p1 = self.new_p1
         self.item.p2 = self.new_p2
         self.item.c1 = self.new_c1
@@ -67,7 +96,7 @@ class BezierEditCommand(QtGui.QUndoCommand):
         return 1002
 
 
-class NodeMovementCommand(QtGui.QUndoCommand):
+class NodeMovementCommand(UndoCommand):
     def __init__(self, item: Vertex, parent=None):
         super().__init__(parent)
         self.setText('Move node')
@@ -75,11 +104,16 @@ class NodeMovementCommand(QtGui.QUndoCommand):
         self.old_pos = QtCore.QPointF(item.locked_pos)
         self.new_pos = QtCore.QPointF(item.pos())
 
+        for bezier in item.beziers.values():
+            BezierEditCommand(bezier, self)
+
     def undo(self):
+        super().undo()
         self.item.setPos(self.old_pos)
         self.item.update()
 
     def redo(self):
+        super().redo()
         self.item.setPos(self.new_pos)
         self.item.update()
 
@@ -87,6 +121,7 @@ class NodeMovementCommand(QtGui.QUndoCommand):
         if self.item != other.item:
             return False
         self.new_pos = other.new_pos
+        self.mergeChildrenWith(other)
         return True
 
     def id(self) -> int:

@@ -48,7 +48,6 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         self.locked_event_pos = None
         self.locked_angle = None
         self.locked_center = None
-        self.locked_beziers = None
 
         self.snap_angle_threshold = 8.0
         self.snap_angles = [45 * x for x in range(9)]
@@ -293,9 +292,8 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
     def lockPosition(self, event, center=None):
         self.locked_event_pos = event.scenePos()
         self.locked_pos = self.pos()
-        self.locked_beziers = {
-            bezier: QtCore.QPointF(bezier.get_control_point_for_node(self))
-            for bezier in self.beziers.values()}
+        for bezier in self.beziers.values():
+            bezier.lock_control_points()
 
         if center is not None:
             line = QtCore.QLineF(center, event.scenePos())
@@ -321,7 +319,7 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         self.setPos(self.locked_pos + diff)
 
         for bezier in self.beziers.values():
-            locked_bezier_pos = self.locked_beziers[bezier]
+            locked_bezier_pos = bezier.get_control_point_lock_for_node(self)
             bezier.set_control_point_for_node(self, locked_bezier_pos + diff)
             bezier.adjust_position()
 
@@ -330,7 +328,7 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         self.setPos(pos)
 
         for bezier in self.beziers.values():
-            locked_bezier_pos = self.locked_beziers[bezier]
+            locked_bezier_pos = bezier.get_control_point_lock_for_node(self)
             new_bezier_pos = transform.map(locked_bezier_pos)
             bezier.set_control_point_for_node(self, new_bezier_pos)
             bezier.adjust_position()

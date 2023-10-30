@@ -170,9 +170,9 @@ class BezierCurve(HighlightableItem, QtWidgets.QGraphicsPathItem):
         super().set_highlight_color(value)
         self.update_pens()
         if self.h1:
-            self.h1.set_highlight_color(value)
+            self.h1.handle.set_highlight_color(value)
         if self.h2:
-            self.h2.set_highlight_color(value)
+            self.h2.handle.set_highlight_color(value)
 
     def set_pen_width(self, value):
         self._pen_width = value
@@ -189,6 +189,13 @@ class BezierCurve(HighlightableItem, QtWidgets.QGraphicsPathItem):
             return self.c1
         if node == self.node2:
             return self.c2
+        raise ValueError('node not in bezier')
+
+    def get_control_point_lock_for_node(self, node):
+        if node == self.node1:
+            return self.locked_c1
+        if node == self.node2:
+            return self.locked_c2
         raise ValueError('node not in bezier')
 
     def set_control_point_for_node(self, node, point):
