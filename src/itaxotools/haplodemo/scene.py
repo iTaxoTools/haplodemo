@@ -247,10 +247,24 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
     def position_pivot(self):
         if not self.pivot:
             return
-        bounds, _ = self.get_item_boundary()
-        self.pivot.setPos(bounds.center())
+
         scale = self._view_scale or 1.0
         self.pivot.adjust_scale(scale)
+        pos = self._determine_pivot_pos()
+        self.pivot.setPos(pos)
+
+        for item in self.selectedItems():
+            item.setSelected(False)
+
+    def _determine_pivot_pos(self) -> QtCore.QPointF():
+        if self.selectedItems():
+            selection = self.selectedItems()
+            selection = [item for item in selection if isinstance(item, Vertex)]
+            node = selection[0] if selection else None
+            if node:
+                return node.pos()
+        bounds, _ = self.get_item_boundary()
+        return bounds.center()
 
     def resize_edges(self, length_per_mutation: float):
         self.settings.edge_length = length_per_mutation
