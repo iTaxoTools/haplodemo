@@ -30,6 +30,10 @@ class UndoCommand(QtGui.QUndoCommand):
 
     _commands = list()
 
+    @classmethod
+    def clear_history(cls):
+        cls._commands = list()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._commands.append(self)
@@ -106,6 +110,13 @@ class NodeMovementCommand(UndoCommand):
 
         for bezier in item.beziers.values():
             BezierEditCommand(bezier, self)
+
+        def create_child_command(node):
+            if node is not self.item:
+                NodeMovementCommand(node, self)
+
+        if item.isMovementRecursive():
+            item.mapNodeRecursive(create_child_command)
 
     def undo(self):
         super().undo()

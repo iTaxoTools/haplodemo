@@ -26,6 +26,7 @@ from .demos import DemoLoader
 from .dialogs import (
     EdgeLengthDialog, EdgeStyleDialog, FontDialog, LabelFormatDialog,
     NodeSizeDialog, PenWidthDialog, ScaleMarksDialog)
+from .history import UndoCommand
 from .scene import GraphicsScene, GraphicsView
 from .settings import Settings
 from .views import ColorDelegate, DivisionView, MemberView
@@ -260,6 +261,7 @@ class Window(QtWidgets.QWidget):
         self.binder.bind(member_view.nodeSelected, visualizer.select_node_by_name)
 
         self.binder.bind(scene.commandPosted, history_stack.push)
+        self.binder.bind(scene.cleared, UndoCommand.clear_history)
         self.binder.bind(scene.cleared, history_stack.clear)
 
         self.binder.bind(settings.properties.snapping_movement, toggle_snapping.setChecked)
