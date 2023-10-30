@@ -25,14 +25,15 @@ from math import cos, radians, sin
 
 from itaxotools.common.bindings import Binder
 
-from .history import BezierEditCommand, NodeMovementCommand
+from .history import (
+    BezierEditCommand, NodeMovementCommand, SoloMovementCommand)
 from .items.bezier import BezierCurve
 from .items.boundary import BoundaryOutline, BoundaryRect
 from .items.boxes import RectBox
 from .items.edges import Edge
 from .items.legend import Legend
 from .items.nodes import Node, Vertex
-from .items.protocols import HoverableItem
+from .items.protocols import HoverableItem, SoloMovableItemWithHistory
 from .items.rotate import PivotHandle
 from .items.scale import Scale
 from .items.types import EdgeStyle
@@ -396,6 +397,10 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
     def handle_node_movement(self, item: Vertex):
         command = NodeMovementCommand(item)
+        self.commandPosted.emit(command)
+
+    def handle_solo_movement(self, item: SoloMovableItemWithHistory):
+        command = SoloMovementCommand(item)
         self.commandPosted.emit(command)
 
     def handle_bezier_edit(self, item: BezierCurve):

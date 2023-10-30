@@ -32,6 +32,8 @@ class UndoCommand(QtGui.QUndoCommand):
 
     @classmethod
     def clear_history(cls):
+        """Causes crash for nested commands"""
+        return
         cls._commands = list()
 
     def __init__(self, parent=None):
@@ -137,3 +139,31 @@ class NodeMovementCommand(UndoCommand):
 
     def id(self) -> int:
         return 1001
+
+
+class SoloMovementCommand(UndoCommand):
+    def __init__(self, item: Vertex, parent=None):
+        super().__init__(parent)
+        self.setText('Move solo item')
+        self.item = item
+        self.old_pos = QtCore.QPointF(item._locked_item_pos)
+        self.new_pos = QtCore.QPointF(item.pos())
+
+    def undo(self):
+        super().undo()
+        self.item.setPos(self.old_pos)
+        self.item.update()
+
+    def redo(self):
+        super().redo()
+        self.item.setPos(self.new_pos)
+        self.item.update()
+
+    def mergeWith(self, other: SoloMovementCommand) -> bool:
+        if self.item != other.item:
+            return False
+        self.new_pos = other.new_pos
+        return True
+
+    def id(self) -> int:
+        return 1003

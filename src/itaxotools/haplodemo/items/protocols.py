@@ -81,7 +81,8 @@ class SoloMovableItem:
 
     @override
     def mousePressEvent(self, event):
-        self._locked_drag_pos = event.pos()
+        if event.button() == QtCore.Qt.LeftButton:
+            self._locked_drag_pos = event.pos()
         super().mousePressEvent(event)
 
     @override
@@ -94,8 +95,38 @@ class SoloMovableItem:
 
     @override
     def mouseReleaseEvent(self, event):
-        self._locked_drag_pos = None
+        if event.button() == QtCore.Qt.LeftButton:
+            self._locked_drag_pos = None
         super().mouseReleaseEvent(event)
+
+    def post_solo_movement(self):
+        if not self.scene():
+            return
+        self.scene().handle_solo_movement(self)
+
+
+class SoloMovableItemWithHistory(SoloMovableItem):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._locked_item_pos = super().pos()
+
+    @override
+    def mousePressEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self._locked_item_pos = super().pos()
+        super().mousePressEvent(event)
+
+    @override
+    def mouseReleaseEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            if self._locked_item_pos != self.pos():
+                self.post_solo_movement()
+        super().mouseReleaseEvent(event)
+
+    def post_solo_movement(self):
+        if not self.scene():
+            return
+        self.scene().handle_solo_movement(self)
 
 
 class IgnorableItem:
