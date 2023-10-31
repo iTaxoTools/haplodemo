@@ -24,6 +24,8 @@ from typing import Callable
 
 from itaxotools.common.utility import override
 
+from .bezier import BezierCurve
+from .boxes import RectBox
 from .edges import Edge
 from .labels import Label
 from .protocols import HighlightableItem
@@ -35,11 +37,11 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
 
         self.name = name
         self.parent = None
-        self.boxes = list()
-        self.children = list()
-        self.siblings = list()
-        self.beziers = dict()
-        self.edges = dict()
+        self.boxes: list[RectBox] = []
+        self.children: list[Vertex] = []
+        self.siblings: list[Vertex] = []
+        self.beziers: dict[Vertex, BezierCurve] = {}
+        self.edges: dict[Vertex, Edge] = {}
 
         self.weight = r
         self.radius = r

@@ -118,7 +118,7 @@ class BezierEditCommand(UndoCommand):
 
 
 class NodeMovementCommand(UndoCommand):
-    def __init__(self, item: Vertex, parent=None):
+    def __init__(self, item: Vertex, recurse=True, parent=None):
         super().__init__(parent)
         self.setText('Move node')
         self.item = item
@@ -130,9 +130,9 @@ class NodeMovementCommand(UndoCommand):
 
         def create_child_command(node):
             if node is not self.item:
-                NodeMovementCommand(node, self)
+                NodeMovementCommand(node, parent=self)
 
-        if item.isMovementRecursive():
+        if item.isMovementRecursive() and recurse:
             item.mapNodeRecursive(create_child_command)
 
     def undo(self):
@@ -213,7 +213,7 @@ class SceneRotationCommand(UndoCommand):
 
         for node in (item for item in scene.items() if isinstance(item, Vertex)):
             if node.in_scene_rotation:
-                NodeMovementCommand(node, self)
+                NodeMovementCommand(node, parent=self)
 
     def mergeWith(self, other: SceneRotationCommand) -> bool:
         if self.scene != other.scene:

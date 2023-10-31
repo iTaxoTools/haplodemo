@@ -274,9 +274,13 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         return bounds.center()
 
     def resize_edges(self, length_per_mutation: float):
-        self.settings.edge_length = length_per_mutation
-        vertices = (item for item in self.items() if isinstance(item, Vertex))
-        root = self.root or next(vertices)
+        vertices = [item for item in self.items() if isinstance(item, Vertex)]
+        for vertex in vertices:
+            vertex.locked_pos = vertex.pos()
+            for bezier in vertex.beziers.values():
+                bezier.lock_control_points()
+
+        root = self.root or vertices[0]
         angles = self._get_edge_angles(root)
         self._set_edge_lengths(root, angles, length_per_mutation)
 

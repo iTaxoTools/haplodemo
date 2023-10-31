@@ -16,13 +16,19 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 from PySide6 import QtCore, QtGui, QtWidgets
+
+from typing import TYPE_CHECKING
 
 from itaxotools.common.utility import override
 
 from ..utility import shapeFromPath
-from .nodes import Vertex
 from .protocols import HighlightableItem, SoloMovableItem
+
+if TYPE_CHECKING:
+    from .nodes import Vertex
 
 
 class BezierHandleLine(QtWidgets.QGraphicsLineItem):

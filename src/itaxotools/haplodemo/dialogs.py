@@ -24,7 +24,9 @@ from itaxotools.common.bindings import Binder, Property, PropertyObject
 from itaxotools.common.utility import AttrDict, type_convert
 
 from .history import (
-    ApplyCommand, PropertyChangedCommand, PropertyGroupCommand, UndoCommand)
+    ApplyCommand, NodeMovementCommand, PropertyChangedCommand,
+    PropertyGroupCommand, UndoCommand)
+from .items.nodes import Vertex
 from .items.types import EdgeStyle
 from .settings import NodeSizeSettings, ScaleSettings
 from .widgets import (
@@ -577,7 +579,9 @@ class FontDialog(QtWidgets.QFontDialog):
 
 
 class EdgeLengthDialog(OptionsDialog):
-    def __init__(self, parent, scene, settings):
+    commandPosted = QtCore.Signal(QtGui.QUndoCommand)
+
+    def __init__(self, parent, scene, settings: PropertyObject):
         super().__init__(parent)
         self.setWindowTitle('Haplodemo - Edge length')
 
@@ -637,5 +641,14 @@ class EdgeLengthDialog(OptionsDialog):
 
     def apply(self):
         length = self.length.value()
+
+        property = self.settings.properties.edge_length
+        command = PropertyChangedCommand(property, property.value, length)
+
         self.scene.resize_edges(length)
+        self.settings.edge_length = length
         self.dirty = False
+
+        for node in (item for item in self.scene.items() if isinstance(item, Vertex)):
+            NodeMovementCommand(node, recurse=False, parent=command)
+        self.commandPosted.emit(command)
