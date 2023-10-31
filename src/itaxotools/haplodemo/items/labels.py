@@ -72,6 +72,7 @@ class Label(HighlightableItem, QtWidgets.QGraphicsItem):
 
     @override
     def mouseDoubleClickEvent(self, event):
+        super().mouseDoubleClickEvent(event)
         self.recenter()
 
     @override

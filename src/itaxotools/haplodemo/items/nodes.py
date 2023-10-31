@@ -442,7 +442,9 @@ class Node(Vertex):
     @override
     def mouseDoubleClickEvent(self, event):
         super().mouseDoubleClickEvent(event)
-        self.label.mouseDoubleClickEvent(event)
+        self.label.locked_rect = QtCore.QRect(self.label.rect)
+        self.label.recenter()
+        self.label.post_label_movement()
 
     @override
     def paint(self, painter, options, widget=None):
