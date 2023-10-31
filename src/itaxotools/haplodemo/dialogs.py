@@ -345,7 +345,7 @@ class LabelFormatSettings(PropertyObject):
     edge_label_template = Property(str, None)
 
 
-class LabelFormatDialog(BoundOptionsDialog):
+class LabelFormatDialog(BoundOptionsDialogWithHistory):
     def __init__(self, parent, scene, global_settings):
         super().__init__(parent, LabelFormatSettings(), global_settings)
         self.setWindowTitle('Haplodemo - Label format')
@@ -395,8 +395,13 @@ class LabelFormatDialog(BoundOptionsDialog):
         self.push()
         self.scene.style_labels()
 
+    def undo_command(self) -> UndoCommand:
+        command = ApplyCommand(self.command_text, self.scene.style_labels)
+        self.add_subcommands(command)
+        return command
 
-class ScaleMarksDialog(BoundOptionsDialog):
+
+class ScaleMarksDialog(BoundOptionsDialogWithHistory):
     def __init__(self, parent, scene, global_settings):
         super().__init__(parent, ScaleSettings(), global_settings)
         self.setWindowTitle('Haplodemo - Scale marks')
@@ -474,7 +479,7 @@ class PenWidthSettings(PropertyObject):
     pen_width_edges = Property(float, None)
 
 
-class PenWidthDialog(BoundOptionsDialog):
+class PenWidthDialog(BoundOptionsDialogWithHistory):
     def __init__(self, parent, scene, global_settings):
         super().__init__(parent, PenWidthSettings(), global_settings)
         self.setWindowTitle('Haplodemo - Pen width')
