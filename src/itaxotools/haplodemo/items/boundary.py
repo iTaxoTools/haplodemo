@@ -44,7 +44,7 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
         self.setPen(QtCore.Qt.NoPen)
 
         self.adjustCursor()
-        self.adjustRect()
+        self.adjust_rect()
 
     def adjustCursor(self):
         match self.horizontal, self.vertical:
@@ -64,7 +64,7 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
                 cursor = QtCore.Qt.SizeAllCursor
         self.setCursor(cursor)
 
-    def adjustRect(self):
+    def adjust_rect(self):
         parent = self.parentItem()
         width = self.size
         height = self.size
@@ -96,8 +96,10 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
     @override
     def mousePressEvent(self, event):
         super().mousePressEvent(event)
-        self.locked_rect = self.rect()
-        self.locked_pos = event.scenePos()
+        if event.button() == QtCore.Qt.LeftButton:
+            self.locked_rect = self.rect()
+            self.locked_pos = event.scenePos()
+            self.parentItem().lock_rect()
 
     @override
     def mouseMoveEvent(self, event):
@@ -114,44 +116,56 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
             diff_x = 0
 
         rect = self.locked_rect.translated(diff_x, diff_y)
-        parent = self.parentItem()
+        parent: BoundaryRect = self.parentItem()
 
         if self.horizontal == Direction.Right:
             limit = parent.rect().left() + parent.minimum_size
             if rect.left() < limit:
                 rect.moveLeft(limit)
-            parent.setEdge(QtCore.QRectF.setRight, rect.left())
+            parent.set_edge(QtCore.QRectF.setRight, rect.left())
 
         if self.horizontal == Direction.Left:
             limit = parent.rect().right() - parent.minimum_size
             if rect.right() > limit:
                 rect.moveRight(limit)
-            parent.setEdge(QtCore.QRectF.setLeft, rect.right())
+            parent.set_edge(QtCore.QRectF.setLeft, rect.right())
 
         if self.vertical == Direction.Top:
             limit = parent.rect().bottom() - parent.minimum_size
             if rect.bottom() > limit:
                 rect.moveBottom(limit)
-            parent.setEdge(QtCore.QRectF.setTop, rect.bottom())
+            parent.set_edge(QtCore.QRectF.setTop, rect.bottom())
 
         if self.vertical == Direction.Bottom:
             limit = parent.rect().top() + parent.minimum_size
             if rect.top() < limit:
                 rect.moveTop(limit)
-            parent.setEdge(QtCore.QRectF.setBottom, rect.top())
+            parent.set_edge(QtCore.QRectF.setBottom, rect.top())
+
+    @override
+    def mouseReleaseEvent(self, event):
+        super().mouseReleaseEvent(event)
+        if event.button() == QtCore.Qt.LeftButton:
+            if self.locked_rect != self.rect():
+                self.post_boundary_resized()
 
     @override
     def paint(self, painter, option, widget=None):
         """Do not paint"""
+
+    def post_boundary_resized(self):
+        if not self.scene():
+            return
+        self.scene().handle_boundary_resized(self.parentItem())
 
 
 class BoundaryOutline(QtWidgets.QGraphicsRectItem):
     def __init__(self, parent):
         super().__init__(parent)
         self.setPen(QtGui.QPen(QtCore.Qt.black, 1, QtCore.Qt.PenStyle.DashLine))
-        self.adjustRect(parent.margin)
+        self.adjust_rect(parent.margin)
 
-    def adjustRect(self, margin):
+    def adjust_rect(self, margin):
         rect = self.parentItem().rect()
         rect.adjust(-margin, -margin, margin, margin)
         self.prepareGeometryChange()
@@ -164,6 +178,8 @@ class BoundaryRect(QtWidgets.QGraphicsRectItem):
         self.minimum_size = 32
         self.margin_target = 8
         self.margin = 8
+
+        self.locked_rect = self.rect()
 
         self.setBrush(QtCore.Qt.white)
         self.setZValue(-99)
@@ -178,16 +194,19 @@ class BoundaryRect(QtWidgets.QGraphicsRectItem):
             for horizontal, vertical in handles]
         self.outline = BoundaryOutline(self)
 
-    def setEdge(self, method, value):
+    def lock_rect(self):
+        self.locked_rect = self.rect()
+
+    def set_edge(self, method, value):
         rect = QtCore.QRectF(self.rect())
         method(rect, value)
 
         self.prepareGeometryChange()
         self.setRect(rect)
 
-        self.outline.adjustRect(self.margin)
+        self.outline.adjust_rect(self.margin)
         for handle in self.handles:
-            handle.adjustRect()
+            handle.adjust_rect()
 
     def adjust_scale(self, scale=1.0):
         pen = QtGui.QPen(QtCore.Qt.black, 1 / scale)
@@ -199,7 +218,12 @@ class BoundaryRect(QtWidgets.QGraphicsRectItem):
         self.margin = self.margin_target / scale
         self.margin = int(self.margin) + 1
 
-        self.outline.adjustRect(self.margin)
+        self.outline.adjust_rect(self.margin)
         for handle in self.handles:
             handle.size = self.margin + 2
-            handle.adjustRect()
+            handle.adjust_rect()
+
+    def adjust_rects(self):
+        self.outline.adjust_rect(self.margin)
+        for handle in self.handles:
+            handle.adjust_rect()

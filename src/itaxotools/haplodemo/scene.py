@@ -26,7 +26,8 @@ from math import cos, radians, sin
 from itaxotools.common.bindings import Binder
 
 from .history import (
-    BezierEditCommand, NodeMovementCommand, SoloMovementCommand)
+    BezierEditCommand, BoundaryResizedCommand, NodeMovementCommand,
+    SoloMovementCommand)
 from .items.bezier import BezierCurve
 from .items.boundary import BoundaryOutline, BoundaryRect
 from .items.boxes import RectBox
@@ -405,6 +406,10 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
     def handle_bezier_edit(self, item: BezierCurve):
         command = BezierEditCommand(item)
+        self.commandPosted.emit(command)
+
+    def handle_boundary_resized(self, item: BoundaryRect):
+        command = BoundaryResizedCommand(item)
         self.commandPosted.emit(command)
 
     def reset_binder(self):

@@ -21,6 +21,7 @@ from __future__ import annotations
 from PySide6 import QtCore, QtGui
 
 from .items.bezier import BezierCurve
+from .items.boundary import BoundaryRect
 from .items.nodes import Vertex
 
 
@@ -151,7 +152,7 @@ class NodeMovementCommand(UndoCommand):
 class SoloMovementCommand(UndoCommand):
     def __init__(self, item: Vertex, parent=None):
         super().__init__(parent)
-        self.setText('Move solo item')
+        self.setText('Move item')
         self.item = item
         self.old_pos = QtCore.QPointF(item._locked_item_pos)
         self.new_pos = QtCore.QPointF(item.pos())
@@ -170,4 +171,31 @@ class SoloMovementCommand(UndoCommand):
         if self.item != other.item:
             return False
         self.new_pos = other.new_pos
+        return True
+
+
+class BoundaryResizedCommand(UndoCommand):
+    def __init__(self, item: BoundaryRect, parent=None):
+        super().__init__(parent)
+        self.setText('Resize boundary')
+        self.item = item
+        self.old_rect = QtCore.QRectF(item.locked_rect)
+        self.new_rect = QtCore.QRectF(item.rect())
+
+    def undo(self):
+        super().undo()
+        self.item.setRect(self.old_rect)
+        self.item.adjust_rects()
+        self.item.update()
+
+    def redo(self):
+        super().redo()
+        self.item.setRect(self.new_rect)
+        self.item.adjust_rects()
+        self.item.update()
+
+    def mergeWith(self, other: BoundaryResizedCommand) -> bool:
+        if self.item != other.item:
+            return False
+        self.new_rect = other.new_rect
         return True

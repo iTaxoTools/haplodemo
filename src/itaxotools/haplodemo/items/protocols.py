@@ -99,11 +99,6 @@ class SoloMovableItem:
             self._locked_drag_pos = None
         super().mouseReleaseEvent(event)
 
-    def post_solo_movement(self):
-        if not self.scene():
-            return
-        self.scene().handle_solo_movement(self)
-
 
 class SoloMovableItemWithHistory(SoloMovableItem):
     def __init__(self, *args, **kwargs):
