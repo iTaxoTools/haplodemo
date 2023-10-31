@@ -23,10 +23,49 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from typing import Callable
 
 from itaxotools.common.bindings import PropertyRef
+from itaxotools.common.utility import override
 
 from .items.bezier import BezierCurve
 from .items.boundary import BoundaryRect
 from .items.nodes import Vertex
+
+
+class UndoStack(QtGui.QUndoStack):
+    """Commands are not merged immediately, rather we wait for the
+    first unmergable command, then merge all commands before it"""
+
+    @override
+    def push(self, cmd: UndoCommand):
+        self.merge_history(cmd)
+        super().push(cmd)
+
+    @override
+    def undo(self):
+        super().undo()
+        command: UndoCommand = self.command(self.index() - 1)
+        if command is not None and command.isObsolete():
+            self.undo()
+
+    def merge_history(self, new_command: UndoCommand):
+        if not self.index() > 0:
+            return
+
+        current_command: UndoCommand = self.command(self.index() - 1)
+        if current_command.can_merge_with(new_command):
+            return
+
+        index = self.index()
+        while True:
+            index -= 1
+            older_command: UndoCommand = self.command(index - 1)
+            newer_command: UndoCommand = self.command(index)
+            if older_command is None or newer_command is None:
+                return
+            if older_command.can_merge_with(newer_command):
+                older_command.merge_with(newer_command)
+                newer_command.setObsolete(True)
+            else:
+                return
 
 
 class UndoCommandMeta(type(QtGui.QUndoCommand)):
@@ -55,24 +94,36 @@ class UndoCommand(QtGui.QUndoCommand, metaclass=UndoCommandMeta):
         super().__init__(parent)
         self._commands.append(self)
 
-    def mergeChildrenWith(self, other: UndoCommand) -> bool:
-        our_children = [self.child(x) for x in range(self.childCount())]
-        other_children = [other.child(x) for x in range(other.childCount())]
+    @override
+    def mergeWith(self, other: QtGui.QUndoCommand) -> bool:
+        """Never use the default merging strategy"""
+        return False
+
+    @override
+    def id(self) -> int:
+        return self._command_id
+
+    def merge_with(self, other: QtGui.QUndoCommand) -> None:
+        raise NotImplementedError()
+
+    def can_merge_with(self, other: UndoCommand) -> bool:
+        return False
+
+    def merge_children_with(self, other: UndoCommand) -> bool:
+        our_children: list[UndoCommand] = [self.child(x) for x in range(self.childCount())]
+        other_children: list[UndoCommand] = [other.child(x) for x in range(other.childCount())]
 
         for other_child in other_children:
             other_child_merged = False
             for our_child in our_children:
-                merged = our_child.mergeWith(other_child)
-                if merged:
+                if our_child.can_merge_with(other_child):
+                    our_child.merge_with(other_child)
                     other_child_merged = True
                     break
             if not other_child_merged:
                 return False
 
         return True
-
-    def id(self) -> int:
-        return self._command_id
 
 
 class BezierEditCommand(UndoCommand):
@@ -107,14 +158,18 @@ class BezierEditCommand(UndoCommand):
         self.item.c2 = self.new_c2
         self.item.update_path()
 
-    def mergeWith(self, other: NodeMovementCommand) -> bool:
+    def can_merge_with(self, other: NodeMovementCommand) -> bool:
+        if self.id() != other.id():
+            return False
         if self.item != other.item:
             return False
+        return True
+
+    def merge_with(self, other: NodeMovementCommand):
         self.new_p1 = other.new_p1
         self.new_p2 = other.new_p2
         self.new_c1 = other.new_c1
         self.new_c2 = other.new_c2
-        return True
 
 
 class NodeMovementCommand(UndoCommand):
@@ -145,12 +200,16 @@ class NodeMovementCommand(UndoCommand):
         self.item.setPos(self.new_pos)
         self.item.update()
 
-    def mergeWith(self, other: NodeMovementCommand) -> bool:
+    def can_merge_with(self, other: NodeMovementCommand) -> bool:
+        if self.id() != other.id():
+            return False
         if self.item != other.item:
             return False
-        self.new_pos = other.new_pos
-        self.mergeChildrenWith(other)
         return True
+
+    def merge_with(self, other: NodeMovementCommand):
+        self.new_pos = other.new_pos
+        self.merge_children_with(other)
 
 
 class SoloMovementCommand(UndoCommand):
@@ -171,11 +230,15 @@ class SoloMovementCommand(UndoCommand):
         self.item.setPos(self.new_pos)
         self.item.update()
 
-    def mergeWith(self, other: SoloMovementCommand) -> bool:
+    def can_merge_with(self, other: SoloMovementCommand) -> bool:
+        if self.id() != other.id():
+            return False
         if self.item != other.item:
             return False
-        self.new_pos = other.new_pos
         return True
+
+    def merge_with(self, other: SoloMovementCommand):
+        self.new_pos = other.new_pos
 
 
 class BoundaryResizedCommand(UndoCommand):
@@ -198,11 +261,15 @@ class BoundaryResizedCommand(UndoCommand):
         self.item.adjust_rects()
         self.item.update()
 
-    def mergeWith(self, other: BoundaryResizedCommand) -> bool:
+    def can_merge_with(self, other: BoundaryResizedCommand) -> bool:
+        if self.id() != other.id():
+            return False
         if self.item != other.item:
             return False
-        self.new_rect = other.new_rect
         return True
+
+    def merge_with(self, other: BoundaryResizedCommand):
+        self.new_rect = other.new_rect
 
 
 class SceneRotationCommand(UndoCommand):
@@ -215,20 +282,21 @@ class SceneRotationCommand(UndoCommand):
             if node.in_scene_rotation:
                 NodeMovementCommand(node, parent=self)
 
-    def mergeWith(self, other: SceneRotationCommand) -> bool:
+    def can_merge_with(self, other: SceneRotationCommand) -> bool:
+        if self.id() != other.id():
+            return False
         if self.scene != other.scene:
             return False
-        self.mergeChildrenWith(other)
         return True
+
+    def merge_with(self, other: SceneRotationCommand):
+        self.merge_children_with(other)
 
 
 class PropertyGroupCommand(UndoCommand):
     def __init__(self, text: str, parent=None):
         super().__init__(parent)
         self.setText(text)
-
-    def mergeWith(self, other: UndoCommand) -> bool:
-        return False
 
 
 class PropertyChangedCommand(UndoCommand):
@@ -247,9 +315,6 @@ class PropertyChangedCommand(UndoCommand):
         super().redo()
         self.property.set(self.new_value)
 
-    def mergeWith(self, other: UndoCommand) -> bool:
-        return False
-
 
 class CustomCommand(UndoCommand):
     def __init__(self, text: str, undo: Callable, redo: Callable, parent=None):
@@ -265,9 +330,6 @@ class CustomCommand(UndoCommand):
     def redo(self):
         super().redo()
         self.redo_callable()
-
-    def mergeWith(self, other: UndoCommand) -> bool:
-        return False
 
 
 class ApplyCommand(CustomCommand):

@@ -26,7 +26,7 @@ from .demos import DemoLoader
 from .dialogs import (
     EdgeLengthDialog, EdgeStyleDialog, FontDialog, LabelFormatDialog,
     NodeSizeDialog, PenWidthDialog, ScaleMarksDialog)
-from .history import UndoCommand
+from .history import UndoCommand, UndoStack
 from .scene import GraphicsScene, GraphicsView
 from .settings import Settings
 from .views import ColorDelegate, DivisionView, MemberView
@@ -53,7 +53,7 @@ class Window(QtWidgets.QWidget):
 
         palette_selector = PaletteSelector()
 
-        history_stack = QtGui.QUndoStack()
+        history_stack = UndoStack()
         self.actions = AttrDict()
         self.actions.undo = history_stack.createUndoAction(self, '&Undo')
         self.actions.undo.setShortcut(QtGui.QKeySequence.Undo)
