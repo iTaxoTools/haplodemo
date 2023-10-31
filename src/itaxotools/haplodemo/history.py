@@ -24,17 +24,27 @@ from .items.bezier import BezierCurve
 from .items.nodes import Vertex
 
 
-class UndoCommand(QtGui.QUndoCommand):
+class UndoCommandMeta(type(QtGui.QUndoCommand)):
+    _command_id_counter = 1000
+
+    def __new__(cls, name, bases, attrs):
+        cls._command_id_counter += 1
+        attrs['_command_id'] = cls._command_id_counter
+        return super().__new__(cls, name, bases, attrs)
+
+
+class UndoCommand(QtGui.QUndoCommand, metaclass=UndoCommandMeta):
     """Keep references to all commands in order to
     avoid corruption due to garbage collection"""
 
     _commands = list()
+    _command_id = 1000
 
     @classmethod
     def clear_history(cls):
         """Causes crash for nested commands"""
+        # cls._commands = list()
         return
-        cls._commands = list()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -55,6 +65,9 @@ class UndoCommand(QtGui.QUndoCommand):
                 return False
 
         return True
+
+    def id(self) -> int:
+        return self._command_id
 
 
 class BezierEditCommand(UndoCommand):
@@ -98,9 +111,6 @@ class BezierEditCommand(UndoCommand):
         self.new_c2 = other.new_c2
         return True
 
-    def id(self) -> int:
-        return 1002
-
 
 class NodeMovementCommand(UndoCommand):
     def __init__(self, item: Vertex, parent=None):
@@ -137,9 +147,6 @@ class NodeMovementCommand(UndoCommand):
         self.mergeChildrenWith(other)
         return True
 
-    def id(self) -> int:
-        return 1001
-
 
 class SoloMovementCommand(UndoCommand):
     def __init__(self, item: Vertex, parent=None):
@@ -164,6 +171,3 @@ class SoloMovementCommand(UndoCommand):
             return False
         self.new_pos = other.new_pos
         return True
-
-    def id(self) -> int:
-        return 1003
