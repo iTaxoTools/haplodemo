@@ -28,6 +28,7 @@ from itaxotools.common.utility import override
 from .items.bezier import BezierCurve
 from .items.boundary import BoundaryRect
 from .items.edges import Edge
+from .items.labels import Label
 from .items.nodes import Vertex
 
 
@@ -238,6 +239,33 @@ class EdgeStyleCommand(UndoCommand):
 
     def merge_with(self, other: EdgeStyleCommand):
         self.new_style = other.new_style
+
+
+class LabelMovementCommand(UndoCommand):
+    def __init__(self, item: Label, parent=None):
+        super().__init__(parent)
+        self.setText('Move label')
+        self.item = item
+        self.old_rect = QtCore.QRect(item.locked_rect)
+        self.new_rect = QtCore.QRect(item.rect)
+
+    def undo(self):
+        super().undo()
+        self.item.setRect(self.old_rect)
+
+    def redo(self):
+        super().redo()
+        self.item.setRect(self.new_rect)
+
+    def can_merge_with(self, other: LabelMovementCommand) -> bool:
+        if self.id() != other.id():
+            return False
+        if self.item != other.item:
+            return False
+        return True
+
+    def merge_with(self, other: LabelMovementCommand):
+        self.new_rect = other.new_rect
 
 
 class SoloMovementCommand(UndoCommand):

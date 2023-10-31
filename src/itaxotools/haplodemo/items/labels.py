@@ -49,12 +49,6 @@ class Label(HighlightableItem, QtWidgets.QGraphicsItem):
         self.locked_pos = QtCore.QPointF(0, 0)
 
     @override
-    def mouseReleaseEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            self.locked_rect = self.rect
-        super().mouseReleaseEvent(event)
-
-    @override
     def mousePressEvent(self, event):
         if event.button() == QtCore.Qt.LeftButton:
             self.locked_rect = self.rect
@@ -67,6 +61,14 @@ class Label(HighlightableItem, QtWidgets.QGraphicsItem):
         diff = (epos - self.locked_pos).toPoint()
         rect = self.locked_rect.translated(diff)
         self.setRect(rect)
+
+    @override
+    def mouseReleaseEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            if self.locked_rect != self.rect:
+                self.post_label_movement()
+            self.locked_rect = self.rect
+        super().mouseReleaseEvent(event)
 
     @override
     def mouseDoubleClickEvent(self, event):
@@ -198,3 +200,8 @@ class Label(HighlightableItem, QtWidgets.QGraphicsItem):
         self.outline = self.getTextOutline()
         rect = self.getTextRect()
         self.setRect(rect)
+
+    def post_label_movement(self):
+        if not self.scene():
+            return
+        self.scene().handle_label_movement(self)
