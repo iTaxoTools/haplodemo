@@ -27,10 +27,6 @@ from .types import Direction
 class Label(HighlightableItem, QtWidgets.QGraphicsItem):
     def __init__(self, text, parent):
         super().__init__(parent)
-        self.setCursor(QtCore.Qt.ArrowCursor)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
-        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
-
         self._white_outline = False
         self._anchor = Direction.Center
         self._debug = False
@@ -47,6 +43,10 @@ class Label(HighlightableItem, QtWidgets.QGraphicsItem):
 
         self.locked_rect = self.rect
         self.locked_pos = QtCore.QPointF(0, 0)
+
+        self.setCursor(QtCore.Qt.ArrowCursor)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
 
     @override
     def mousePressEvent(self, event):
@@ -91,7 +91,11 @@ class Label(HighlightableItem, QtWidgets.QGraphicsItem):
 
     @override
     def boundingRect(self):
-        return QtCore.QRect(self.rect)
+        try:
+            return QtCore.QRect(self.rect)
+        except Exception as e:
+            print(self, vars(self))
+            raise e
 
     @override
     def shape(self):
