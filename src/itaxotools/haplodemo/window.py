@@ -295,6 +295,7 @@ class Window(QtWidgets.QWidget):
         self.binder.bind(self.label_format_dialog.commandPosted, self.scene.commandPosted)
         self.binder.bind(self.scale_style_dialog.commandPosted, self.scene.commandPosted)
         self.binder.bind(self.pen_style_dialog.commandPosted, self.scene.commandPosted)
+        self.binder.bind(self.font_dialog.commandPosted, self.scene.commandPosted)
 
         action = QtGui.QAction()
         action.setShortcut(QtGui.QKeySequence.Save)

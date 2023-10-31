@@ -545,8 +545,9 @@ class PenWidthDialog(BoundOptionsDialogWithHistory):
 
 class FontDialog(QtWidgets.QFontDialog):
     """Get pixel sized fonts, which are required for rendering properly"""
+    commandPosted = QtCore.Signal(QtGui.QUndoCommand)
 
-    def __init__(self, parent, settings):
+    def __init__(self, parent, settings: PropertyObject):
         super().__init__(parent)
         self.settings = settings
         self.setWindowTitle('Select font')
@@ -566,6 +567,12 @@ class FontDialog(QtWidgets.QFontDialog):
         if font.pixelSize() == -1:
             size = font.pointSize()
             font.setPixelSize(size)
+
+        old_value = QtGui.QFont(self.settings.font)
+        new_value = QtGui.QFont(font)
+        command = PropertyChangedCommand(self.settings.properties.font, old_value, new_value)
+        self.commandPosted.emit(command)
+
         self.settings.font = QtGui.QFont(font)
 
 
