@@ -16,11 +16,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 # -----------------------------------------------------------------------------
 
+from __future__ import annotations
+
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from itaxotools.common.bindings import Binder, Property, PropertyObject
 from itaxotools.common.utility import AttrDict, type_convert
 
+from .history import (
+    ApplyCommand, PropertyChangedCommand, PropertyGroupCommand, UndoCommand)
 from .items.types import EdgeStyle
 from .settings import NodeSizeSettings, ScaleSettings
 from .widgets import (
@@ -74,7 +78,7 @@ class OptionsDialog(QtWidgets.QDialog):
 
 
 class BoundOptionsDialog(OptionsDialog):
-    def __init__(self, parent, settings, global_settings):
+    def __init__(self, parent, settings: PropertyObject, global_settings: PropertyObject):
         super().__init__(parent)
         self.settings = settings
         self.global_settings = global_settings
@@ -96,6 +100,41 @@ class BoundOptionsDialog(OptionsDialog):
     def accept(self):
         self.apply()
         super().accept()
+
+
+class BoundOptionsDialogWithHistory(BoundOptionsDialog):
+    commandPosted = QtCore.Signal(QtGui.QUndoCommand)
+    command_text = 'Property group change'
+
+    def __init__(self, parent, settings, global_settings):
+        super().__init__(parent, settings, global_settings)
+
+    def push(self):
+        if self.did_properties_change():
+            command = self.undo_command()
+            self.commandPosted.emit(command)
+        super().push()
+
+    def undo_command(self) -> UndoCommand:
+        command = PropertyGroupCommand(self.command_text)
+        self.add_subcommands(command)
+        return command
+
+    def add_subcommands(self, command: UndoCommand):
+        for property in self.settings.properties:
+            global_property = self.global_settings.properties[property.key]
+            old_value = global_property.value
+            new_value = property.value
+            PropertyChangedCommand(global_property, old_value, new_value, command)
+
+    def did_properties_change(self) -> bool:
+        for property in self.settings.properties:
+            global_property = self.global_settings.properties[property.key]
+            old_value = global_property.value
+            new_value = property.value
+            if old_value != new_value:
+                return True
+        return False
 
 
 class EdgeStyleSettings(PropertyObject):
@@ -173,7 +212,7 @@ class EdgeStyleDialog(OptionsDialog):
         self.scene.style_edges(self.settings.style, self.settings.cutoff)
 
 
-class NodeSizeDialog(BoundOptionsDialog):
+class NodeSizeDialog(BoundOptionsDialogWithHistory):
     def __init__(self, parent, scene, global_settings):
         super().__init__(parent, NodeSizeSettings(), global_settings)
         self.setWindowTitle('Haplodemo - Node size')
@@ -294,6 +333,11 @@ class NodeSizeDialog(BoundOptionsDialog):
     def apply(self):
         self.push()
         self.scene.style_nodes()
+
+    def undo_command(self) -> UndoCommand:
+        command = ApplyCommand(self.command_text, self.scene.style_nodes)
+        self.add_subcommands(command)
+        return command
 
 
 class LabelFormatSettings(PropertyObject):

@@ -291,6 +291,8 @@ class Window(QtWidgets.QWidget):
         self.binder.bind(settings.properties.rotate_scene, toggle_scene_rotation.setChecked)
         self.binder.bind(toggle_scene_rotation.toggled, settings.properties.rotate_scene)
 
+        self.binder.bind(self.node_size_dialog.commandPosted, self.scene.commandPosted)
+
         action = QtGui.QAction()
         action.setShortcut(QtGui.QKeySequence.Save)
         action.triggered.connect(self.quick_save)

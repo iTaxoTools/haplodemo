@@ -20,6 +20,10 @@ from __future__ import annotations
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from typing import Callable
+
+from itaxotools.common.bindings import PropertyRef
+
 from .items.bezier import BezierCurve
 from .items.boundary import BoundaryRect
 from .items.nodes import Vertex
@@ -216,3 +220,56 @@ class SceneRotationCommand(UndoCommand):
             return False
         self.mergeChildrenWith(other)
         return True
+
+
+class PropertyGroupCommand(UndoCommand):
+    def __init__(self, text: str, parent=None):
+        super().__init__(parent)
+        self.setText(text)
+
+    def mergeWith(self, other: UndoCommand) -> bool:
+        return False
+
+
+class PropertyChangedCommand(UndoCommand):
+    def __init__(self, property: PropertyRef, old_value: object, new_value: object, parent=None):
+        super().__init__(parent)
+        self.setText(f'Property {property.key} change')
+        self.property = property
+        self.old_value = old_value
+        self.new_value = new_value
+
+    def undo(self):
+        super().undo()
+        self.property.set(self.old_value)
+
+    def redo(self):
+        super().redo()
+        self.property.set(self.new_value)
+
+    def mergeWith(self, other: UndoCommand) -> bool:
+        return False
+
+
+class CustomCommand(UndoCommand):
+    def __init__(self, text: str, undo: Callable, redo: Callable, parent=None):
+        super().__init__(parent)
+        self.undo_callable = undo
+        self.redo_callable = redo
+        self.setText(text)
+
+    def undo(self):
+        super().undo()
+        self.undo_callable()
+
+    def redo(self):
+        super().redo()
+        self.redo_callable()
+
+    def mergeWith(self, other: UndoCommand) -> bool:
+        return False
+
+
+class ApplyCommand(CustomCommand):
+    def __init__(self, text: str, apply: Callable, parent=None):
+        super().__init__(text, apply, apply, parent)
