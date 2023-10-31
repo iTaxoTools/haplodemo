@@ -27,7 +27,7 @@ from itaxotools.common.bindings import Binder
 
 from .history import (
     BezierEditCommand, BoundaryResizedCommand, NodeMovementCommand,
-    SoloMovementCommand)
+    SceneRotationCommand, SoloMovementCommand)
 from .items.bezier import BezierCurve
 from .items.boundary import BoundaryOutline, BoundaryRect
 from .items.boxes import RectBox
@@ -103,6 +103,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             return True
 
         elif event.type() == QtCore.QEvent.GraphicsSceneMouseRelease:
+
+            self.handle_scene_rotation()
 
             vertices = (item for item in self.items() if isinstance(item, Vertex))
             for vertex in vertices:
@@ -410,6 +412,10 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
     def handle_boundary_resized(self, item: BoundaryRect):
         command = BoundaryResizedCommand(item)
+        self.commandPosted.emit(command)
+
+    def handle_scene_rotation(self):
+        command = SceneRotationCommand(self)
         self.commandPosted.emit(command)
 
     def reset_binder(self):

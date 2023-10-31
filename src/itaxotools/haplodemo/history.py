@@ -18,7 +18,7 @@
 
 from __future__ import annotations
 
-from PySide6 import QtCore, QtGui
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from .items.bezier import BezierCurve
 from .items.boundary import BoundaryRect
@@ -198,4 +198,21 @@ class BoundaryResizedCommand(UndoCommand):
         if self.item != other.item:
             return False
         self.new_rect = other.new_rect
+        return True
+
+
+class SceneRotationCommand(UndoCommand):
+    def __init__(self, scene: QtWidgets.QGraphicsScene, parent=None):
+        super().__init__(parent)
+        self.setText('Scene rotation')
+        self.scene = scene
+
+        for node in (item for item in scene.items() if isinstance(item, Vertex)):
+            if node.in_scene_rotation:
+                NodeMovementCommand(node, self)
+
+    def mergeWith(self, other: SceneRotationCommand) -> bool:
+        if self.scene != other.scene:
+            return False
+        self.mergeChildrenWith(other)
         return True
