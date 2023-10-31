@@ -135,9 +135,9 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
             for bezier in self.beziers.values():
                 bezier.adjust_position()
             for edge in self.edges.values():
-                edge.adjustPosition()
+                edge.adjust_position()
             for box in self.boxes:
-                box.adjustPosition()
+                box.adjust_position()
         return super().itemChange(change, value)
 
     @override
@@ -156,12 +156,12 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
             self._click_deselects = self.isSelected()
             center = self.parent.scenePos() if self.parent else None
             for edge in self.edges.values():
-                edge.lockLabelPosition()
+                edge.lock_label_position()
             self.lockPosition(event, center)
             if self.isMovementRecursive():
                 self.mapNodeEdgeRecursive(
                     type(self).lockPosition, [event, center], {},
-                    Edge.lockLabelPosition, [], {})
+                    Edge.lock_label_position, [], {})
 
         super().mousePressEvent(event)
 
@@ -198,14 +198,14 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         item.edges[self] = edge
         self.edges[item] = edge
         self.children.append(item)
-        edge.adjustPosition()
+        edge.adjust_position()
 
     def addSibling(self, item, edge):
         item.edges[self] = edge
         self.edges[item] = edge
         self.siblings.append(item)
         item.siblings.append(self)
-        edge.adjustPosition()
+        edge.adjust_position()
 
     def set_hovered(self, value):
         if self.parent and any((

@@ -331,7 +331,7 @@ class Visualizer(QtCore.QObject):
         for vertex in vertices:
             vertex.boxes.append(item)
         self.scene.addItem(item)
-        item.adjustPosition()
+        item.adjust_position()
         return item
 
     def create_bezier(self, node1, node2):

@@ -351,6 +351,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
         for edge in edges:
             style = style_default if edge.segments <= cutoff else style_cutoff
+            edge.lock_style()
             edge.set_style(style)
 
     def style_nodes(self):
@@ -359,7 +360,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         for node in nodes:
             node.adjust_radius()
         for edge in edges:
-            edge.adjustPosition()
+            edge.adjust_position()
 
     def style_labels(self):
         node_label_format = self.settings.node_label_template.replace('NAME', '{name}').replace('WEIGHT', '{weight}')

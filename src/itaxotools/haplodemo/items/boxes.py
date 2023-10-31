@@ -29,7 +29,7 @@ class RectBox(QtWidgets.QGraphicsRectItem):
         self.items = items or list()
         self.padding = 24
         self.corner_radius = 24
-        self.adjustPosition()
+        self.adjust_position()
         self.setZValue(-80)
         self.setBrush(QtGui.QColor('#777'))
         self.setOpacity(0.3)
@@ -46,7 +46,7 @@ class RectBox(QtWidgets.QGraphicsRectItem):
     def setColor(self, color: str):
         self.setBrush(QtGui.QColor(color))
 
-    def adjustPosition(self):
+    def adjust_position(self):
         if not self.items:
             return
 

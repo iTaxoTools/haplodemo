@@ -24,8 +24,9 @@ from itaxotools.common.bindings import Binder, Property, PropertyObject
 from itaxotools.common.utility import AttrDict, type_convert
 
 from .history import (
-    ApplyCommand, NodeMovementCommand, PropertyChangedCommand,
-    PropertyGroupCommand, UndoCommand)
+    ApplyCommand, EdgeStyleCommand, NodeMovementCommand,
+    PropertyChangedCommand, PropertyGroupCommand, UndoCommand)
+from .items.edges import Edge
 from .items.nodes import Vertex
 from .items.types import EdgeStyle
 from .settings import NodeSizeSettings, ScaleSettings
@@ -145,12 +146,15 @@ class EdgeStyleSettings(PropertyObject):
 
 
 class EdgeStyleDialog(OptionsDialog):
+    commandPosted = QtCore.Signal(QtGui.QUndoCommand)
+
     def __init__(self, parent, scene):
         super().__init__(parent)
         self.setWindowTitle('Haplodemo - Edge style')
 
         self.scene = scene
         self.settings = EdgeStyleSettings()
+        self.dirty = True
 
         contents = self.draw_contents()
         self.draw_dialog(contents)
@@ -185,6 +189,9 @@ class EdgeStyleDialog(OptionsDialog):
         self.binder.bind(cutoff.textEditedSafe, self.settings.properties.cutoff, lambda x: type_convert(x, int, None))
         self.binder.bind(self.settings.properties.cutoff, cutoff.setText, lambda x: type_convert(x, str, ''))
 
+        group.valueChanged.connect(self.set_dirty)
+        cutoff.textEditedSafe.connect(self.set_dirty)
+
         controls = QtWidgets.QGridLayout()
         controls.setContentsMargins(8, 8, 8, 8)
         controls.setColumnMinimumWidth(1, 8)
@@ -201,9 +208,13 @@ class EdgeStyleDialog(OptionsDialog):
         layout.addWidget(label_more_info)
         return layout
 
+    def set_dirty(self):
+        self.dirty = True
+
     def show(self):
         for property in self.settings.properties:
             property.set(property.default)
+        self.dirty = True
         super().show()
 
     def accept(self):
@@ -211,7 +222,17 @@ class EdgeStyleDialog(OptionsDialog):
         super().accept()
 
     def apply(self):
+        if not self.dirty:
+            return
+        self.dirty = False
+
         self.scene.style_edges(self.settings.style, self.settings.cutoff)
+
+        command = UndoCommand()
+        command.setText('Style edges')
+        for edge in (item for item in self.scene.items() if isinstance(item, Edge)):
+            EdgeStyleCommand(edge, command)
+        self.commandPosted.emit(command)
 
 
 class NodeSizeDialog(BoundOptionsDialogWithHistory):
@@ -635,11 +656,14 @@ class EdgeLengthDialog(OptionsDialog):
         super().show()
 
     def accept(self):
-        if self.dirty:
-            self.apply()
+        self.apply()
         super().accept()
 
     def apply(self):
+        if not self.dirty:
+            return
+        self.dirty = False
+
         length = self.length.value()
 
         property = self.settings.properties.edge_length
@@ -647,7 +671,6 @@ class EdgeLengthDialog(OptionsDialog):
 
         self.scene.resize_edges(length)
         self.settings.edge_length = length
-        self.dirty = False
 
         for node in (item for item in self.scene.items() if isinstance(item, Vertex)):
             NodeMovementCommand(node, recurse=False, parent=command)

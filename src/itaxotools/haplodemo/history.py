@@ -27,6 +27,7 @@ from itaxotools.common.utility import override
 
 from .items.bezier import BezierCurve
 from .items.boundary import BoundaryRect
+from .items.edges import Edge
 from .items.nodes import Vertex
 
 
@@ -210,6 +211,33 @@ class NodeMovementCommand(UndoCommand):
     def merge_with(self, other: NodeMovementCommand):
         self.new_pos = other.new_pos
         self.merge_children_with(other)
+
+
+class EdgeStyleCommand(UndoCommand):
+    def __init__(self, item: Edge, parent=None):
+        super().__init__(parent)
+        self.setText('Style edge')
+        self.item = item
+        self.old_style = item.locked_style
+        self.new_style = item.style
+
+    def undo(self):
+        super().undo()
+        self.item.set_style(self.old_style)
+
+    def redo(self):
+        super().redo()
+        self.item.set_style(self.new_style)
+
+    def can_merge_with(self, other: EdgeStyleCommand) -> bool:
+        if self.id() != other.id():
+            return False
+        if self.item != other.item:
+            return False
+        return True
+
+    def merge_with(self, other: EdgeStyleCommand):
+        self.new_style = other.new_style
 
 
 class SoloMovementCommand(UndoCommand):

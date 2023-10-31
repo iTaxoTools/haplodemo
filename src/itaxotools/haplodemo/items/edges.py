@@ -38,6 +38,8 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
         self.node2 = node2
 
         self.style = EdgeStyle.Bubbles
+        self.locked_style = self.style
+
         self.locked_label_pos = None
         self.locked_label_rect_pos = None
 
@@ -49,7 +51,7 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
         self.label = Label(str(weight), self)
         self.label.set_white_outline(True)
         self.set_style(EdgeStyle.Bubbles)
-        self.lockLabelPosition()
+        self.lock_label_position()
         self.update_z_value()
 
     @override
@@ -229,7 +231,7 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
     def set_style(self, style):
         self.style = style
         self.label.setVisible(self.style.has_text)
-        self.resetLabelPosition(style.text_offset)
+        self.reset_label_position(style.text_offset)
         self.update_pens()
 
     def set_hovered(self, value):
@@ -261,7 +263,7 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
         self._pen_high = QtGui.QPen(self.highlight_color(), self._pen_width + self._pen_high_increment)
         self.update()
 
-    def resetLabelPosition(self, offset: bool | None):
+    def reset_label_position(self, offset: bool | None):
         if not offset:
             self.label.setPos(0, 0)
             self.label.recenter()
@@ -277,7 +279,10 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
         self.label.setPos(point.p2())
         self.label.recenter()
 
-    def lockLabelPosition(self):
+    def lock_style(self):
+        self.locked_style = self.style
+
+    def lock_label_position(self):
         angle = self.line().angle()
         transform = QtGui.QTransform().rotate(angle)
 
@@ -289,7 +294,7 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
         rpos = transform.map(rpos)
         self.locked_label_rect_pos = rpos
 
-    def adjustLabelPosition(self):
+    def adjust_label_position(self):
         angle = self.line().angle()
         transform = QtGui.QTransform().rotate(-angle)
 
@@ -303,7 +308,7 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
         rect.moveCenter((rpos - pos).toPoint())
         self.label.setRect(rect)
 
-    def adjustPosition(self):
+    def adjust_position(self):
         pos1 = self.node1.scenePos()
         pos2 = self.node2.scenePos()
         rad1 = self.node1.radius
@@ -331,4 +336,4 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
         self.setLine(line)
 
         if self.label.isVisible():
-            self.adjustLabelPosition()
+            self.adjust_label_position()
