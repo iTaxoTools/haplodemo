@@ -358,10 +358,13 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
     def style_nodes(self):
         nodes = (item for item in self.items() if isinstance(item, Node))
         edges = (item for item in self.items() if isinstance(item, Edge))
+        boxes = (item for item in self.items() if isinstance(item, RectBox))
         for node in nodes:
             node.adjust_radius()
         for edge in edges:
             edge.adjust_position()
+        for box in boxes:
+            box.adjust_position()
 
     def style_labels(self):
         node_label_format = self.settings.node_label_template.replace('NAME', '{name}').replace('WEIGHT', '{weight}')
