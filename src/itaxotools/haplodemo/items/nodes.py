@@ -413,11 +413,11 @@ class Node(Vertex):
     def __init__(
         self, x: float, y: float, r: float, name: str,
         weights: dict[str, int],
-        radius_for_size: Callable[[int], float] = None,
+        radius_for_weight: Callable[[int], float] = None,
     ):
         super().__init__(x, y, r, name)
         self.weights = weights
-        self.radius_for_size = radius_for_size
+        self.radius_for_weight = radius_for_weight
         self.pies = dict()
 
         self._pen = QtGui.QPen(QtCore.Qt.black, 2)
@@ -536,8 +536,8 @@ class Node(Vertex):
         self.label.set_font(value)
 
     def adjust_radius(self):
-        if self.radius_for_size:
-            r = self.radius_for_size(self.weight)
+        if self.radius_for_weight:
+            r = self.radius_for_weight(self.weight)
         else:
             r = self.weight
         self.radius = r

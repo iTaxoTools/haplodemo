@@ -135,8 +135,8 @@ class Scale(HighlightableItem, SoloMovableItemWithHistory, QtWidgets.QGraphicsIt
 
     def update_radii(self):
         marks = self.marks or [1]
-        radius_for_size = self.settings.node_sizes.radius_for_size
-        radii = [radius_for_size(size) for size in marks]
+        radius_for_weight = self.settings.node_sizes.radius_for_weight
+        radii = [radius_for_weight(size) for size in marks]
         self.radii = radii
         self.radius = max(radii)
         self.place_labels()

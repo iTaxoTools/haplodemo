@@ -248,14 +248,34 @@ class NodeSizeDialog(BoundOptionsDialogWithHistory):
     def draw_contents(self):
         properties = self.settings.properties
 
-        label_info = QtWidgets.QLabel('Set node size from node weight, that is the haplotype count of the node:')
+        label_info = QtWidgets.QLabel('Resize nodes based on their individual weight, which corresponds to haplotype count. Node sizes are in pixels.')
         label_info.setWordWrap(True)
 
         radios = AttrDict()
         radios.linear_factor = QtWidgets.QRadioButton('Linear factor:')
         radios.area_factor = QtWidgets.QRadioButton('Area factor:')
         radios.logarithmic_factor = QtWidgets.QRadioButton('Log. factor:')
-        radios.base_radius = QtWidgets.QCheckBox('Base radius:')
+
+        style = QtWidgets.QApplication.style()
+        indicator_width = style.pixelMetric(QtWidgets.QStyle.PM_ExclusiveIndicatorWidth, None, radios.linear_factor)
+        indicator_spacing = style.pixelMetric(QtWidgets.QStyle.PM_RadioButtonLabelSpacing, None, radios.linear_factor)
+
+        base_radius_pattern = QtWidgets.QLabel('\u2B9E')
+        base_radius_pattern.setFixedWidth(indicator_width)
+        font = base_radius_pattern.font()
+        font.setPixelSize(14)
+        font.setBold(True)
+        font.setStyleStrategy(QtGui.QFont.PreferAntialias)
+        font.setHintingPreference(QtGui.QFont.PreferNoHinting)
+        base_radius_pattern.setFont(font)
+
+        base_radius_label = QtWidgets.QLabel('Base radius:')
+
+        base_radius_layout = QtWidgets.QHBoxLayout()
+        base_radius_layout.setContentsMargins(0, 0, 0, 0)
+        base_radius_layout.setSpacing(indicator_spacing)
+        base_radius_layout.addWidget(base_radius_pattern)
+        base_radius_layout.addWidget(base_radius_label)
 
         self.binder.bind(radios.linear_factor.toggled, properties.has_linear_factor)
         self.binder.bind(properties.has_linear_factor, radios.linear_factor.setChecked)
@@ -265,9 +285,6 @@ class NodeSizeDialog(BoundOptionsDialogWithHistory):
 
         self.binder.bind(radios.logarithmic_factor.toggled, properties.has_logarithmic_factor)
         self.binder.bind(properties.has_logarithmic_factor, radios.logarithmic_factor.setChecked)
-
-        self.binder.bind(radios.base_radius.toggled, properties.has_base_radius)
-        self.binder.bind(properties.has_base_radius, radios.base_radius.setChecked)
 
         fields = AttrDict()
         fields.linear_factor = self.create_float_box(properties.linear_factor)
@@ -285,10 +302,10 @@ class NodeSizeDialog(BoundOptionsDialogWithHistory):
         self.binder.bind(properties.has_base_radius, fields.base_radius.set_text_black)
 
         descrs = AttrDict()
-        descrs.linear_factor = QtWidgets.QLabel('Increase radius proportionally to weight.')
-        descrs.area_factor = QtWidgets.QLabel('Increase area proportionally to weight.')
-        descrs.logarithmic_factor = QtWidgets.QLabel('Increase radius logarithmically (base 10).')
-        descrs.base_radius = QtWidgets.QLabel('Starting node radius, regardless of weight.')
+        descrs.linear_factor = QtWidgets.QLabel('Proportional radius growth with weight.')
+        descrs.area_factor = QtWidgets.QLabel('Proportional area growth with weight.')
+        descrs.logarithmic_factor = QtWidgets.QLabel('Logarithmic radius growth (base 10).')
+        descrs.base_radius = QtWidgets.QLabel('Node radius when weight is 1.')
 
         for descr in descrs.values():
             font = descr.font()
@@ -321,7 +338,7 @@ class NodeSizeDialog(BoundOptionsDialogWithHistory):
         controls.setRowMinimumHeight(row, 16)
 
         row += 1
-        controls.addWidget(radios.base_radius, row, 0)
+        controls.addLayout(base_radius_layout, row, 0)
         controls.addWidget(fields.base_radius, row, 2)
         controls.addWidget(descrs.base_radius, row, 4)
 
@@ -332,9 +349,9 @@ class NodeSizeDialog(BoundOptionsDialogWithHistory):
 
     def create_int_box(self, property: Property) -> ClickableSpinBox:
         box = ClickableSpinBox()
-        box.setMinimum(0)
+        box.setMinimum(5)
         box.setMaximum(100000)
-        box.setSingleStep(10)
+        box.setSingleStep(5)
         self.binder.bind(box.valueChanged, property, lambda x: type_convert(x, int, None))
         self.binder.bind(property, box.setValue, lambda x: type_convert(x, int, 0))
         return box
@@ -343,7 +360,7 @@ class NodeSizeDialog(BoundOptionsDialogWithHistory):
         box = ClickableDoubleSpinBox()
         box.setMinimum(0)
         box.setMaximum(float('inf'))
-        box.setSingleStep(10)
+        box.setSingleStep(0.1)
         box.setDecimals(2)
         self.binder.bind(box.valueChanged, property, lambda x: type_convert(x, float, None))
         self.binder.bind(property, box.setValue, lambda x: type_convert(x, float, 0))

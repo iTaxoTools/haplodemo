@@ -21,7 +21,7 @@ from __future__ import annotations
 from PySide6 import QtCore, QtGui
 
 from itertools import chain
-from math import log, pi, sqrt
+from math import log, sqrt
 
 from itaxotools.common.bindings import (
     Binder, Instance, Property, PropertyObject)
@@ -40,9 +40,9 @@ def get_default_font():
 
 class NodeSizeSettings(PropertyObject):
     base_radius = Property(int, 20)
-    linear_factor = Property(float, 10)
-    area_factor = Property(float, 400)
-    logarithmic_factor = Property(float, 40)
+    linear_factor = Property(float, 1.0)
+    area_factor = Property(float, 1.0)
+    logarithmic_factor = Property(float, 1.0)
     logarithmic_base = Property(float, 10)
 
     has_base_radius = Property(bool, True)
@@ -50,30 +50,30 @@ class NodeSizeSettings(PropertyObject):
     has_area_factor = Property(bool, False)
     has_logarithmic_factor = Property(bool, True)
 
-    def radius_for_size(self, size: int) -> float:
-        radius = 0
-        if self.has_base_radius:
-            radius = self.base_radius
+    def radius_for_weight(self, weight: int) -> float:
+        base = self.base_radius
+        assert base > 0
         if self.has_linear_factor:
-            radius += self.linear_factor * size
-        if self.has_area_factor:
-            radius += sqrt(self.area_factor * size / pi)
-        if self.has_logarithmic_factor:
-            if self.logarithmic_factor > 1 and self.logarithmic_base > 0:
-                radius += self.logarithmic_factor * log(size, self.logarithmic_base)
-        return radius
+            return self.linear_factor * base * (weight - 1) + base
+        elif self.has_area_factor:
+            return base * sqrt(1 + self.area_factor * (weight - 1))
+        elif self.has_logarithmic_factor:
+            if weight == 0:
+                return 0
+            if self.logarithmic_base > 0:
+                return self.logarithmic_factor * base * log(weight, self.logarithmic_base) + base
+        return base
 
     def get_all_values(self):
         return [property.value for property in self.properties]
 
-    def set_all_values(self, base: int, linear: float, area: float, log: float, log_base: float = 10):
+    def set_all_values(self, base: int, linear: float, area: float, log: float):
         self.base_radius = base
         self.linear_factor = linear
         self.area_factor = area
         self.logarithmic_factor = log
-        self.logarithmic_base = log_base
+        self.logarithmic_base = 10
 
-        self.has_base_radius = bool(base)
         self.has_linear_factor = bool(linear)
         self.has_area_factor = bool(area)
         self.has_logarithmic_factor = bool(log)

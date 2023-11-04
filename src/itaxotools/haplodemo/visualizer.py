@@ -124,8 +124,8 @@ class Visualizer(QtCore.QObject):
         self.graph = nx.Graph()
         self.tree = tree
 
-        radius_for_size = self.settings.node_sizes.radius_for_size
-        self._visualize_tree_recursive(None, tree, radius_for_size)
+        radius_for_weight = self.settings.node_sizes.radius_for_weight
+        self._visualize_tree_recursive(None, tree, radius_for_weight)
         self.update_members_setting()
         self.layout_nodes()
 
@@ -133,13 +133,13 @@ class Visualizer(QtCore.QObject):
         self.scene.set_marks_from_nodes()
         self.scene.set_boundary_to_contents()
 
-    def _visualize_tree_recursive(self, parent_id: str, node: HaploTreeNode, radius_for_size: Callable[[int], float]):
+    def _visualize_tree_recursive(self, parent_id: str, node: HaploTreeNode, radius_for_weight: Callable[[int], float]):
         x, y = 0, 0
         id = node.id
         size = node.get_size()
 
         if size > 0:
-            item = self.create_node(x, y, size, id, dict(node.pops), radius_for_size)
+            item = self.create_node(x, y, size, id, dict(node.pops), radius_for_weight)
             radius = item.radius / self.settings.edge_length
         else:
             item = self.create_vertex(x, y, name=id)
@@ -160,7 +160,7 @@ class Visualizer(QtCore.QObject):
             self.scene.root = item
 
         for child in node.children:
-            self._visualize_tree_recursive(id, child, radius_for_size)
+            self._visualize_tree_recursive(id, child, radius_for_weight)
 
     def visualize_graph(self, haplo_graph: HaploGraph):
         self.clear()
@@ -171,14 +171,14 @@ class Visualizer(QtCore.QObject):
         self.tree = None
 
         x, y = 0, 0
-        radius_for_size = self.settings.node_sizes.radius_for_size
+        radius_for_weight = self.settings.node_sizes.radius_for_weight
 
         for node in haplo_graph.nodes:
             id = node.id
             size = node.get_size()
 
             if size > 0:
-                item = self.create_node(x, y, size, id, dict(node.pops), radius_for_size)
+                item = self.create_node(x, y, size, id, dict(node.pops), radius_for_weight)
                 radius = item.radius / self.settings.edge_length
             else:
                 item = self.create_vertex(x, y, name=id)
