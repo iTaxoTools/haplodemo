@@ -305,7 +305,7 @@ class Window(QtWidgets.QWidget):
         self.quick_save_action = action
         self.addAction(action)
 
-        self.demos.load_demo_members_tree()
+        self.demos.load_demo_simple()
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
