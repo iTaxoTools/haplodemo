@@ -116,6 +116,7 @@ class BezierHandlePhantom(QtWidgets.QGraphicsEllipseItem):
 class BezierCurve(HighlightableItem, QtWidgets.QGraphicsPathItem):
     def __init__(self, node1: Vertex, node2: Vertex, parent=None):
         super().__init__(parent)
+        self.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
         self.setCursor(QtCore.Qt.ArrowCursor)
         self.update_z_value()
 

@@ -76,6 +76,7 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
+        self.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
         self.setPen(QtCore.Qt.NoPen)
         self.setBrush(self.pen().color())
         self.setPos(x, y)

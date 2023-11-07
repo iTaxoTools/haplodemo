@@ -39,6 +39,7 @@ class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
         self.item_block = False
 
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+        self.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
         self.setAcceptHoverEvents(True)
         self.setBrush(QtCore.Qt.green)
         self.setPen(QtCore.Qt.NoPen)

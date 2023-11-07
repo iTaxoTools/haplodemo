@@ -47,6 +47,7 @@ class Label(HighlightableItem, QtWidgets.QGraphicsItem):
         self.setCursor(QtCore.Qt.ArrowCursor)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, False)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
+        self.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
 
     @override
     def mousePressEvent(self, event):

@@ -31,6 +31,7 @@ from .types import EdgeDecoration, EdgeStyle
 class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
     def __init__(self, node1: QtWidgets.QGraphicsItem, node2: QtWidgets.QGraphicsItem, weight=1):
         super().__init__()
+        self.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
         self.setCursor(QtCore.Qt.ArrowCursor)
         self.weight = weight
         self.segments = weight

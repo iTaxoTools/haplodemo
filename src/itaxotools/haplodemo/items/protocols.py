@@ -77,6 +77,7 @@ class SoloMovableItem:
         super().__init__(*args, **kwargs)
         super().setFlag(QtWidgets.QGraphicsItem.ItemIsMovable)
         super().setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, False)
+        super().setAcceptedMouseButtons(QtCore.Qt.LeftButton)
         self._locked_drag_pos = None
 
     @override
