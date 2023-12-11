@@ -35,7 +35,6 @@ dev = [
     "ruff",
     "pytest",
     "pyinstaller",
-    "matplotlib",
 ]
 
 [project.gui-scripts]
