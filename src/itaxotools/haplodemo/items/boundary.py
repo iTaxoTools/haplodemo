@@ -26,7 +26,6 @@ from .types import Direction
 
 
 class BoundaryEdgeHandle(QtWidgets.QGraphicsRectItem):
-
     def __init__(self, parent, horizontal, vertical, size):
         super().__init__(parent)
 
@@ -185,14 +184,18 @@ class BoundaryRect(QtWidgets.QGraphicsRectItem):
         self.setBrush(QtCore.Qt.white)
         self.setZValue(-99)
 
-        handles = list(product(
-            [Direction.Left, Direction.Center, Direction.Right],
-            [Direction.Top, Direction.Center, Direction.Bottom]))
+        handles = list(
+            product(
+                [Direction.Left, Direction.Center, Direction.Right],
+                [Direction.Top, Direction.Center, Direction.Bottom],
+            )
+        )
         handles.remove((Direction.Center, Direction.Center))
 
         self.handles = [
             BoundaryEdgeHandle(self, horizontal, vertical, self.margin)
-            for horizontal, vertical in handles]
+            for horizontal, vertical in handles
+        ]
         self.outline = BoundaryOutline(self)
 
     def lock_rect(self):

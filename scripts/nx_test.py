@@ -28,11 +28,11 @@ def get_simple_graph():
 
 
 def get_random_graph(
-    depth = 2,
-    min_children = 1,
-    max_children = 4,
-    min_weight = 2,
-    max_weight = 6,
+    depth=2,
+    min_children=1,
+    max_children=4,
+    min_weight=2,
+    max_weight=6,
 ):
     # Create random weighted tree
 
@@ -44,12 +44,12 @@ def get_random_graph(
 
         for i in range(children):
             weight = randint(min_weight, max_weight)
-            child = f'{parent}/{i+1}'
+            child = f"{parent}/{i+1}"
             G.add_edge(parent, child, weight=weight)
             populate_graph(G, child, depth - 1)
 
     G = nx.Graph()
-    populate_graph(G, '0', depth)
+    populate_graph(G, "0", depth)
     return G
 
 
@@ -57,7 +57,7 @@ def get_random_graph(
 G = get_random_graph()
 
 # Set the position of the nodes using the spring layout
-pos = modified_spring_layout(G, weight='weight')
+pos = modified_spring_layout(G, weight="weight")
 # pos = nx.spring_layout(G, weight='weight')
 # pos = nx.circular_layout(G)
 # pos = nx.kamada_kawai_layout(G)
@@ -69,15 +69,18 @@ pos = modified_spring_layout(G, weight='weight')
 nx.draw_networkx_nodes(G, pos)
 nx.draw_networkx_edges(G, pos)
 
-nx.draw_networkx_labels(
-    G, pos, font_size=12, font_family="sans-serif")
+nx.draw_networkx_labels(G, pos, font_size=12, font_family="sans-serif")
 
 nx.draw_networkx_edge_labels(
-    G, pos, font_size=8, font_family="sans-serif",
-    edge_labels=nx.get_edge_attributes(G, 'weight'))
+    G,
+    pos,
+    font_size=8,
+    font_family="sans-serif",
+    edge_labels=nx.get_edge_attributes(G, "weight"),
+)
 
 # Set the axis limits and turn off the axis labels
-plt.axis('equal')
+plt.axis("equal")
 
 # Show the plot
 plt.show()

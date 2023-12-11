@@ -25,6 +25,7 @@ from itertools import combinations
 from typing import Callable
 
 import networkx as nx
+
 from itaxotools.common.bindings import Binder
 from itaxotools.common.utility import Guard
 
@@ -41,6 +42,7 @@ from .types import HaploGraph, HaploTreeNode, LayoutType
 
 class Visualizer(QtCore.QObject):
     """Map haplotype network datatypes to graphics scene items"""
+
     nodeSelected = QtCore.Signal(str)
     nodeIndexSelected = QtCore.Signal(QtCore.QModelIndex)
 
@@ -53,7 +55,9 @@ class Visualizer(QtCore.QObject):
 
         self.items: dict[str, Vertex] = {}
         self.members: dict[str, set[str]] = defaultdict(set)
-        self.member_indices: dict[str, QtCore.QModelIndex] = defaultdict(QtCore.QModelIndex)
+        self.member_indices: dict[str, QtCore.QModelIndex] = defaultdict(
+            QtCore.QModelIndex
+        )
         self.partition: dict[str, str] = defaultdict(str)
         self.graph: HaploGraph = None
         self.tree: HaploTreeNode = None
@@ -61,7 +65,9 @@ class Visualizer(QtCore.QObject):
         self._member_select_guard = Guard()
 
         self.scene.selectionChanged.connect(self.handle_selection_changed)
-        self.settings.properties.partition_index.notify.connect(self.handle_partition_selected)
+        self.settings.properties.partition_index.notify.connect(
+            self.handle_partition_selected
+        )
 
         q_app = QtWidgets.QApplication.instance()
         q_app.aboutToQuit.connect(self.handle_about_to_quit)
@@ -133,7 +139,12 @@ class Visualizer(QtCore.QObject):
         self.scene.set_marks_from_nodes()
         self.scene.set_boundary_to_contents()
 
-    def _visualize_tree_recursive(self, parent_id: str, node: HaploTreeNode, radius_for_weight: Callable[[int], float]):
+    def _visualize_tree_recursive(
+        self,
+        parent_id: str,
+        node: HaploTreeNode,
+        radius_for_weight: Callable[[int], float],
+    ):
         x, y = 0, 0
         id = node.id
         size = node.get_size()
@@ -151,7 +162,7 @@ class Visualizer(QtCore.QObject):
 
         if parent_id:
             parent_item = self.items[parent_id]
-            parent_radius = self.graph.nodes[parent_id]['radius']
+            parent_radius = self.graph.nodes[parent_id]["radius"]
             length = node.mutations + parent_radius + radius
             item = self.add_child_edge(parent_item, item, node.mutations)
             self.graph.add_edge(parent_id, id, length=length)
@@ -178,7 +189,9 @@ class Visualizer(QtCore.QObject):
             size = node.get_size()
 
             if size > 0:
-                item = self.create_node(x, y, size, id, dict(node.pops), radius_for_weight)
+                item = self.create_node(
+                    x, y, size, id, dict(node.pops), radius_for_weight
+                )
                 radius = item.radius / self.settings.edge_length
             else:
                 item = self.create_vertex(x, y, name=id)
@@ -196,8 +209,8 @@ class Visualizer(QtCore.QObject):
             node_b = haplo_graph.nodes[edge.node_b].id
             item_a = self.items[node_a]
             item_b = self.items[node_b]
-            radius_a = self.graph.nodes[node_a]['radius']
-            radius_b = self.graph.nodes[node_b]['radius']
+            radius_a = self.graph.nodes[node_a]["radius"]
+            radius_b = self.graph.nodes[node_b]["radius"]
             length = edge.mutations + radius_a + radius_b
             item = self.add_sibling_edge(item_a, item_b, edge.mutations)
             self.graph.add_edge(node_a, node_b, length=length)
@@ -216,9 +229,11 @@ class Visualizer(QtCore.QObject):
                 for node, data in self.graph.nodes(data=True):
                     graph.add_node(node, **data)
                 for u, v, data in self.graph.edges(data=True):
-                    weight = 1 / data['length']
+                    weight = 1 / data["length"]
                     graph.add_edge(u, v, weight=weight, **data)
-                pos = nx.spring_layout(graph, weight='weight', scale=self.settings.layout_scale)
+                pos = nx.spring_layout(
+                    graph, weight="weight", scale=self.settings.layout_scale
+                )
                 del graph
             case LayoutType.ModifiedSpring:
                 pos = modified_spring_layout(self.graph, scale=None)
@@ -284,12 +299,16 @@ class Visualizer(QtCore.QObject):
 
         return groups
 
-    def _find_group_for_node(self, graph: dict[str, set[str]], node: str, visited: set[str]) -> set[str]:
+    def _find_group_for_node(
+        self, graph: dict[str, set[str]], node: str, visited: set[str]
+    ) -> set[str]:
         group = set()
         self._find_group_for_node_dfs(graph, node, visited, group)
         return group
 
-    def _find_group_for_node_dfs(self, graph: dict[str, set[str]], node: str, visited: set[str], group: set[str]):
+    def _find_group_for_node_dfs(
+        self, graph: dict[str, set[str]], node: str, visited: set[str], group: set[str]
+    ):
         visited.add(node)
         group.add(node)
         for child in graph[node]:
@@ -298,10 +317,18 @@ class Visualizer(QtCore.QObject):
 
     def create_vertex(self, *args, **kwargs):
         item = Vertex(*args, **kwargs)
-        self.binder.bind(self.settings.properties.snapping_movement, item.set_snapping_setting)
-        self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
-        self.binder.bind(self.settings.properties.recursive_movement, item.set_recursive_setting)
-        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
+        self.binder.bind(
+            self.settings.properties.snapping_movement, item.set_snapping_setting
+        )
+        self.binder.bind(
+            self.settings.properties.rotational_movement, item.set_rotational_setting
+        )
+        self.binder.bind(
+            self.settings.properties.recursive_movement, item.set_recursive_setting
+        )
+        self.binder.bind(
+            self.settings.properties.highlight_color, item.set_highlight_color
+        )
         self.binder.bind(self.settings.properties.pen_width_edges, item.set_pen_width)
         return item
 
@@ -309,19 +336,37 @@ class Visualizer(QtCore.QObject):
         item = Node(*args, **kwargs)
         item.update_colors(self.settings.divisions.get_color_map())
         self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
-        self.binder.bind(self.settings.properties.snapping_movement, item.set_snapping_setting)
-        self.binder.bind(self.settings.properties.rotational_movement, item.set_rotational_setting)
-        self.binder.bind(self.settings.properties.recursive_movement, item.set_recursive_setting)
-        self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
-        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
+        self.binder.bind(
+            self.settings.properties.snapping_movement, item.set_snapping_setting
+        )
+        self.binder.bind(
+            self.settings.properties.rotational_movement, item.set_rotational_setting
+        )
+        self.binder.bind(
+            self.settings.properties.recursive_movement, item.set_recursive_setting
+        )
+        self.binder.bind(
+            self.settings.properties.label_movement,
+            item.label.set_locked,
+            lambda x: not x,
+        )
+        self.binder.bind(
+            self.settings.properties.highlight_color, item.set_highlight_color
+        )
         self.binder.bind(self.settings.properties.pen_width_nodes, item.set_pen_width)
         self.binder.bind(self.settings.properties.font, item.set_label_font)
         return item
 
     def create_edge(self, *args, **kwargs):
         item = Edge(*args, **kwargs)
-        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
-        self.binder.bind(self.settings.properties.label_movement, item.label.set_locked, lambda x: not x)
+        self.binder.bind(
+            self.settings.properties.highlight_color, item.set_highlight_color
+        )
+        self.binder.bind(
+            self.settings.properties.label_movement,
+            item.label.set_locked,
+            lambda x: not x,
+        )
         self.binder.bind(self.settings.properties.pen_width_edges, item.set_pen_width)
         self.binder.bind(self.settings.properties.font, item.set_label_font)
         return item
@@ -336,7 +381,9 @@ class Visualizer(QtCore.QObject):
 
     def create_bezier(self, node1, node2):
         item = BezierCurve(node1, node2)
-        self.binder.bind(self.settings.properties.highlight_color, item.set_highlight_color)
+        self.binder.bind(
+            self.settings.properties.highlight_color, item.set_highlight_color
+        )
         self.binder.bind(self.settings.properties.pen_width_edges, item.set_pen_width)
         node1.beziers[node2] = item
         node2.beziers[node1] = item
@@ -371,7 +418,7 @@ class Visualizer(QtCore.QObject):
         selection = [item for item in selection if isinstance(item, Vertex)]
 
         node = selection[0] if selection else None
-        name = node.name if node else ''
+        name = node.name if node else ""
         index = self.member_indices[name]
 
         if not self._member_select_guard:
@@ -380,7 +427,6 @@ class Visualizer(QtCore.QObject):
 
     def select_node_by_name(self, name: str):
         with self._member_select_guard:
-
             for item in self.scene.selectedItems():
                 item.setSelected(False)
 

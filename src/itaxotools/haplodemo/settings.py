@@ -23,17 +23,18 @@ from PySide6 import QtCore, QtGui
 from itertools import chain
 from math import log, sqrt
 
-from itaxotools.common.bindings import (
-    Binder, Instance, Property, PropertyObject)
-
+from itaxotools.common.bindings import Binder, Instance, Property, PropertyObject
 from itaxotools.haplodemo.models import (
-    DivisionListModel, MemberTreeModel, PartitionListModel)
+    DivisionListModel,
+    MemberTreeModel,
+    PartitionListModel,
+)
 from itaxotools.haplodemo.palettes import Palette
 from itaxotools.haplodemo.types import LayoutType
 
 
 def get_default_font():
-    font = QtGui.QFont('Arial')
+    font = QtGui.QFont("Arial")
     font.setPixelSize(14)
     return font
 
@@ -61,7 +62,10 @@ class NodeSizeSettings(PropertyObject):
             if weight == 0:
                 return 0
             if self.logarithmic_base > 0:
-                return self.logarithmic_factor * base * log(weight, self.logarithmic_base) + base
+                return (
+                    self.logarithmic_factor * base * log(weight, self.logarithmic_base)
+                    + base
+                )
         return base
 
     def get_all_values(self):
@@ -89,13 +93,13 @@ class FieldSettings(PropertyObject):
 
 
 class Settings(PropertyObject):
-    partitions = Property(PartitionListModel, Instance, tag='frozen')
-    divisions = Property(DivisionListModel, Instance, tag='frozen')
-    members = Property(MemberTreeModel, Instance, tag='frozen')
+    partitions = Property(PartitionListModel, Instance, tag="frozen")
+    divisions = Property(DivisionListModel, Instance, tag="frozen")
+    members = Property(MemberTreeModel, Instance, tag="frozen")
 
-    node_sizes = Property(NodeSizeSettings, Instance, tag='frozen')
-    fields = Property(FieldSettings, Instance, tag='frozen')
-    scale = Property(ScaleSettings, Instance, tag='frozen')
+    node_sizes = Property(NodeSizeSettings, Instance, tag="frozen")
+    fields = Property(FieldSettings, Instance, tag="frozen")
+    scale = Property(ScaleSettings, Instance, tag="frozen")
 
     partition_index = Property(QtCore.QModelIndex, Instance)
 
@@ -119,14 +123,18 @@ class Settings(PropertyObject):
     pen_width_nodes = Property(float, 1)
     pen_width_edges = Property(float, 2)
 
-    node_label_template = Property(str, 'NAME')
-    edge_label_template = Property(str, '(WEIGHT)')
+    node_label_template = Property(str, "NAME")
+    edge_label_template = Property(str, "(WEIGHT)")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.binder = Binder()
         self.binder.bind(self.properties.palette, self.divisions.set_palette)
-        self.binder.bind(self.properties.palette, self.properties.highlight_color, lambda x: x.highlight)
+        self.binder.bind(
+            self.properties.palette,
+            self.properties.highlight_color,
+            lambda x: x.highlight,
+        )
         self.binder.bind(self.properties.font, self.enforce_pixel_size)
 
     def enforce_pixel_size(self, font: QtGui.QFont | None):
@@ -140,7 +148,7 @@ class Settings(PropertyObject):
 
     def reset(self):
         properties = chain(
-            [p for p in self.properties if p.tag != 'frozen'],
+            [p for p in self.properties if p.tag != "frozen"],
             self.node_sizes.properties,
             self.fields.properties,
             self.scale.properties,

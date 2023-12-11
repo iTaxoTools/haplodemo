@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 class BezierHandleLine(QtWidgets.QGraphicsLineItem):
     def __init__(self, parent, p1, p2):
         super().__init__(p1.x(), p1.y(), p2.x(), p2.y(), parent)
-        self.setPen(QtGui.QPen(QtGui.QColor('#333'), 1))
+        self.setPen(QtGui.QPen(QtGui.QColor("#333"), 1))
 
 
 class BezierHandle(HighlightableItem, SoloMovableItem, QtWidgets.QGraphicsEllipseItem):
@@ -187,8 +187,12 @@ class BezierCurve(HighlightableItem, QtWidgets.QGraphicsPathItem):
 
     def update_pens(self):
         self._pen = QtGui.QPen(QtCore.Qt.red, self._pen_width, QtCore.Qt.DotLine)
-        self._pen_high = QtGui.QPen(self.highlight_color(), self._pen_width + self._pen_high_increment)
-        self._pen_shape = QtGui.QPen(QtCore.Qt.black, self._pen_width + self._pen_high_increment * 2)
+        self._pen_high = QtGui.QPen(
+            self.highlight_color(), self._pen_width + self._pen_high_increment
+        )
+        self._pen_shape = QtGui.QPen(
+            QtCore.Qt.black, self._pen_width + self._pen_high_increment * 2
+        )
         self.update()
 
     def get_control_point_for_node(self, node):
@@ -196,14 +200,14 @@ class BezierCurve(HighlightableItem, QtWidgets.QGraphicsPathItem):
             return self.c1
         if node == self.node2:
             return self.c2
-        raise ValueError('node not in bezier')
+        raise ValueError("node not in bezier")
 
     def get_control_point_lock_for_node(self, node):
         if node == self.node1:
             return self.locked_c1
         if node == self.node2:
             return self.locked_c2
-        raise ValueError('node not in bezier')
+        raise ValueError("node not in bezier")
 
     def set_control_point_for_node(self, node, point):
         if node == self.node1:
@@ -212,7 +216,7 @@ class BezierCurve(HighlightableItem, QtWidgets.QGraphicsPathItem):
         if node == self.node2:
             self.c2 = point
             return
-        raise ValueError('node not in bezier')
+        raise ValueError("node not in bezier")
 
     def update_z_value(self, hover=False):
         z = -11 if hover else -12

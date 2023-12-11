@@ -161,8 +161,13 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
             self.lockPosition(event, center)
             if self.isMovementRecursive():
                 self.mapNodeEdgeRecursive(
-                    type(self).lockPosition, [event, center], {},
-                    Edge.lock_label_position, [], {})
+                    type(self).lockPosition,
+                    [event, center],
+                    {},
+                    Edge.lock_label_position,
+                    [],
+                    {},
+                )
 
         super().mousePressEvent(event)
 
@@ -209,9 +214,8 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         edge.adjust_position()
 
     def set_hovered(self, value):
-        if self.parent and any((
-            self.isMovementRotational(),
-            self.isMovementRecursive())
+        if self.parent and any(
+            (self.isMovementRotational(), self.isMovementRecursive())
         ):
             edge = self.edges[self.parent]
             edge.set_hovered(value)
@@ -250,10 +254,17 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         return self._snapping_setting
 
     def _mapRecursive(
-        self, siblings, parents,
-        visited_nodes, visited_edges,
-        node_func, node_args, node_kwargs,
-        edge_func, edge_args, edge_kwargs,
+        self,
+        siblings,
+        parents,
+        visited_nodes,
+        visited_edges,
+        node_func,
+        node_args,
+        node_kwargs,
+        edge_func,
+        edge_args,
+        edge_kwargs,
     ):
         if self in visited_nodes:
             return
@@ -270,9 +281,17 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
 
         for node in nodes:
             node._mapRecursive(
-                True, parents, visited_nodes, visited_edges,
-                node_func, node_args, node_kwargs,
-                edge_func, edge_args, edge_kwargs)
+                True,
+                parents,
+                visited_nodes,
+                visited_edges,
+                node_func,
+                node_args,
+                node_kwargs,
+                edge_func,
+                edge_args,
+                edge_kwargs,
+            )
 
             edge = self.edges[node]
             if edge_func and edge not in visited_edges:
@@ -280,17 +299,31 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
             visited_edges.add(edge)
 
     def mapNodeRecursive(self, func, *args, **kwargs):
-        self._mapRecursive(False, False, set(), set(), func, args, kwargs, None, None, None)
+        self._mapRecursive(
+            False, False, set(), set(), func, args, kwargs, None, None, None
+        )
 
     def mapNodeEdgeRecursive(
         self,
-        node_func, node_args, node_kwargs,
-        edge_func, edge_args, edge_kwargs,
+        node_func,
+        node_args,
+        node_kwargs,
+        edge_func,
+        edge_args,
+        edge_kwargs,
     ):
         self._mapRecursive(
-            False, False, set(), set(),
-            node_func, node_args, node_kwargs,
-            edge_func, edge_args, edge_kwargs)
+            False,
+            False,
+            set(),
+            set(),
+            node_func,
+            node_args,
+            node_kwargs,
+            edge_func,
+            edge_args,
+            edge_kwargs,
+        )
 
     def lockPosition(self, event, center=None):
         self.locked_event_pos = event.scenePos()
@@ -341,7 +374,6 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         diff = epos - self.locked_event_pos
 
         if self.isMovementSnapping() and self.snap_axis_xs and self.snap_axis_ys:
-
             new_pos = self.locked_pos + diff
 
             diff_xs = [x - new_pos.x() for x in self.snap_axis_xs]
@@ -379,12 +411,13 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         transform.translate(-center.x(), -center.y())
 
         if self.isMovementSnapping():
-
             new_pos = transform.map(self.locked_pos)
             absolute_line = QtCore.QLineF(self.locked_center, new_pos)
             absolute_angle = absolute_line.angle()
 
-            snap_diffs = [absolute_angle - snap_angle for snap_angle in self.snap_angles]
+            snap_diffs = [
+                absolute_angle - snap_angle for snap_angle in self.snap_angles
+            ]
             snap_abs_diffs = [abs(snap_diff) for snap_diff in snap_diffs]
             min_abs_diff = min(snap_abs_diffs)
 
@@ -402,7 +435,9 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
     def adjust_scale(self, scale=1.0):
         if not scale:
             return
-        self.snap_axis_threshold = self.snap_axis_threshold_base + self.snap_axis_threshold_factor / scale
+        self.snap_axis_threshold = (
+            self.snap_axis_threshold_base + self.snap_axis_threshold_factor / scale
+        )
 
     def post_node_movement(self):
         if not self.scene():
@@ -412,7 +447,11 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
 
 class Node(Vertex):
     def __init__(
-        self, x: float, y: float, r: float, name: str,
+        self,
+        x: float,
+        y: float,
+        r: float,
+        name: str,
         weights: dict[str, int],
         radius_for_weight: Callable[[int], float] = None,
     ):
@@ -531,8 +570,12 @@ class Node(Vertex):
 
     def update_pens(self):
         self._pen = QtGui.QPen(QtCore.Qt.black, self._pen_width)
-        self._pen_high = QtGui.QPen(self.highlight_color(), self._pen_width + self._pen_high_increment)
-        self._pen_selected = QtGui.QPen(self.highlight_color(), self._pen_width + self._pen_high_increment * 4)
+        self._pen_high = QtGui.QPen(
+            self.highlight_color(), self._pen_width + self._pen_high_increment
+        )
+        self._pen_selected = QtGui.QPen(
+            self.highlight_color(), self._pen_width + self._pen_high_increment * 4
+        )
         self.update()
 
     def set_label_font(self, value):

@@ -31,7 +31,7 @@ class RectBox(QtWidgets.QGraphicsRectItem):
         self.corner_radius = 24
         self.adjust_position()
         self.setZValue(-80)
-        self.setBrush(QtGui.QColor('#777'))
+        self.setBrush(QtGui.QColor("#777"))
         self.setOpacity(0.3)
 
     @override

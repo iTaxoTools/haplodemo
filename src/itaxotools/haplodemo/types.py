@@ -59,14 +59,18 @@ class HaploTreeNode:
 
     def __str__(self):
         total = self.pops.total()
-        per_pop_strings = (f'{v} \u00D7 {k}' for k, v in self.pops.items())
-        all_pops_string = ' + '.join(per_pop_strings)
-        members_string = ', '.join(self.members)
+        per_pop_strings = (f"{v} \u00D7 {k}" for k, v in self.pops.items())
+        all_pops_string = " + ".join(per_pop_strings)
+        members_string = ", ".join(self.members)
         return f"<{self.id}: {total} = {all_pops_string}; {members_string}>"
 
     def print(self, level=0, length=5, file=stdout):
-        mutations_string = str(self.mutations).center(length, '\u2500')
-        decoration = ' ' * (length + 1) * (level - 1) + f"\u2514{mutations_string}" if level else ''
+        mutations_string = str(self.mutations).center(length, "\u2500")
+        decoration = (
+            " " * (length + 1) * (level - 1) + f"\u2514{mutations_string}"
+            if level
+            else ""
+        )
         print(f"{decoration}{str(self)}", file=file)
         for child in self.children:
             child.print(level + 1, length, file)
@@ -115,6 +119,6 @@ class MemberItem:
 
     def __repr__(self):
         parent_str = self.parent.name if self.parent else None
-        children_str = ', '.join(repr(child.name) for child in self.children)
-        children_str = children_str or 'None'
+        children_str = ", ".join(repr(child.name) for child in self.children)
+        children_str = children_str or "None"
         return f"{type(self).__name__} <name='{self.name}', parent='{parent_str}', index={self.index}, children={children_str}>"

@@ -64,11 +64,11 @@ class PivotHandle(HighlightableItem, SoloMovableItem, QtWidgets.QGraphicsEllipse
 
         painter.drawEllipse(rect)
         painter.drawLine(
-            center.x(), rect.top() - extra,
-            center.x(), rect.bottom() + extra)
+            center.x(), rect.top() - extra, center.x(), rect.bottom() + extra
+        )
         painter.drawLine(
-            rect.left() - extra, center.y(),
-            rect.right() + extra, center.y())
+            rect.left() - extra, center.y(), rect.right() + extra, center.y()
+        )
 
     @override
     def hoverEnterEvent(self, event):

@@ -24,24 +24,35 @@ from itaxotools.common.bindings import Binder, Property, PropertyObject
 from itaxotools.common.utility import AttrDict, type_convert
 
 from .history import (
-    ApplyCommand, EdgeStyleCommand, NodeMovementCommand,
-    PropertyChangedCommand, PropertyGroupCommand, UndoCommand)
+    ApplyCommand,
+    EdgeStyleCommand,
+    NodeMovementCommand,
+    PropertyChangedCommand,
+    PropertyGroupCommand,
+    UndoCommand,
+)
 from .items.edges import Edge
 from .items.nodes import Vertex
 from .items.types import EdgeStyle
 from .settings import NodeSizeSettings, ScaleSettings
 from .widgets import (
-    ClickableDoubleSpinBox, ClickableSpinBox, GLineEdit, PenWidthField,
-    PenWidthSlider, RadioButtonGroup)
+    ClickableDoubleSpinBox,
+    ClickableSpinBox,
+    GLineEdit,
+    PenWidthField,
+    PenWidthSlider,
+    RadioButtonGroup,
+)
 
 
 class OptionsDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowFlags(
-            self.windowFlags() |
-            QtCore.Qt.MSWindowsFixedSizeDialogHint |
-            QtCore.Qt.WindowStaysOnTopHint)
+            self.windowFlags()
+            | QtCore.Qt.MSWindowsFixedSizeDialogHint
+            | QtCore.Qt.WindowStaysOnTopHint
+        )
         self.binder = Binder()
 
     def hintedResize(self, width, height):
@@ -51,9 +62,9 @@ class OptionsDialog(QtWidgets.QDialog):
         self.resize(width, height)
 
     def draw_dialog(self, contents):
-        ok = QtWidgets.QPushButton('OK')
-        cancel = QtWidgets.QPushButton('Cancel')
-        apply = QtWidgets.QPushButton('Apply')
+        ok = QtWidgets.QPushButton("OK")
+        cancel = QtWidgets.QPushButton("Cancel")
+        apply = QtWidgets.QPushButton("Apply")
 
         ok.clicked.connect(self.accept)
         cancel.clicked.connect(self.reject)
@@ -81,7 +92,9 @@ class OptionsDialog(QtWidgets.QDialog):
 
 
 class BoundOptionsDialog(OptionsDialog):
-    def __init__(self, parent, settings: PropertyObject, global_settings: PropertyObject):
+    def __init__(
+        self, parent, settings: PropertyObject, global_settings: PropertyObject
+    ):
         super().__init__(parent)
         self.settings = settings
         self.global_settings = global_settings
@@ -107,7 +120,7 @@ class BoundOptionsDialog(OptionsDialog):
 
 class BoundOptionsDialogWithHistory(BoundOptionsDialog):
     commandPosted = QtCore.Signal(QtGui.QUndoCommand)
-    command_text = 'Property group change'
+    command_text = "Property group change"
 
     def __init__(self, parent, settings, global_settings):
         super().__init__(parent, settings, global_settings)
@@ -150,7 +163,7 @@ class EdgeStyleDialog(OptionsDialog):
 
     def __init__(self, parent, scene):
         super().__init__(parent)
-        self.setWindowTitle('Haplodemo - Edge style')
+        self.setWindowTitle("Haplodemo - Edge style")
 
         self.scene = scene
         self.settings = EdgeStyleSettings()
@@ -161,23 +174,27 @@ class EdgeStyleDialog(OptionsDialog):
         self.hintedResize(280, 60)
 
     def draw_contents(self):
-        label_info = QtWidgets.QLabel('Massively style all edges. To set the style for individual edges instead, double click them.')
+        label_info = QtWidgets.QLabel(
+            "Massively style all edges. To set the style for individual edges instead, double click them."
+        )
         label_info.setWordWrap(True)
 
-        label_more_info = QtWidgets.QLabel('Edges with more segments than the cutoff value will be collapsed. Set it to zero to collapse no edges, or -1 to collapse all edges.')
+        label_more_info = QtWidgets.QLabel(
+            "Edges with more segments than the cutoff value will be collapsed. Set it to zero to collapse no edges, or -1 to collapse all edges."
+        )
         label_more_info.setWordWrap(True)
 
-        label_style = QtWidgets.QLabel('Style:')
-        bubbles = QtWidgets.QRadioButton('Bubbles')
-        bars = QtWidgets.QRadioButton('Bars')
-        plain = QtWidgets.QRadioButton('Plain')
+        label_style = QtWidgets.QLabel("Style:")
+        bubbles = QtWidgets.QRadioButton("Bubbles")
+        bars = QtWidgets.QRadioButton("Bars")
+        plain = QtWidgets.QRadioButton("Plain")
 
         group = RadioButtonGroup()
         group.add(bubbles, EdgeStyle.Bubbles)
         group.add(bars, EdgeStyle.Bars)
         group.add(plain, EdgeStyle.Plain)
 
-        label_cutoff = QtWidgets.QLabel('Cutoff:')
+        label_cutoff = QtWidgets.QLabel("Cutoff:")
         cutoff = GLineEdit()
         cutoff.setTextMargins(2, 0, 2, 0)
         validator = QtGui.QIntValidator()
@@ -186,8 +203,16 @@ class EdgeStyleDialog(OptionsDialog):
         self.binder.bind(group.valueChanged, self.settings.properties.style)
         self.binder.bind(self.settings.properties.style, group.setValue)
 
-        self.binder.bind(cutoff.textEditedSafe, self.settings.properties.cutoff, lambda x: type_convert(x, int, None))
-        self.binder.bind(self.settings.properties.cutoff, cutoff.setText, lambda x: type_convert(x, str, ''))
+        self.binder.bind(
+            cutoff.textEditedSafe,
+            self.settings.properties.cutoff,
+            lambda x: type_convert(x, int, None),
+        )
+        self.binder.bind(
+            self.settings.properties.cutoff,
+            cutoff.setText,
+            lambda x: type_convert(x, str, ""),
+        )
 
         group.valueChanged.connect(self.set_dirty)
         cutoff.textEditedSafe.connect(self.set_dirty)
@@ -229,7 +254,7 @@ class EdgeStyleDialog(OptionsDialog):
         self.scene.style_edges(self.settings.style, self.settings.cutoff)
 
         command = UndoCommand()
-        command.setText('Style edges')
+        command.setText("Style edges")
         for edge in (item for item in self.scene.items() if isinstance(item, Edge)):
             EdgeStyleCommand(edge, command)
         self.commandPosted.emit(command)
@@ -238,7 +263,7 @@ class EdgeStyleDialog(OptionsDialog):
 class NodeSizeDialog(BoundOptionsDialogWithHistory):
     def __init__(self, parent, scene, global_settings):
         super().__init__(parent, NodeSizeSettings(), global_settings)
-        self.setWindowTitle('Haplodemo - Node size')
+        self.setWindowTitle("Haplodemo - Node size")
 
         self.scene = scene
 
@@ -248,19 +273,25 @@ class NodeSizeDialog(BoundOptionsDialogWithHistory):
     def draw_contents(self):
         properties = self.settings.properties
 
-        label_info = QtWidgets.QLabel('Resize nodes based on their individual weight, which corresponds to haplotype count. Node sizes are in pixels.')
+        label_info = QtWidgets.QLabel(
+            "Resize nodes based on their individual weight, which corresponds to haplotype count. Node sizes are in pixels."
+        )
         label_info.setWordWrap(True)
 
         radios = AttrDict()
-        radios.linear_factor = QtWidgets.QRadioButton('Linear factor:')
-        radios.area_factor = QtWidgets.QRadioButton('Area factor:')
-        radios.logarithmic_factor = QtWidgets.QRadioButton('Log. factor:')
+        radios.linear_factor = QtWidgets.QRadioButton("Linear factor:")
+        radios.area_factor = QtWidgets.QRadioButton("Area factor:")
+        radios.logarithmic_factor = QtWidgets.QRadioButton("Log. factor:")
 
         style = QtWidgets.QApplication.style()
-        indicator_width = style.pixelMetric(QtWidgets.QStyle.PM_ExclusiveIndicatorWidth, None, radios.linear_factor)
-        indicator_spacing = style.pixelMetric(QtWidgets.QStyle.PM_RadioButtonLabelSpacing, None, radios.linear_factor)
+        indicator_width = style.pixelMetric(
+            QtWidgets.QStyle.PM_ExclusiveIndicatorWidth, None, radios.linear_factor
+        )
+        indicator_spacing = style.pixelMetric(
+            QtWidgets.QStyle.PM_RadioButtonLabelSpacing, None, radios.linear_factor
+        )
 
-        base_radius_pattern = QtWidgets.QLabel('\u2B9E')
+        base_radius_pattern = QtWidgets.QLabel("\u2B9E")
         base_radius_pattern.setFixedWidth(indicator_width)
         font = base_radius_pattern.font()
         font.setPixelSize(14)
@@ -269,7 +300,7 @@ class NodeSizeDialog(BoundOptionsDialogWithHistory):
         font.setHintingPreference(QtGui.QFont.PreferNoHinting)
         base_radius_pattern.setFont(font)
 
-        base_radius_label = QtWidgets.QLabel('Base radius:')
+        base_radius_label = QtWidgets.QLabel("Base radius:")
 
         base_radius_layout = QtWidgets.QHBoxLayout()
         base_radius_layout.setContentsMargins(0, 0, 0, 0)
@@ -283,8 +314,12 @@ class NodeSizeDialog(BoundOptionsDialogWithHistory):
         self.binder.bind(radios.area_factor.toggled, properties.has_area_factor)
         self.binder.bind(properties.has_area_factor, radios.area_factor.setChecked)
 
-        self.binder.bind(radios.logarithmic_factor.toggled, properties.has_logarithmic_factor)
-        self.binder.bind(properties.has_logarithmic_factor, radios.logarithmic_factor.setChecked)
+        self.binder.bind(
+            radios.logarithmic_factor.toggled, properties.has_logarithmic_factor
+        )
+        self.binder.bind(
+            properties.has_logarithmic_factor, radios.logarithmic_factor.setChecked
+        )
 
         fields = AttrDict()
         fields.linear_factor = self.create_float_box(properties.linear_factor)
@@ -294,18 +329,28 @@ class NodeSizeDialog(BoundOptionsDialogWithHistory):
 
         self.binder.bind(fields.linear_factor.clicked, properties.has_linear_factor)
         self.binder.bind(fields.area_factor.clicked, properties.has_area_factor)
-        self.binder.bind(fields.logarithmic_factor.clicked, properties.has_logarithmic_factor)
+        self.binder.bind(
+            fields.logarithmic_factor.clicked, properties.has_logarithmic_factor
+        )
 
-        self.binder.bind(properties.has_linear_factor, fields.linear_factor.set_text_black)
+        self.binder.bind(
+            properties.has_linear_factor, fields.linear_factor.set_text_black
+        )
         self.binder.bind(properties.has_area_factor, fields.area_factor.set_text_black)
-        self.binder.bind(properties.has_logarithmic_factor, fields.logarithmic_factor.set_text_black)
+        self.binder.bind(
+            properties.has_logarithmic_factor, fields.logarithmic_factor.set_text_black
+        )
         self.binder.bind(properties.has_base_radius, fields.base_radius.set_text_black)
 
         descrs = AttrDict()
-        descrs.linear_factor = QtWidgets.QLabel('Proportional radius growth with weight.')
-        descrs.area_factor = QtWidgets.QLabel('Proportional area growth with weight.')
-        descrs.logarithmic_factor = QtWidgets.QLabel('Logarithmic radius growth (base 10).')
-        descrs.base_radius = QtWidgets.QLabel('Node radius when weight is 1.')
+        descrs.linear_factor = QtWidgets.QLabel(
+            "Proportional radius growth with weight."
+        )
+        descrs.area_factor = QtWidgets.QLabel("Proportional area growth with weight.")
+        descrs.logarithmic_factor = QtWidgets.QLabel(
+            "Logarithmic radius growth (base 10)."
+        )
+        descrs.base_radius = QtWidgets.QLabel("Node radius when weight is 1.")
 
         for descr in descrs.values():
             font = descr.font()
@@ -352,17 +397,21 @@ class NodeSizeDialog(BoundOptionsDialogWithHistory):
         box.setMinimum(5)
         box.setMaximum(100000)
         box.setSingleStep(5)
-        self.binder.bind(box.valueChanged, property, lambda x: type_convert(x, int, None))
+        self.binder.bind(
+            box.valueChanged, property, lambda x: type_convert(x, int, None)
+        )
         self.binder.bind(property, box.setValue, lambda x: type_convert(x, int, 0))
         return box
 
     def create_float_box(self, property: Property) -> ClickableDoubleSpinBox:
         box = ClickableDoubleSpinBox()
         box.setMinimum(0)
-        box.setMaximum(float('inf'))
+        box.setMaximum(float("inf"))
         box.setSingleStep(0.1)
         box.setDecimals(2)
-        self.binder.bind(box.valueChanged, property, lambda x: type_convert(x, float, None))
+        self.binder.bind(
+            box.valueChanged, property, lambda x: type_convert(x, float, None)
+        )
         self.binder.bind(property, box.setValue, lambda x: type_convert(x, float, 0))
         return box
 
@@ -388,7 +437,7 @@ class LabelFormatSettings(PropertyObject):
 class LabelFormatDialog(BoundOptionsDialogWithHistory):
     def __init__(self, parent, scene, global_settings):
         super().__init__(parent, LabelFormatSettings(), global_settings)
-        self.setWindowTitle('Haplodemo - Label format')
+        self.setWindowTitle("Haplodemo - Label format")
 
         self.scene = scene
 
@@ -397,11 +446,13 @@ class LabelFormatDialog(BoundOptionsDialogWithHistory):
         self.hintedResize(340, 0)
 
     def draw_contents(self):
-        label_info = QtWidgets.QLabel('Set all labels from templates, where "NAME" and "WEIGHT" are replaced by the corresponding values.')
+        label_info = QtWidgets.QLabel(
+            'Set all labels from templates, where "NAME" and "WEIGHT" are replaced by the corresponding values.'
+        )
         label_info.setWordWrap(True)
 
-        label_nodes = QtWidgets.QLabel('Nodes:')
-        label_edges = QtWidgets.QLabel('Edges:')
+        label_nodes = QtWidgets.QLabel("Nodes:")
+        label_edges = QtWidgets.QLabel("Edges:")
 
         field_nodes = GLineEdit()
         field_edges = GLineEdit()
@@ -409,11 +460,19 @@ class LabelFormatDialog(BoundOptionsDialogWithHistory):
         field_nodes.setTextMargins(2, 0, 2, 0)
         field_edges.setTextMargins(2, 0, 2, 0)
 
-        self.binder.bind(field_nodes.textEditedSafe, self.settings.properties.node_label_template)
-        self.binder.bind(self.settings.properties.node_label_template, field_nodes.setText)
+        self.binder.bind(
+            field_nodes.textEditedSafe, self.settings.properties.node_label_template
+        )
+        self.binder.bind(
+            self.settings.properties.node_label_template, field_nodes.setText
+        )
 
-        self.binder.bind(field_edges.textEditedSafe, self.settings.properties.edge_label_template)
-        self.binder.bind(self.settings.properties.edge_label_template, field_edges.setText)
+        self.binder.bind(
+            field_edges.textEditedSafe, self.settings.properties.edge_label_template
+        )
+        self.binder.bind(
+            self.settings.properties.edge_label_template, field_edges.setText
+        )
 
         controls = QtWidgets.QGridLayout()
         controls.setContentsMargins(8, 8, 8, 8)
@@ -444,7 +503,7 @@ class LabelFormatDialog(BoundOptionsDialogWithHistory):
 class ScaleMarksDialog(BoundOptionsDialogWithHistory):
     def __init__(self, parent, scene, global_settings):
         super().__init__(parent, ScaleSettings(), global_settings)
-        self.setWindowTitle('Haplodemo - Scale marks')
+        self.setWindowTitle("Haplodemo - Scale marks")
 
         self.scene = scene
 
@@ -453,13 +512,15 @@ class ScaleMarksDialog(BoundOptionsDialogWithHistory):
         self.hintedResize(360, 1)
 
     def draw_contents(self):
-        label_info = QtWidgets.QLabel('Define what node sizes are marked on the scale in the form of a comma separated list.')
+        label_info = QtWidgets.QLabel(
+            "Define what node sizes are marked on the scale in the form of a comma separated list."
+        )
         label_info.setWordWrap(True)
 
         self.marks = GLineEdit()
         self.marks.setTextMargins(2, 0, 2, 0)
 
-        self.auto = QtWidgets.QPushButton('Auto')
+        self.auto = QtWidgets.QPushButton("Auto")
 
         self.binder.bind(self.marks.textEditedSafe, self.update_text_color)
         self.binder.bind(self.auto.clicked, self.get_auto_marks)
@@ -484,9 +545,9 @@ class ScaleMarksDialog(BoundOptionsDialogWithHistory):
         try:
             self.get_marks_from_text(text)
         except Exception:
-            color = 'red'
+            color = "red"
         else:
-            color = 'black'
+            color = "black"
         self.marks.setStyleSheet(f"color: {color};")
 
     def get_auto_marks(self):
@@ -495,11 +556,11 @@ class ScaleMarksDialog(BoundOptionsDialogWithHistory):
         self.marks.setText(text)
 
     def get_text_from_marks(self, marks: list[int]) -> str:
-        text = ', '.join(str(mark) for mark in marks)
+        text = ", ".join(str(mark) for mark in marks)
         return text
 
     def get_marks_from_text(self, text: str) -> list[int]:
-        marks = text.split(',')
+        marks = text.split(",")
         marks = [mark.strip() for mark in marks]
         marks = [int(mark) for mark in marks]
         return sorted(set(marks))
@@ -522,7 +583,7 @@ class PenWidthSettings(PropertyObject):
 class PenWidthDialog(BoundOptionsDialogWithHistory):
     def __init__(self, parent, scene, global_settings):
         super().__init__(parent, PenWidthSettings(), global_settings)
-        self.setWindowTitle('Haplodemo - Pen width')
+        self.setWindowTitle("Haplodemo - Pen width")
 
         self.scene = scene
 
@@ -531,11 +592,13 @@ class PenWidthDialog(BoundOptionsDialogWithHistory):
         self.hintedResize(480, 190)
 
     def draw_contents(self):
-        label_info = QtWidgets.QLabel('Set the pen width for drawing node outlines and edges:')
+        label_info = QtWidgets.QLabel(
+            "Set the pen width for drawing node outlines and edges:"
+        )
         label_info.setWordWrap(True)
 
-        label_nodes = QtWidgets.QLabel('Nodes:')
-        label_edges = QtWidgets.QLabel('Edges:')
+        label_nodes = QtWidgets.QLabel("Nodes:")
+        label_edges = QtWidgets.QLabel("Edges:")
 
         slide_nodes = PenWidthSlider()
         slide_edges = PenWidthSlider()
@@ -543,16 +606,36 @@ class PenWidthDialog(BoundOptionsDialogWithHistory):
         field_nodes = PenWidthField()
         field_edges = PenWidthField()
 
-        self.binder.bind(slide_nodes.valueChanged, self.settings.properties.pen_width_nodes, lambda x: x / 10)
-        self.binder.bind(self.settings.properties.pen_width_nodes, slide_nodes.setValue, lambda x: x * 10)
+        self.binder.bind(
+            slide_nodes.valueChanged,
+            self.settings.properties.pen_width_nodes,
+            lambda x: x / 10,
+        )
+        self.binder.bind(
+            self.settings.properties.pen_width_nodes,
+            slide_nodes.setValue,
+            lambda x: x * 10,
+        )
 
-        self.binder.bind(slide_edges.valueChanged, self.settings.properties.pen_width_edges, lambda x: x / 10)
-        self.binder.bind(self.settings.properties.pen_width_edges, slide_edges.setValue, lambda x: x * 10)
+        self.binder.bind(
+            slide_edges.valueChanged,
+            self.settings.properties.pen_width_edges,
+            lambda x: x / 10,
+        )
+        self.binder.bind(
+            self.settings.properties.pen_width_edges,
+            slide_edges.setValue,
+            lambda x: x * 10,
+        )
 
-        self.binder.bind(field_nodes.valueChanged, self.settings.properties.pen_width_nodes)
+        self.binder.bind(
+            field_nodes.valueChanged, self.settings.properties.pen_width_nodes
+        )
         self.binder.bind(self.settings.properties.pen_width_nodes, field_nodes.setValue)
 
-        self.binder.bind(field_edges.valueChanged, self.settings.properties.pen_width_edges)
+        self.binder.bind(
+            field_edges.valueChanged, self.settings.properties.pen_width_edges
+        )
         self.binder.bind(self.settings.properties.pen_width_edges, field_edges.setValue)
 
         controls = QtWidgets.QGridLayout()
@@ -585,12 +668,13 @@ class PenWidthDialog(BoundOptionsDialogWithHistory):
 
 class FontDialog(QtWidgets.QFontDialog):
     """Get pixel sized fonts, which are required for rendering properly"""
+
     commandPosted = QtCore.Signal(QtGui.QUndoCommand)
 
     def __init__(self, parent, settings: PropertyObject):
         super().__init__(parent)
         self.settings = settings
-        self.setWindowTitle('Select font')
+        self.setWindowTitle("Select font")
         self.setOptions(QtWidgets.QFontDialog.FontDialogOptions.DontUseNativeDialog)
 
     def exec(self):
@@ -610,7 +694,9 @@ class FontDialog(QtWidgets.QFontDialog):
 
         old_value = QtGui.QFont(self.settings.font)
         new_value = QtGui.QFont(font)
-        command = PropertyChangedCommand(self.settings.properties.font, old_value, new_value)
+        command = PropertyChangedCommand(
+            self.settings.properties.font, old_value, new_value
+        )
         self.commandPosted.emit(command)
 
         self.settings.font = QtGui.QFont(font)
@@ -621,7 +707,7 @@ class EdgeLengthDialog(OptionsDialog):
 
     def __init__(self, parent, scene, settings: PropertyObject):
         super().__init__(parent)
-        self.setWindowTitle('Haplodemo - Edge length')
+        self.setWindowTitle("Haplodemo - Edge length")
 
         self.scene = scene
         self.settings = settings
@@ -632,17 +718,21 @@ class EdgeLengthDialog(OptionsDialog):
         self.hintedResize(320, 40)
 
     def draw_contents(self):
-        label_info = QtWidgets.QLabel('Massively set the length for all edges, based on the number of mutations between nodes.')
+        label_info = QtWidgets.QLabel(
+            "Massively set the length for all edges, based on the number of mutations between nodes."
+        )
         label_info.setWordWrap(True)
 
-        label_more_info = QtWidgets.QLabel('Length is measured edge-to-edge, not center-to-center.')
+        label_more_info = QtWidgets.QLabel(
+            "Length is measured edge-to-edge, not center-to-center."
+        )
         label_more_info.setWordWrap(True)
 
-        label = QtWidgets.QLabel('Length per mutation:')
+        label = QtWidgets.QLabel("Length per mutation:")
 
         length = QtWidgets.QDoubleSpinBox()
         length.setMinimum(0)
-        length.setMaximum(float('inf'))
+        length.setMaximum(float("inf"))
         length.setSingleStep(10)
         length.setDecimals(2)
 

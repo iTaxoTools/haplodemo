@@ -40,7 +40,7 @@ class LegendLabel(QtWidgets.QGraphicsSimpleTextItem):
 
         font = QtGui.QFont()
         font.setPixelSize(16)
-        font.setFamily('Arial')
+        font.setFamily("Arial")
         font.setHintingPreference(QtGui.QFont.PreferNoHinting)
         self.setFont(font)
 
@@ -73,8 +73,9 @@ class LegendItem(QtWidgets.QGraphicsItem):
         self.bubble.setPen(QtGui.QPen(QtCore.Qt.black, value))
 
 
-class Legend(HighlightableItem, SoloMovableItemWithHistory, QtWidgets.QGraphicsRectItem):
-
+class Legend(
+    HighlightableItem, SoloMovableItemWithHistory, QtWidgets.QGraphicsRectItem
+):
     def __init__(self, divisions=None, parent=None):
         super().__init__(parent)
 
@@ -116,8 +117,8 @@ class Legend(HighlightableItem, SoloMovableItemWithHistory, QtWidgets.QGraphicsR
 
         if self.divisions:
             self.longest = max(
-                metric.horizontalAdvance(division.key)
-                for division in self.divisions)
+                metric.horizontalAdvance(division.key) for division in self.divisions
+            )
         else:
             self.longest = 64
 
@@ -166,7 +167,10 @@ class Legend(HighlightableItem, SoloMovableItemWithHistory, QtWidgets.QGraphicsR
             item = LegendItem(
                 self.margin + self.radius,
                 self.margin + self.radius + index * (self.radius * 2 + self.padding),
-                self.radius, QtGui.QColor(division.color),
-                division.key, parent=self)
+                self.radius,
+                QtGui.QColor(division.color),
+                division.key,
+                parent=self,
+            )
             item.set_pen_width(self._pen_width)
             item.set_label_font(self.font)

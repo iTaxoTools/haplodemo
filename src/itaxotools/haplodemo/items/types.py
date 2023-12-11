@@ -26,13 +26,13 @@ class EdgeDecoration(Enum):
 
 
 class EdgeStyle(Enum):
-    Bubbles = 'Bubbles', EdgeDecoration.Bubbles, False, False, None
-    Bars = 'Bars', EdgeDecoration.Bars, False, False, None
-    Collapsed = 'Collapsed', EdgeDecoration.DoubleStrike, False, True, 16
-    PlainWithText = 'Plain with text', None, False, True, None
-    DotsWithText = 'Dots with text', None, True, True, None
-    Plain = 'Plain', None, False, False, None
-    Dots = 'Dots', None, True, False, None
+    Bubbles = "Bubbles", EdgeDecoration.Bubbles, False, False, None
+    Bars = "Bars", EdgeDecoration.Bars, False, False, None
+    Collapsed = "Collapsed", EdgeDecoration.DoubleStrike, False, True, 16
+    PlainWithText = "Plain with text", None, False, True, None
+    DotsWithText = "Dots with text", None, True, True, None
+    Plain = "Plain", None, False, False, None
+    Dots = "Dots", None, True, False, None
 
     def __new__(cls, name, decoration, has_dots, has_text, text_offset):
         value = len(cls.__members__) + 1
@@ -53,7 +53,7 @@ class EdgeStyle(Enum):
 
     def __repr__(self):
         cls_name = self.__class__.__name__
-        return f'{cls_name}.{self._name_}'
+        return f"{cls_name}.{self._name_}"
 
     def __str__(self):
         return self.label

@@ -33,7 +33,7 @@ class Label(HighlightableItem, QtWidgets.QGraphicsItem):
 
         font = QtGui.QFont()
         font.setPixelSize(16)
-        font.setFamily('Arial')
+        font.setFamily("Arial")
         font.setHintingPreference(QtGui.QFont.PreferNoHinting)
         self.font = font
 
@@ -124,19 +124,25 @@ class Label(HighlightableItem, QtWidgets.QGraphicsItem):
             painter.drawLine(0, -4, 0, 4)
 
     def paint_outline(self, painter):
-        if self.is_highlighted() or self.parentItem() and self.parentItem().isSelected():
+        if (
+            self.is_highlighted()
+            or self.parentItem()
+            and self.parentItem().isSelected()
+        ):
             color = self.highlight_color()
         elif self._white_outline:
             color = QtCore.Qt.white
         else:
             return
-        pen = QtGui.QPen(color, 4, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin)
+        pen = QtGui.QPen(
+            color, 4, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin
+        )
         painter.setPen(pen)
         painter.setBrush(QtGui.QBrush(color))
         painter.drawPath(self.outline)
 
     def paint_text(self, painter):
-        pen = QtGui.QPen(QtGui.QColor('black'))
+        pen = QtGui.QPen(QtGui.QColor("black"))
         painter.setPen(pen)
         painter.setBrush(QtCore.Qt.NoBrush)
         painter.setFont(self.font)

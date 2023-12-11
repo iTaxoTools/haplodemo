@@ -70,10 +70,9 @@ class ToggleButton(QtWidgets.QPushButton):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setCheckable(True)
-        self.checkmark = QtGui.QPolygon([
-            QtCore.QPoint(-3, 0),
-            QtCore.QPoint(-2, 3),
-            QtCore.QPoint(5, -5)])
+        self.checkmark = QtGui.QPolygon(
+            [QtCore.QPoint(-3, 0), QtCore.QPoint(-2, 3), QtCore.QPoint(5, -5)]
+        )
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -87,7 +86,7 @@ class ToggleButton(QtWidgets.QPushButton):
 
         painter = QtGui.QPainter(self)
         painter.translate(w, h)
-        painter.setPen(QtGui.QPen(QtGui.QColor('#333'), 1.5))
+        painter.setPen(QtGui.QPen(QtGui.QColor("#333"), 1.5))
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         painter.drawPolyline(self.checkmark)
         painter.end()
@@ -170,9 +169,9 @@ class PenWidthField(GLineEdit):
     def text_from_value(value: float) -> str:
         try:
             locale = QtCore.QLocale.system()
-            return locale.toString(float(value), 'f', 2)
+            return locale.toString(float(value), "f", 2)
         except Exception:
-            return ''
+            return ""
 
     @staticmethod
     def value_from_text(text: str) -> float:
@@ -207,7 +206,7 @@ class ClickableSpinBox(QtWidgets.QSpinBox):
         self.clicked.emit(True)
 
     def set_text_black(self, black: bool):
-        color = 'Palette(Text)' if black else 'Palette(Dark)'
+        color = "Palette(Text)" if black else "Palette(Dark)"
         self.lineEdit().setStyleSheet(f"QLineEdit {{ color: {color}; }}")
 
 
@@ -224,5 +223,5 @@ class ClickableDoubleSpinBox(QtWidgets.QDoubleSpinBox):
         self.clicked.emit(True)
 
     def set_text_black(self, black: bool):
-        color = 'Palette(Text)' if black else 'Palette(Dark)'
+        color = "Palette(Text)" if black else "Palette(Dark)"
         self.lineEdit().setStyleSheet(f"QLineEdit {{ color: {color}; }}")

@@ -30,7 +30,9 @@ class ColorDelegate(QtWidgets.QStyledItemDelegate):
         super().paint(painter, option, index)
 
         # Draw the decoration icon on top of the background
-        decoration_rect = QtCore.QRect(option.rect.x() + 2, option.rect.y() + 2, 16, option.rect.height() - 4)
+        decoration_rect = QtCore.QRect(
+            option.rect.x() + 2, option.rect.y() + 2, 16, option.rect.height() - 4
+        )
         icon = index.data(QtCore.Qt.DecorationRole)
         if icon and not icon.isNull():
             icon.paint(painter, decoration_rect)
@@ -74,7 +76,9 @@ class MemberView(QtWidgets.QTreeView):
         self._minimum_width = 140
         self._maximum_width = 360
 
-        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
+        self.setSelectionBehavior(
+            QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows
+        )
         self.setAlternatingRowColors(True)
         self.setHeaderHidden(True)
         self.setModel(members)
@@ -114,7 +118,9 @@ class MemberView(QtWidgets.QTreeView):
         length = self.get_maximum_string_length(metrics.horizontalAdvance)
         self._maximum_string_length = length
 
-    def get_maximum_string_length(self, pixels_from_string: Callable[[str], int], parent=QtCore.QModelIndex()) -> int:
+    def get_maximum_string_length(
+        self, pixels_from_string: Callable[[str], int], parent=QtCore.QModelIndex()
+    ) -> int:
         model = self.model()
         rows = model.rowCount(parent)
         lengths = [0]
@@ -125,7 +131,9 @@ class MemberView(QtWidgets.QTreeView):
             lengths.append(pixels_from_string(data))
 
             if model.hasChildren(index):
-                max_children_length = self.get_maximum_string_length(pixels_from_string, index)
+                max_children_length = self.get_maximum_string_length(
+                    pixels_from_string, index
+                )
                 lengths.append(max_children_length)
 
         return max(lengths)

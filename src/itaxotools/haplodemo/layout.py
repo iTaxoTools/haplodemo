@@ -68,7 +68,7 @@ def modified_spring_layout(
     G, center = _process_params(G, center, dim)
 
     if fixed is not None:
-        raise ValueError('fixed nodes are not supported')
+        raise ValueError("fixed nodes are not supported")
 
     if pos is not None:
         # Determine size of existing domain to adjust initial positions
@@ -102,7 +102,15 @@ def modified_spring_layout(
 
 @np_random_state(8)
 def _modified_fruchterman_reingold(
-    A, k=None, p=None, pos=None, fixed=None, iterations=5000, threshold=1e-4, dim=2, seed=None
+    A,
+    k=None,
+    p=None,
+    pos=None,
+    fixed=None,
+    iterations=5000,
+    threshold=1e-4,
+    dim=2,
+    seed=None,
 ):
     """Position nodes in adjacency matrix A using modified Fruchterman-Reingold"""
 
@@ -143,14 +151,12 @@ def _modified_fruchterman_reingold(
         np.clip(distance, 0.01, None, out=distance)
         # repelling coefficient (drops off)
         derivative = (iterations - iteration) / iterations
-        repelling = p * (derivative ** 4) / (distance ** 2)
+        repelling = p * (derivative**4) / (distance**2)
         # springing coefficient (constant)
         springing = (A - B * distance) * k
         # displacement force
         force = repelling + springing
-        displacement = np.einsum(
-            "ijk,ij->ik", delta, force
-        )
+        displacement = np.einsum("ijk,ij->ik", delta, force)
         # update positions
         length = np.linalg.norm(displacement, axis=-1)
         length = np.where(length < 0.01, 0.1, length)

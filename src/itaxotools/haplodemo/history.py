@@ -75,7 +75,7 @@ class UndoCommandMeta(type(QtGui.QUndoCommand)):
 
     def __new__(cls, name, bases, attrs):
         cls._command_id_counter += 1
-        attrs['_command_id'] = cls._command_id_counter
+        attrs["_command_id"] = cls._command_id_counter
         return super().__new__(cls, name, bases, attrs)
 
 
@@ -112,8 +112,12 @@ class UndoCommand(QtGui.QUndoCommand, metaclass=UndoCommandMeta):
         return False
 
     def merge_children_with(self, other: UndoCommand) -> bool:
-        our_children: list[UndoCommand] = [self.child(x) for x in range(self.childCount())]
-        other_children: list[UndoCommand] = [other.child(x) for x in range(other.childCount())]
+        our_children: list[UndoCommand] = [
+            self.child(x) for x in range(self.childCount())
+        ]
+        other_children: list[UndoCommand] = [
+            other.child(x) for x in range(other.childCount())
+        ]
 
         for other_child in other_children:
             other_child_merged = False
@@ -131,7 +135,7 @@ class UndoCommand(QtGui.QUndoCommand, metaclass=UndoCommandMeta):
 class BezierEditCommand(UndoCommand):
     def __init__(self, item: BezierCurve, parent=None):
         super().__init__(parent)
-        self.setText('Edit bezier')
+        self.setText("Edit bezier")
         self.item = item
 
         self.old_p1 = QtCore.QPointF(item.locked_p1)
@@ -177,7 +181,7 @@ class BezierEditCommand(UndoCommand):
 class NodeMovementCommand(UndoCommand):
     def __init__(self, item: Vertex, recurse=True, parent=None):
         super().__init__(parent)
-        self.setText('Move node')
+        self.setText("Move node")
         self.item = item
         self.old_pos = QtCore.QPointF(item.locked_pos)
         self.new_pos = QtCore.QPointF(item.pos())
@@ -217,7 +221,7 @@ class NodeMovementCommand(UndoCommand):
 class EdgeStyleCommand(UndoCommand):
     def __init__(self, item: Edge, parent=None):
         super().__init__(parent)
-        self.setText('Style edge')
+        self.setText("Style edge")
         self.item = item
         self.old_style = item.locked_style
         self.new_style = item.style
@@ -244,7 +248,7 @@ class EdgeStyleCommand(UndoCommand):
 class LabelMovementCommand(UndoCommand):
     def __init__(self, item: Label, parent=None):
         super().__init__(parent)
-        self.setText('Move label')
+        self.setText("Move label")
         self.item = item
         self.old_rect = QtCore.QRect(item.locked_rect)
         self.new_rect = QtCore.QRect(item.rect)
@@ -271,7 +275,7 @@ class LabelMovementCommand(UndoCommand):
 class SoloMovementCommand(UndoCommand):
     def __init__(self, item: Vertex, parent=None):
         super().__init__(parent)
-        self.setText('Move item')
+        self.setText("Move item")
         self.item = item
         self.old_pos = QtCore.QPointF(item._locked_item_pos)
         self.new_pos = QtCore.QPointF(item.pos())
@@ -300,7 +304,7 @@ class SoloMovementCommand(UndoCommand):
 class BoundaryResizedCommand(UndoCommand):
     def __init__(self, item: BoundaryRect, parent=None):
         super().__init__(parent)
-        self.setText('Resize boundary')
+        self.setText("Resize boundary")
         self.item = item
         self.old_rect = QtCore.QRectF(item.locked_rect)
         self.new_rect = QtCore.QRectF(item.rect())
@@ -331,7 +335,7 @@ class BoundaryResizedCommand(UndoCommand):
 class SceneRotationCommand(UndoCommand):
     def __init__(self, scene: QtWidgets.QGraphicsScene, parent=None):
         super().__init__(parent)
-        self.setText('Scene rotation')
+        self.setText("Scene rotation")
         self.scene = scene
 
         for node in (item for item in scene.items() if isinstance(item, Vertex)):
@@ -356,9 +360,11 @@ class PropertyGroupCommand(UndoCommand):
 
 
 class PropertyChangedCommand(UndoCommand):
-    def __init__(self, property: PropertyRef, old_value: object, new_value: object, parent=None):
+    def __init__(
+        self, property: PropertyRef, old_value: object, new_value: object, parent=None
+    ):
         super().__init__(parent)
-        self.setText(f'Property {property.key} change')
+        self.setText(f"Property {property.key} change")
         self.property = property
         self.old_value = old_value
         self.new_value = new_value

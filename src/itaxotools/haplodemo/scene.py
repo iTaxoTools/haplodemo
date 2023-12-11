@@ -26,8 +26,13 @@ from math import cos, radians, sin
 from itaxotools.common.bindings import Binder
 
 from .history import (
-    BezierEditCommand, BoundaryResizedCommand, LabelMovementCommand,
-    NodeMovementCommand, SceneRotationCommand, SoloMovementCommand)
+    BezierEditCommand,
+    BoundaryResizedCommand,
+    LabelMovementCommand,
+    NodeMovementCommand,
+    SceneRotationCommand,
+    SoloMovementCommand,
+)
 from .items.bezier import BezierCurve
 from .items.boundary import BoundaryOutline, BoundaryRect
 from .items.boxes import RectBox
@@ -104,7 +109,6 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             return True
 
         elif event.type() == QtCore.QEvent.GraphicsSceneMouseRelease:
-
             self.handle_scene_rotation()
 
             vertices = (item for item in self.items() if isinstance(item, Vertex))
@@ -125,7 +129,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
     def getItemAtPosByTypeExcluded(self, pos, *types):
         if not types:
-            raise TypeError('Must provide at least one type')
+            raise TypeError("Must provide at least one type")
         for item in self.items(pos):
             if any((isinstance(item, type) for type in types)):
                 continue
@@ -179,12 +183,12 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             minimum_height += margin
         right_margin += margin
 
-        bounds.adjust(- margin, - margin, right_margin, margin)
+        bounds.adjust(-margin, -margin, right_margin, margin)
 
         if bounds.height() < minimum_height:
             diff = minimum_height - bounds.height()
             bounds.setHeight(minimum_height)
-            bounds.translate(0, - diff / 2)
+            bounds.translate(0, -diff / 2)
 
         self.set_boundary_rect(
             bounds.x(),
@@ -200,10 +204,19 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         if not self.legend:
             self.legend = Legend()
             self.addItem(self.legend)
-            self.binder.bind(self.settings.divisions.colorMapChanged, self.legend.update_colors)
-            self.binder.bind(self.settings.divisions.divisionsChanged, self.legend.set_divisions)
-            self.binder.bind(self.settings.properties.highlight_color, self.legend.set_highlight_color)
-            self.binder.bind(self.settings.properties.pen_width_nodes, self.legend.set_pen_width)
+            self.binder.bind(
+                self.settings.divisions.colorMapChanged, self.legend.update_colors
+            )
+            self.binder.bind(
+                self.settings.divisions.divisionsChanged, self.legend.set_divisions
+            )
+            self.binder.bind(
+                self.settings.properties.highlight_color,
+                self.legend.set_highlight_color,
+            )
+            self.binder.bind(
+                self.settings.properties.pen_width_nodes, self.legend.set_pen_width
+            )
             self.binder.bind(self.settings.properties.font, self.legend.set_label_font)
             self.legend.set_divisions(self.settings.divisions.all())
         self.legend.setVisible(value)
@@ -214,9 +227,17 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             self.scale = Scale(self.settings)
             self.addItem(self.scale)
             self.binder.bind(self.settings.scale.properties.marks, self.scale.set_marks)
-            self.binder.bind(self.settings.properties.label_movement, self.scale.set_labels_locked, lambda x: not x)
-            self.binder.bind(self.settings.properties.highlight_color, self.scale.set_highlight_color)
-            self.binder.bind(self.settings.properties.pen_width_nodes, self.scale.set_pen_width)
+            self.binder.bind(
+                self.settings.properties.label_movement,
+                self.scale.set_labels_locked,
+                lambda x: not x,
+            )
+            self.binder.bind(
+                self.settings.properties.highlight_color, self.scale.set_highlight_color
+            )
+            self.binder.bind(
+                self.settings.properties.pen_width_nodes, self.scale.set_pen_width
+            )
             self.binder.bind(self.settings.properties.font, self.scale.set_label_font)
             for property in self.settings.node_sizes.properties:
                 self.binder.bind(property, self.scale.update_radii)
@@ -227,7 +248,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         if not self.pivot:
             self.pivot = PivotHandle()
             self.addItem(self.pivot)
-            self.binder.bind(self.settings.properties.highlight_color, self.pivot.set_highlight_color)
+            self.binder.bind(
+                self.settings.properties.highlight_color, self.pivot.set_highlight_color
+            )
         self.pivot.setVisible(value)
         self.position_pivot()
 
@@ -238,8 +261,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         width = self.legend.rect().width()
         _, margin = self.get_item_boundary()
         self.legend.setPos(
-            bounds.x() + bounds.width() - width - margin,
-            bounds.y() + margin)
+            bounds.x() + bounds.width() - width - margin, bounds.y() + margin
+        )
 
     def position_scale(self):
         if not self.boundary:
@@ -250,7 +273,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         _, margin = self.get_item_boundary()
         self.scale.setPos(
             bounds.x() + bounds.width() - scale.width() - margin,
-            bounds.y() + bounds.height() - diff - margin)
+            bounds.y() + bounds.height() - diff - margin,
+        )
 
     def position_pivot(self):
         if not self.pivot:
@@ -286,7 +310,6 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self._set_edge_lengths(root, angles, length_per_mutation)
 
     def _get_edge_angles(self, root: Vertex) -> dict[tuple[Vertex, Vertex], float]:
-
         def traverser(item: Vertex, angles: dict):
             others = list(item.children) + list(item.siblings)
             if item.parent is not None:
@@ -297,11 +320,12 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
                 angles[(item, other)] = line.angle()
 
         angles = dict()
-        root._mapRecursive(True, True, set(), set(), traverser, [angles], {}, None, None, None)
+        root._mapRecursive(
+            True, True, set(), set(), traverser, [angles], {}, None, None, None
+        )
         return angles
 
     def _set_edge_lengths(self, root: Vertex, angles: dict, length_per_mutation: float):
-
         def traverser(item: Vertex, angles: dict):
             item_radius = item.radius if isinstance(item, Node) else 0
             others = item.children + item.siblings
@@ -319,7 +343,9 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
                 y = item.pos().y() - length * sin(angle_rad)
                 other.setPos(x, y)
 
-        root._mapRecursive(True, True, set(), set(), traverser, [angles], {}, None, None, None)
+        root._mapRecursive(
+            True, True, set(), set(), traverser, [angles], {}, None, None, None
+        )
 
     def set_boxes_visible(self, show_groups: bool, show_isolated: bool = True):
         for item in self.items():
@@ -342,7 +368,7 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
 
     def style_edges(self, style_default=EdgeStyle.Bubbles, cutoff=3):
         if not cutoff:
-            cutoff = float('inf')
+            cutoff = float("inf")
         style_cutoff = {
             EdgeStyle.Bubbles: EdgeStyle.DotsWithText,
             EdgeStyle.Bars: EdgeStyle.Collapsed,
@@ -367,8 +393,12 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             box.adjust_position()
 
     def style_labels(self):
-        node_label_format = self.settings.node_label_template.replace('NAME', '{name}').replace('WEIGHT', '{weight}')
-        edge_label_format = self.settings.edge_label_template.replace('WEIGHT', '{weight}')
+        node_label_format = self.settings.node_label_template.replace(
+            "NAME", "{name}"
+        ).replace("WEIGHT", "{weight}")
+        edge_label_format = self.settings.edge_label_template.replace(
+            "WEIGHT", "{weight}"
+        )
         nodes = (item for item in self.items() if isinstance(item, Node))
         edges = (item for item in self.items() if isinstance(item, Edge))
         for node in nodes:
@@ -438,8 +468,12 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         self.binder.bind(self.settings.properties.show_legend, self.show_legend)
         self.binder.bind(self.settings.properties.show_scale, self.show_scale)
 
-        self.binder.bind(self.settings.fields.properties.show_groups, self.update_boxes_visible)
-        self.binder.bind(self.settings.fields.properties.show_isolated, self.update_boxes_visible)
+        self.binder.bind(
+            self.settings.fields.properties.show_groups, self.update_boxes_visible
+        )
+        self.binder.bind(
+            self.settings.fields.properties.show_isolated, self.update_boxes_visible
+        )
 
     def clear(self):
         super().clear()
@@ -509,10 +543,10 @@ class GraphicsView(QtWidgets.QGraphicsView):
             return
         rect = self.scene().boundary.rect()
         rect.adjust(
-            - 2 * rect.width(),
-            - 2 * rect.height(),
-            + 2 * rect.width(),
-            + 2 * rect.height(),
+            -2 * rect.width(),
+            -2 * rect.height(),
+            +2 * rect.width(),
+            +2 * rect.height(),
         )
         self.setSceneRect(rect)
 
@@ -573,7 +607,9 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def mousePressEvent(self, event):
         pos = self.mapToScene(event.pos())
-        item = self.scene().getItemAtPosByTypeExcluded(pos, BoundaryRect, BoundaryOutline, RectBox)
+        item = self.scene().getItemAtPosByTypeExcluded(
+            pos, BoundaryRect, BoundaryOutline, RectBox
+        )
         if event.button() == QtCore.Qt.LeftButton:
             if self.rotate_mode:
                 self.rotating = True
@@ -661,7 +697,6 @@ class GraphicsView(QtWidgets.QGraphicsView):
         hovered_items = []
 
         try:
-
             white = QtCore.Qt.white
             self.scene().setBackgroundBrush(white)
 
@@ -669,11 +704,19 @@ class GraphicsView(QtWidgets.QGraphicsView):
             for item in selection:
                 item.setSelected(False)
 
-            beziers_with_controls = [item for item in self.scene().items() if isinstance(item, BezierCurve) and item.h1]
+            beziers_with_controls = [
+                item
+                for item in self.scene().items()
+                if isinstance(item, BezierCurve) and item.h1
+            ]
             for bezier in beziers_with_controls:
                 bezier.remove_controls()
 
-            hovered_items = [item for item in self.scene().items() if isinstance(item, HoverableItem) and item.is_hovered()]
+            hovered_items = [
+                item
+                for item in self.scene().items()
+                if isinstance(item, HoverableItem) and item.is_hovered()
+            ]
             for item in hovered_items:
                 item.set_hovered(False)
 
@@ -686,7 +729,6 @@ class GraphicsView(QtWidgets.QGraphicsView):
             yield
 
         finally:
-
             if self.scene().boundary:
                 self.scene().boundary.setVisible(True)
 
@@ -721,18 +763,19 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def check_file_busy(self, file: str):
         try:
-            with open(file, 'ab') as _:
+            with open(file, "ab") as _:
                 pass
         except Exception as exception:
-            raise Exception(f'Unable to open file: {repr(file)}. Is it being used by another program?') from exception
+            raise Exception(
+                f"Unable to open file: {repr(file)}. Is it being used by another program?"
+            ) from exception
 
     def check_painter_begin(self, ok: bool, file: str):
         if not ok:
-            raise Exception(f'Unable to paint file: {repr(file)}')
+            raise Exception(f"Unable to paint file: {repr(file)}")
 
     def export_svg(self, file: str):
         with self.prepare_export(file):
-
             target, source = self.get_render_rects()
 
             generator = QtSvg.QSvgGenerator()
@@ -748,7 +791,6 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def export_pdf(self, file: str):
         with self.prepare_export(file):
-
             target, source = self.get_render_rects()
             size = QtCore.QSizeF(target.width(), target.height())
             page_size = QtGui.QPageSize(size, QtGui.QPageSize.Unit.Point)
@@ -764,7 +806,6 @@ class GraphicsView(QtWidgets.QGraphicsView):
 
     def export_png(self, file: str):
         with self.prepare_export(file):
-
             target, source = self.get_render_rects()
 
             pixmap = QtGui.QPixmap(target.width(), target.height())

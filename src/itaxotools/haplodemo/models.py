@@ -116,8 +116,8 @@ class DivisionListModel(QtCore.QAbstractListModel):
 
         if role == QtCore.Qt.EditRole:
             color = value.strip()
-            if not color.startswith('#'):
-                color = '#' + color
+            if not color.startswith("#"):
+                color = "#" + color
 
             if not QtGui.QColor.isValidColor(color):
                 return False
@@ -130,7 +130,11 @@ class DivisionListModel(QtCore.QAbstractListModel):
 
     @override
     def flags(self, index):
-        return QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
+        return (
+            QtCore.Qt.ItemIsEditable
+            | QtCore.Qt.ItemIsEnabled
+            | QtCore.Qt.ItemIsSelectable
+        )
 
     def set_divisions_from_keys(self, keys):
         self.beginResetModel()
@@ -164,7 +168,7 @@ class MemberTreeModel(QtCore.QAbstractItemModel):
         self.set_root(root)
 
     def set_dict(self, data: dict[str, iter[str]]):
-        root_item = MemberItem('root')
+        root_item = MemberItem("root")
         for node_name, member_names in data.items():
             node_item = MemberItem(node_name, root_item)
             for member_name in member_names:
@@ -174,16 +178,19 @@ class MemberTreeModel(QtCore.QAbstractItemModel):
     def set_root(self, root: MemberItem = None):
         self.beginResetModel()
         if not root:
-            self.root_item = MemberItem('None')
+            self.root_item = MemberItem("None")
         else:
             self.root_item = root
         self.endResetModel()
 
     def get_index_map(self) -> dict[str, QtCore.QModelIndex]:
-        return defaultdict(QtCore.QModelIndex, {
-            node.name: self.createIndex(row, 0, node)
-            for row, node in enumerate(self.root_item.children)
-        })
+        return defaultdict(
+            QtCore.QModelIndex,
+            {
+                node.name: self.createIndex(row, 0, node)
+                for row, node in enumerate(self.root_item.children)
+            },
+        )
 
     @override
     def index(self, row, column, parent=QtCore.QModelIndex()):
@@ -223,7 +230,7 @@ class MemberTreeModel(QtCore.QAbstractItemModel):
         return 1
 
     @override
-    def data(self, index, role = QtCore.Qt.DisplayRole):
+    def data(self, index, role=QtCore.Qt.DisplayRole):
         if not index.isValid():
             return None
         if role != QtCore.Qt.DisplayRole:

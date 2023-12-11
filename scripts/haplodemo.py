@@ -7,6 +7,6 @@ import multiprocessing
 
 from itaxotools.haplodemo.__main__ import run
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     multiprocessing.freeze_support()
     run()

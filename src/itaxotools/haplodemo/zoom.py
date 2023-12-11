@@ -23,13 +23,13 @@ class ZoomEdit(QtWidgets.QLineEdit):
     scale = QtCore.Signal(float)
 
     def __init__(self, parent=None):
-        super().__init__('100', parent)
+        super().__init__("100", parent)
         self.setStyleSheet("background: transparent; border: none;")
         self.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
         self.setFixedWidth(50)
         self.setMaxLength(3)
 
-        validator = QtGui.QRegularExpressionValidator(r'\d*')
+        validator = QtGui.QRegularExpressionValidator(r"\d*")
         self.setValidator(validator)
 
     def focusOutEvent(self, event):
@@ -45,7 +45,7 @@ class ZoomEdit(QtWidgets.QLineEdit):
         if not value:
             value = 0.0
         value *= 100.0
-        self.setText(f'{value:.0f}')
+        self.setText(f"{value:.0f}")
 
     def setScale(self):
         text = self.text()
@@ -60,7 +60,8 @@ class ZoomEdit(QtWidgets.QLineEdit):
 class ZoomButton(QtWidgets.QPushButton):
     def __init__(self, text, parent=None):
         super().__init__(text, parent)
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             ZoomButton {
                 font: 14px;
                 color: Palette(Shadow);
@@ -76,7 +77,8 @@ class ZoomButton(QtWidgets.QPushButton):
                 color: Palette(Shadow);
             }
 
-        """)
+        """
+        )
 
 
 class ZoomControl(QtWidgets.QFrame):
@@ -85,11 +87,11 @@ class ZoomControl(QtWidgets.QFrame):
         self.setFixedWidth(160)
         self.setFixedHeight(24)
 
-        label = QtWidgets.QLabel('Zoom: ')
+        label = QtWidgets.QLabel("Zoom: ")
         self.edit = ZoomEdit()
-        percent = QtWidgets.QLabel('%')
-        self.zoom_out = ZoomButton('-')
-        self.zoom_in = ZoomButton('+')
+        percent = QtWidgets.QLabel("%")
+        self.zoom_out = ZoomButton("-")
+        self.zoom_in = ZoomButton("+")
 
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(4, 0, 4, 0)

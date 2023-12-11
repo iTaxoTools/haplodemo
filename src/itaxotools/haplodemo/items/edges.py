@@ -29,7 +29,9 @@ from .types import EdgeDecoration, EdgeStyle
 
 
 class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
-    def __init__(self, node1: QtWidgets.QGraphicsItem, node2: QtWidgets.QGraphicsItem, weight=1):
+    def __init__(
+        self, node1: QtWidgets.QGraphicsItem, node2: QtWidgets.QGraphicsItem, weight=1
+    ):
         super().__init__()
         self.setAcceptedMouseButtons(QtCore.Qt.LeftButton)
         self.setCursor(QtCore.Qt.ArrowCursor)
@@ -188,9 +190,8 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
         unit.translate(center - unit.p1())
         normal = unit.normalVector()
         strike = QtCore.QLineF(
-            0, 0,
-            2 * normal.dx() + unit.dx(),
-            2 * normal.dy() + unit.dy())
+            0, 0, 2 * normal.dx() + unit.dx(), 2 * normal.dy() + unit.dy()
+        )
         strike.setLength(length / 2)
 
         for count in range(strikes):
@@ -216,10 +217,17 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
         painter.save()
         line = self.line()
         if self.is_highlighted():
-            pen = QtGui.QPen(self.highlight_color(), radius_high, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap)
+            pen = QtGui.QPen(
+                self.highlight_color(),
+                radius_high,
+                QtCore.Qt.SolidLine,
+                QtCore.Qt.RoundCap,
+            )
             painter.setPen(pen)
             painter.drawLine(line)
-        pen = QtGui.QPen(QtCore.Qt.black, radius, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap)
+        pen = QtGui.QPen(
+            QtCore.Qt.black, radius, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap
+        )
         painter.setPen(pen)
         painter.drawLine(line)
 
@@ -261,7 +269,9 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
             style = QtCore.Qt.DotLine
 
         self._pen = QtGui.QPen(QtCore.Qt.black, self._pen_width, style, cap)
-        self._pen_high = QtGui.QPen(self.highlight_color(), self._pen_width + self._pen_high_increment)
+        self._pen_high = QtGui.QPen(
+            self.highlight_color(), self._pen_width + self._pen_high_increment
+        )
         self.update()
 
     def reset_label_position(self, offset: bool | None):
@@ -274,7 +284,12 @@ class Edge(HighlightableItem, QtWidgets.QGraphicsLineItem):
         center = line.center()
         unit = line.unitVector()
         normal = line.normalVector().unitVector()
-        point = QtCore.QLineF(0, 0, - offset * normal.dx() + offset * unit.dx(), - offset * normal.dy() + offset * unit.dy())
+        point = QtCore.QLineF(
+            0,
+            0,
+            -offset * normal.dx() + offset * unit.dx(),
+            -offset * normal.dy() + offset * unit.dy(),
+        )
         point.translate(center)
 
         self.label.setPos(point.p2())
