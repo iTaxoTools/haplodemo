@@ -1,3 +1,5 @@
+from time import sleep
+
 from pytest import mark
 
 from itaxotools.haplodemo.window import Window
@@ -19,3 +21,4 @@ def test_demos(qapp, demo):
     window = Window()
     demo = getattr(window.demos, demo)
     demo()
+    sleep(2)
