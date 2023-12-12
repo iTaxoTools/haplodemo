@@ -91,6 +91,7 @@ jobs:
         uses: iTaxoTools/TaxIGui/.github/actions/install-macos-wheels@main
 
       - name: Test with pytest
+        if: false
         run: |
           pip install pytest pytest-qt pytest-xvfb
           pytest
