@@ -1,0 +1,11 @@
+- egg: numpy
+  arm64_url: https://files.pythonhosted.org/packages/2a/17/1fdc154e75d24d8c20c42b71bae1b5cf752453f0fc3a2504bbb810293dd1/numpy-1.26.2-cp312-cp312-macosx_11_0_arm64.whl
+  arm64_sha256: 5d5244aabd6ed7f312268b9247be47343a654ebea52a60f002dc70c769048e75
+  x86_64_url: https://files.pythonhosted.org/packages/b1/97/6694e0855b11be0fd8598d484c09edd876ec738a8741025dee072f026c33/numpy-1.26.2-cp312-cp312-macosx_10_9_x86_64.whl
+  x86_64_sha256: a4cd6ed4a339c21f1d1b0fdf13426cb3b284555c27ac2f156dfdaaa7e16bfab0
+
+- egg: PyYAML
+  arm64_url: https://files.pythonhosted.org/packages/84/02/404de95ced348b73dd84f70e15a41843d817ff8c1744516bf78358f2ffd2/PyYAML-6.0.1-cp312-cp312-macosx_11_0_arm64.whl
+  arm64_sha256: 40df9b996c2b73138957fe23a16a4f0ba614f4c0efce1e9406a184b6d07fa3a9
+  x86_64_url: https://files.pythonhosted.org/packages/bc/06/1b305bf6aa704343be85444c9d011f626c763abb40c0edc1cad13bfd7f86/PyYAML-6.0.1-cp312-cp312-macosx_10_9_x86_64.whl
+  x86_64_sha256: 855fb52b0dc35af121542a76b9a84f8d1cd886ea97c84703eaa6d88e37a2ad28
