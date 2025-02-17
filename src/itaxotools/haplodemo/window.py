@@ -119,6 +119,12 @@ class Window(QtWidgets.QWidget):
         button_demo_many.clicked.connect(lambda: self.demos.load_demo_many())
         button_demo_many.setStyleSheet("color: #A00;")
 
+        button_save = QtWidgets.QPushButton("Save YAML")
+        button_save.clicked.connect(lambda: self.dump_yaml())
+
+        button_load = QtWidgets.QPushButton("Load YAML")
+        button_load.clicked.connect(lambda: self.load_yaml())
+
         button_svg = QtWidgets.QPushButton("Export as SVG")
         button_svg.clicked.connect(lambda: self.export_svg())
 
@@ -163,6 +169,8 @@ class Window(QtWidgets.QWidget):
         member_view = MemberView(settings.members)
 
         exports = QtWidgets.QVBoxLayout()
+        exports.addWidget(button_save)
+        exports.addWidget(button_load)
         exports.addWidget(button_svg)
         exports.addWidget(button_pdf)
         exports.addWidget(button_png)
@@ -256,6 +264,7 @@ class Window(QtWidgets.QWidget):
 
         self.scene = scene
         self.scene_view = scene_view
+        self.visualizer = visualizer
         self.zoom_control = zoom_control
         self.settings = settings
 
@@ -378,6 +387,26 @@ class Window(QtWidgets.QWidget):
         self.export_svg("graph.svg")
         self.export_pdf("graph.pdf")
         self.export_png("graph.png")
+
+    def dump_yaml(self, file=None):
+        # if file is None:
+        #     file, _ = QtWidgets.QFileDialog.getSaveFileName(
+        #         self, "Save graph...", "graph.yaml", "YAML Files (*.yaml)"
+        #     )
+        # if not file:
+        #     return
+        # print("YAML >", file)
+        self.visualizer.dump()
+
+    def load_yaml(self, file=None):
+        # if file is None:
+        #     file, _ = QtWidgets.QFileDialog.getOpenFileName(
+        #         self, "Load graph...", "graph.yaml", "YAML Files (*.yaml)"
+        #     )
+        # if not file:
+        #     return
+        # print("YAML <", file)
+        self.scene_view.load()
 
     def export_svg(self, file=None):
         if file is None:

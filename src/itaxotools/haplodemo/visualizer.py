@@ -30,9 +30,11 @@ from itaxotools.common.bindings import Binder
 from itaxotools.common.utility import Guard
 
 from .items.bezier import BezierCurve
+from .items.boundary import BoundaryRect
 from .items.boxes import RectBox
 from .items.edges import Edge
 from .items.nodes import Node, Vertex
+from .items.scale import Scale
 from .layout import modified_spring_layout
 from .models import PartitionListModel
 from .scene import GraphicsScene
@@ -435,3 +437,88 @@ class Visualizer(QtCore.QObject):
 
             item = self.items[name]
             item.setSelected(True)
+
+    def _dump_vertex(self, item: Node):
+        return {
+            "name": item.name if item.name else "",
+            "x": item.x(),
+            "y": item.y(),
+        }
+
+    def _dump_node(self, item: Node):
+        return {
+            "name": item.name,
+            "x": item.x(),
+            "y": item.y(),
+            "label": {
+                "x": item.label.rect.center().x(),
+                "y": item.label.rect.center().y(),
+            },
+        }
+
+    def _dump_edge(self, item: Edge):
+        return {
+            "node_a": item.node1.name,
+            "node_b": item.node2.name,
+            "style": str(item.style),
+            "label": {
+                "x": item.label.rect.center().x(),
+                "y": item.label.rect.center().y(),
+            },
+        }
+
+    def _dump_boundary(self, item: BoundaryRect):
+        return {
+            "x": item.rect().x(),
+            "y": item.rect().y(),
+            "w": item.rect().width(),
+            "h": item.rect().height(),
+        }
+
+    def _dump_scale(self, item: Scale):
+        return {
+            "x": item.x(),
+            "y": item.y(),
+            "marks": {
+                mark: {
+                    "x": label.rect.center().x(),
+                    "y": label.rect.center().y(),
+                }
+                for mark, label in zip(item.marks, item.labels)
+            },
+        }
+
+    def dump(self):
+        settings = None
+        nodes = []
+        edges = []
+        boundary = None
+        scale = None
+        for item in self.scene.items():
+            if isinstance(item, Node):
+                node = self._dump_node(item)
+                nodes.append(node)
+            elif isinstance(item, Vertex):
+                node = self._dump_vertex(item)
+                nodes.append(node)
+            elif isinstance(item, Edge):
+                edge = self._dump_edge(item)
+                edges.append(edge)
+            elif isinstance(item, BoundaryRect):
+                boundary = self._dump_boundary(item)
+            elif isinstance(item, Scale):
+                scale = self._dump_scale(item)
+        return {
+            "settings": settings,
+            "graph": self.graph,
+            "tree": self.tree,
+            "layout": {
+                "nodes": nodes,
+                "edges": edges,
+                "boundary": boundary,
+                "scale": scale,
+            },
+        }
+
+    def load(self):
+        raise NotImplementedError()

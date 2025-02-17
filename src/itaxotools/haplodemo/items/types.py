@@ -58,6 +58,13 @@ class EdgeStyle(Enum):
     def __str__(self):
         return self.label
 
+    @classmethod
+    def from_label(cls, label: str):
+        for item in cls:
+            if item.label == label:
+                return item
+        return None
+
 
 class Direction(Enum):
     Center = auto()

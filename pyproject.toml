@@ -26,6 +26,7 @@ dependencies = [
     "pyside6",
     "networkx",
     "numpy",
+    "pyyaml",
 ]
 
 [project.optional-dependencies]
@@ -40,7 +41,7 @@ dev = [
     "pyinstaller",
 ]
 
-[project.gui-scripts]
+[project.scripts]
 haplodemo = "itaxotools.haplodemo.__main__:run"
 
 [project.urls]
