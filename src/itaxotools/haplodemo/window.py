@@ -389,14 +389,14 @@ class Window(QtWidgets.QWidget):
         self.export_png("graph.png")
 
     def dump_yaml(self, file=None):
-        # if file is None:
-        #     file, _ = QtWidgets.QFileDialog.getSaveFileName(
-        #         self, "Save graph...", "graph.yaml", "YAML Files (*.yaml)"
-        #     )
-        # if not file:
-        #     return
-        # print("YAML >", file)
-        self.visualizer.dump()
+        if file is None:
+            file, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self, "Save graph...", "graph.yaml", "YAML Files (*.yaml)"
+            )
+        if not file:
+            return
+        print("YAML >", file)
+        self.visualizer.dump_yaml(file)
 
     def load_yaml(self, file=None):
         # if file is None:

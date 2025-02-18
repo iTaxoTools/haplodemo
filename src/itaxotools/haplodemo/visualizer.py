@@ -25,6 +25,7 @@ from itertools import combinations
 from typing import Callable
 
 import networkx as nx
+import yaml
 
 from itaxotools.common.bindings import Binder
 from itaxotools.common.utility import Guard
@@ -438,14 +439,14 @@ class Visualizer(QtCore.QObject):
             item = self.items[name]
             item.setSelected(True)
 
-    def _dump_vertex(self, item: Node):
+    def _dump_vertex(self, item: Node) -> dict:
         return {
             "name": item.name if item.name else "",
             "x": item.x(),
             "y": item.y(),
         }
 
-    def _dump_node(self, item: Node):
+    def _dump_node(self, item: Node) -> dict:
         return {
             "name": item.name,
             "x": item.x(),
@@ -456,7 +457,7 @@ class Visualizer(QtCore.QObject):
             },
         }
 
-    def _dump_edge(self, item: Edge):
+    def _dump_edge(self, item: Edge) -> dict:
         return {
             "node_a": item.node1.name,
             "node_b": item.node2.name,
@@ -467,7 +468,7 @@ class Visualizer(QtCore.QObject):
             },
         }
 
-    def _dump_boundary(self, item: BoundaryRect):
+    def _dump_boundary(self, item: BoundaryRect) -> dict:
         return {
             "x": item.rect().x(),
             "y": item.rect().y(),
@@ -475,7 +476,7 @@ class Visualizer(QtCore.QObject):
             "h": item.rect().height(),
         }
 
-    def _dump_scale(self, item: Scale):
+    def _dump_scale(self, item: Scale) -> dict:
         return {
             "x": item.x(),
             "y": item.y(),
@@ -488,8 +489,7 @@ class Visualizer(QtCore.QObject):
             },
         }
 
-    def dump(self):
-        settings = None
+    def dump_dict(self) -> dict:
         nodes = []
         edges = []
         boundary = None
@@ -509,9 +509,10 @@ class Visualizer(QtCore.QObject):
             elif isinstance(item, Scale):
                 scale = self._dump_scale(item)
         return {
-            "settings": settings,
+            "settings": self.settings.dump(),
             "graph": self.graph,
             "tree": self.tree,
+            "members": dict(self.members),
             "layout": {
                 "nodes": nodes,
                 "edges": edges,
@@ -520,5 +521,12 @@ class Visualizer(QtCore.QObject):
             },
         }
 
-    def load(self):
+    def load_dict(self):
+        raise NotImplementedError()
+
+    def dump_yaml(self, path: str):
+        with open(path, "w") as file:
+            yaml.dump(self.dump_dict(), file)
+
+    def load_yaml(self):
         raise NotImplementedError()

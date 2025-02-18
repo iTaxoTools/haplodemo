@@ -156,3 +156,26 @@ class Settings(PropertyObject):
         for property in properties:
             property.set(property.default)
         self.binder.update()
+
+    def dump(self) -> dict:
+        properties = {property.key: property.value for property in self.properties}
+        del properties["divisions"]
+        del properties["partitions"]
+        del properties["members"]
+        del properties["partition_index"]
+        properties["node_sizes"] = {
+            property.key: property.value for property in self.node_sizes.properties
+        }
+        properties["fields"] = {
+            property.key: property.value for property in self.fields.properties
+        }
+        properties["scale"] = {
+            property.key: property.value for property in self.scale.properties
+        }
+        properties["palette"] = properties["palette"].label
+        properties["layout"] = properties["layout"].value
+        properties["font"] = properties["font"].toString()
+        return properties
+
+    def load(self, data: dict):
+        raise NotImplementedError()
