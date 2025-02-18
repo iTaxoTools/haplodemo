@@ -399,14 +399,14 @@ class Window(QtWidgets.QWidget):
         self.visualizer.dump_yaml(file)
 
     def load_yaml(self, file=None):
-        # if file is None:
-        #     file, _ = QtWidgets.QFileDialog.getOpenFileName(
-        #         self, "Load graph...", "graph.yaml", "YAML Files (*.yaml)"
-        #     )
-        # if not file:
-        #     return
-        # print("YAML <", file)
-        self.scene_view.load()
+        if file is None:
+            file, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self, "Load graph...", "graph.yaml", "YAML Files (*.yaml)"
+            )
+        if not file:
+            return
+        print("YAML <", file)
+        self.visualizer.load_yaml(file)
 
     def export_svg(self, file=None):
         if file is None:

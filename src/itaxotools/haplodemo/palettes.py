@@ -33,6 +33,13 @@ class Palette(list, Type):
             return super().__getitem__(index)
         return self.default
 
+    @classmethod
+    def from_label(cls, label: str):
+        for palette in cls:
+            if palette.label == label:
+                return palette()
+        return cls()
+
 
 class Set1(Palette):
     label = "Set1"

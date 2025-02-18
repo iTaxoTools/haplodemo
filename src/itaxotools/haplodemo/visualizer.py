@@ -521,12 +521,14 @@ class Visualizer(QtCore.QObject):
             },
         }
 
-    def load_dict(self):
-        raise NotImplementedError()
+    def load_dict(self, data: dict):
+        self.settings.load(data["settings"])
+        self.scene.style_nodes()
 
     def dump_yaml(self, path: str):
         with open(path, "w") as file:
             yaml.dump(self.dump_dict(), file)
 
-    def load_yaml(self):
-        raise NotImplementedError()
+    def load_yaml(self, path: str):
+        with open(path, "r") as file:
+            self.load_dict(yaml.safe_load(file))

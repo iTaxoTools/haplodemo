@@ -158,24 +158,30 @@ class Settings(PropertyObject):
         self.binder.update()
 
     def dump(self) -> dict:
-        properties = {property.key: property.value for property in self.properties}
-        del properties["divisions"]
-        del properties["partitions"]
-        del properties["members"]
-        del properties["partition_index"]
-        properties["node_sizes"] = {
+        data = {property.key: property.value for property in self.properties}
+        del data["divisions"]
+        del data["partitions"]
+        del data["members"]
+        del data["partition_index"]
+        data["node_sizes"] = {
             property.key: property.value for property in self.node_sizes.properties
         }
-        properties["fields"] = {
+        data["fields"] = {
             property.key: property.value for property in self.fields.properties
         }
-        properties["scale"] = {
+        data["scale"] = {
             property.key: property.value for property in self.scale.properties
         }
-        properties["palette"] = properties["palette"].label
-        properties["layout"] = properties["layout"].value
-        properties["font"] = properties["font"].toString()
-        return properties
+        data["palette"] = data["palette"].label
+        data["layout"] = data["layout"].value
+        data["font"] = data["font"].toString()
+        return data
 
     def load(self, data: dict):
-        raise NotImplementedError()
+        for key, value in data["node_sizes"].items():
+            self.node_sizes.properties[key].value = value
+        for key, value in data["fields"].items():
+            self.fields.properties[key].value = value
+        for key, value in data["scale"].items():
+            self.scale.properties[key].value = value
+        self.properties.palette.value = Palette.from_label(data["palette"])
