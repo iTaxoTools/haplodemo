@@ -178,10 +178,22 @@ class Settings(PropertyObject):
         return data
 
     def load(self, data: dict):
+        data = dict(data)
         for key, value in data["node_sizes"].items():
             self.node_sizes.properties[key].value = value
         for key, value in data["fields"].items():
             self.fields.properties[key].value = value
         for key, value in data["scale"].items():
             self.scale.properties[key].value = value
-        self.properties.palette.value = Palette.from_label(data["palette"])
+        self.palette = Palette.from_label(data["palette"])
+        self.layout = LayoutType(data["layout"])
+        self.font.fromString(data["font"])
+        self.properties.font.update()
+        del data["node_sizes"]
+        del data["fields"]
+        del data["scale"]
+        del data["palette"]
+        del data["layout"]
+        del data["font"]
+        for key, value in data.items():
+            self.properties[key].value = value

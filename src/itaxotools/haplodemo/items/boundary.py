@@ -227,6 +227,10 @@ class BoundaryRect(QtWidgets.QGraphicsRectItem):
             handle.size = self.margin + 2
             handle.adjust_rect()
 
+    def set_rect_and_update(self, rect: QtCore.QRect):
+        self.setRect(rect)
+        self.adjust_rects()
+
     def adjust_rects(self):
         self.outline.adjust_rect(self.margin)
         for handle in self.handles:

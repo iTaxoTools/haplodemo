@@ -34,6 +34,7 @@ from .items.bezier import BezierCurve
 from .items.boundary import BoundaryRect
 from .items.boxes import RectBox
 from .items.edges import Edge
+from .items.legend import Legend
 from .items.nodes import Node, Vertex
 from .items.scale import Scale
 from .layout import modified_spring_layout
@@ -476,6 +477,12 @@ class Visualizer(QtCore.QObject):
             "h": item.rect().height(),
         }
 
+    def _dump_legend(self, item: Legend) -> dict:
+        return {
+            "x": item.pos().x(),
+            "y": item.pos().y(),
+        }
+
     def _dump_scale(self, item: Scale) -> dict:
         return {
             "x": item.x(),
@@ -493,6 +500,7 @@ class Visualizer(QtCore.QObject):
         nodes = []
         edges = []
         boundary = None
+        legend = None
         scale = None
         for item in self.scene.items():
             if isinstance(item, Node):
@@ -506,6 +514,8 @@ class Visualizer(QtCore.QObject):
                 edges.append(edge)
             elif isinstance(item, BoundaryRect):
                 boundary = self._dump_boundary(item)
+            elif isinstance(item, Legend):
+                legend = self._dump_legend(item)
             elif isinstance(item, Scale):
                 scale = self._dump_scale(item)
         return {
@@ -517,13 +527,40 @@ class Visualizer(QtCore.QObject):
                 "nodes": nodes,
                 "edges": edges,
                 "boundary": boundary,
+                "legend": legend,
                 "scale": scale,
             },
         }
 
+    def _load_boundary(self, data: dict):
+        boundary = self.scene.boundary
+        if not boundary:
+            return
+        rect = QtCore.QRect(data["x"], data["y"], data["w"], data["h"])
+        boundary.set_rect_and_update(rect)
+
+    def _load_legend(self, data: dict):
+        legend = self.scene.legend
+        if not legend:
+            return
+        legend.setPos(QtCore.QPoint(data["x"], data["y"]))
+
+    def _load_scale(self, data: dict):
+        scale = self.scene.scale
+        if not scale:
+            return
+        scale.setX(data["x"])
+        scale.setY(data["y"])
+        assert scale.marks == list(data["marks"].keys())
+        for i, pos in enumerate(data["marks"].values()):
+            scale.labels[i].set_center_pos(pos["x"], pos["y"])
+
     def load_dict(self, data: dict):
         self.settings.load(data["settings"])
         self.scene.style_nodes()
+        self._load_boundary(data["layout"]["boundary"])
+        self._load_legend(data["layout"]["legend"])
+        self._load_scale(data["layout"]["scale"])
 
     def dump_yaml(self, path: str):
         with open(path, "w") as file:

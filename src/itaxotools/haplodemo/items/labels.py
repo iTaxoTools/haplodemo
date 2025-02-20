@@ -179,6 +179,10 @@ class Label(HighlightableItem, QtWidgets.QGraphicsItem):
             case Direction.Right:
                 return self.get_right_rect()
 
+    def set_center_pos(self, x: float, y: float):
+        self.recenter()
+        self.rect.moveCenter(QtCore.QPoint(x, y))
+
     def get_center_rect(self):
         rect = QtGui.QFontMetrics(self.font).tightBoundingRect(self.text)
         rect = rect.translated(-rect.center())
