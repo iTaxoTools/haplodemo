@@ -33,7 +33,7 @@ from itaxotools.common.utility import Guard
 from .items.bezier import BezierCurve
 from .items.boundary import BoundaryRect
 from .items.boxes import RectBox
-from .items.edges import Edge
+from .items.edges import Edge, EdgeStyle
 from .items.legend import Legend
 from .items.nodes import Node, Vertex
 from .items.scale import Scale
@@ -157,10 +157,9 @@ class Visualizer(QtCore.QObject):
             item = self.create_node(x, y, size, id, dict(node.pops), radius_for_weight)
             radius = item.radius / self.settings.edge_length
         else:
-            item = self.create_vertex(x, y, name=id)
+            item = self.create_vertex(x, y, id)
             radius = 0
 
-        self.items[id] = item
         self.members[id] = node.members
         self.graph.add_node(id, radius=radius)
 
@@ -198,10 +197,9 @@ class Visualizer(QtCore.QObject):
                 )
                 radius = item.radius / self.settings.edge_length
             else:
-                item = self.create_vertex(x, y, name=id)
+                item = self.create_vertex(x, y, id)
                 radius = 0
 
-            self.items[id] = item
             self.members[id] = node.members
             self.graph.add_node(id, radius=radius)
             self.scene.addItem(item)
@@ -319,8 +317,10 @@ class Visualizer(QtCore.QObject):
             if child not in visited:
                 self._find_group_for_node_dfs(graph, child, visited, group)
 
-    def create_vertex(self, *args, **kwargs):
-        item = Vertex(*args, **kwargs)
+    def create_vertex(self, x: float, y: float, id: str):
+        assert id not in self.items
+        item = Vertex(x, y, 0, id)
+        self.items[id] = item
         self.binder.bind(
             self.settings.properties.snapping_movement, item.set_snapping_setting
         )
@@ -336,8 +336,18 @@ class Visualizer(QtCore.QObject):
         self.binder.bind(self.settings.properties.pen_width_edges, item.set_pen_width)
         return item
 
-    def create_node(self, *args, **kwargs):
-        item = Node(*args, **kwargs)
+    def create_node(
+        self,
+        x: float,
+        y: float,
+        size: int,
+        id: str,
+        weights: dict[str, int],
+        func: Callable,
+    ):
+        assert id not in self.items
+        item = Node(x, y, size, id, weights, func)
+        self.items[id] = item
         item.update_colors(self.settings.divisions.get_color_map())
         self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
         self.binder.bind(
@@ -440,14 +450,14 @@ class Visualizer(QtCore.QObject):
             item = self.items[name]
             item.setSelected(True)
 
-    def _dump_vertex(self, item: Node) -> dict:
+    def _dump_vertex_layout(self, item: Node) -> dict:
         return {
             "name": item.name if item.name else "",
             "x": item.x(),
             "y": item.y(),
         }
 
-    def _dump_node(self, item: Node) -> dict:
+    def _dump_node_layout(self, item: Node) -> dict:
         return {
             "name": item.name,
             "x": item.x(),
@@ -462,7 +472,7 @@ class Visualizer(QtCore.QObject):
         return {
             "node_a": item.node1.name,
             "node_b": item.node2.name,
-            "style": str(item.style),
+            "style": item.style.value,
             "label": {
                 "x": item.label.rect.center().x(),
                 "y": item.label.rect.center().y(),
@@ -504,10 +514,10 @@ class Visualizer(QtCore.QObject):
         scale = None
         for item in self.scene.items():
             if isinstance(item, Node):
-                node = self._dump_node(item)
+                node = self._dump_node_layout(item)
                 nodes.append(node)
             elif isinstance(item, Vertex):
-                node = self._dump_vertex(item)
+                node = self._dump_vertex_layout(item)
                 nodes.append(node)
             elif isinstance(item, Edge):
                 edge = self._dump_edge(item)
@@ -531,6 +541,33 @@ class Visualizer(QtCore.QObject):
                 "scale": scale,
             },
         }
+
+    def _load_node_layout(self, data: dict):
+        id = data["name"]
+        if id not in self.items:
+            return
+        item = self.items[id]
+        item.setPos(QtCore.QPointF(data["x"], data["y"]))
+        if "label" not in data:
+            return
+        pos = data["label"]
+        item.label.set_center_pos(pos["x"], pos["y"])
+
+    def _load_edge_layout(self, data: dict):
+        id_a = data["node_a"]
+        id_b = data["node_b"]
+        if id_a not in self.items:
+            return
+        if id_b not in self.items:
+            return
+        node_b = self.items[id_b]
+        item = self.items[id_a].edges[node_b]
+        style = EdgeStyle(data["style"])
+        item.set_style(style)
+        if "label" not in data:
+            return
+        pos = data["label"]
+        item.label.set_center_pos(pos["x"], pos["y"])
 
     def _load_boundary(self, data: dict):
         boundary = self.scene.boundary
@@ -561,6 +598,10 @@ class Visualizer(QtCore.QObject):
         self._load_boundary(data["layout"]["boundary"])
         self._load_legend(data["layout"]["legend"])
         self._load_scale(data["layout"]["scale"])
+        for node in data["layout"]["nodes"]:
+            self._load_node_layout(node)
+        for edge in data["layout"]["edges"]:
+            self._load_edge_layout(edge)
 
     def dump_yaml(self, path: str):
         with open(path, "w") as file:

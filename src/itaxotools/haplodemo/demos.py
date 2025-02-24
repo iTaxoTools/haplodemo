@@ -98,7 +98,9 @@ class DemoLoader:
         )
         visualizer.add_child_edge(node3, node4, 1)
 
-        vertex1 = visualizer.create_vertex(node3.pos().x() - 60, node3.pos().y() + 60)
+        vertex1 = visualizer.create_vertex(
+            node3.pos().x() - 60, node3.pos().y() + 60, ""
+        )
         visualizer.add_child_edge(node3, vertex1, 2)
 
         node5 = visualizer.create_node(
