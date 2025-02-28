@@ -58,6 +58,7 @@ class Visualizer(QtCore.QObject):
         self.binder = Binder()
 
         self.items: dict[str, Vertex] = {}
+        self.beziers: dict[tuple[str, str], BezierCurve] = {}
         self.weights: dict[str, dict[str, int]] = defaultdict(dict)
         self.members: dict[str, set[str]] = defaultdict(set)
         self.member_indices: dict[str, QtCore.QModelIndex] = defaultdict(
@@ -88,6 +89,7 @@ class Visualizer(QtCore.QObject):
         self.settings.members.set_dict({})
 
         self.items = {}
+        self.beziers = {}
         self.weights = defaultdict(dict)
         self.members = defaultdict(set)
         self.partition = defaultdict(str)
@@ -220,9 +222,12 @@ class Visualizer(QtCore.QObject):
         self.scene.set_marks_from_nodes()
         self.scene.set_boundary_to_contents()
 
-    def visualize_network(self, graph: nx.Graph = None, weights: dict = None):
+    def visualize_network(
+        self, graph: nx.Graph = None, weights: dict = None, members: dict = None
+    ):
         self.graph = graph or self.graph
         self.weights = weights or self.weights
+        self.members = members or self.members
 
         if not self.settings.divisions.all():
             self.set_divisions_from_weights()
@@ -234,10 +239,16 @@ class Visualizer(QtCore.QObject):
             size = data["weight"]
             if size > 0:
                 item = self.create_node(
-                    x, y, size, id, self.weights[id], radius_for_weight
+                    x,
+                    y,
+                    size,
+                    id,
+                    self.weights[id],
+                    radius_for_weight,
+                    self.members[id],
                 )
             else:
-                item = self.create_vertex(x, y, id)
+                item = self.create_vertex(x, y, id, self.members[id])
             self.scene.addItem(item)
             self.scene.root = self.scene.root or item
 
@@ -450,7 +461,7 @@ class Visualizer(QtCore.QObject):
         item.adjust_position()
         return item
 
-    def create_bezier(self, node1, node2):
+    def create_bezier(self, node1: Vertex, node2: Vertex):
         item = BezierCurve(node1, node2)
         self.binder.bind(
             self.settings.properties.highlight_color, item.set_highlight_color
@@ -459,6 +470,8 @@ class Visualizer(QtCore.QObject):
         node1.beziers[node2] = item
         node2.beziers[node1] = item
         self.scene.addItem(item)
+        id = tuple(sorted([node1.name, node2.name]))
+        self.beziers[id] = item
         return item
 
     def add_child_edge(self, parent: Vertex, child: Vertex, segments=1):
@@ -538,6 +551,16 @@ class Visualizer(QtCore.QObject):
             },
         }
 
+    def _dump_bezier(self, item: BezierCurve) -> dict:
+        return {
+            "node_a": item.node1.name,
+            "node_b": item.node2.name,
+            "c_a_x": item.c1.x(),
+            "c_a_y": item.c1.y(),
+            "c_b_x": item.c2.x(),
+            "c_b_y": item.c2.y(),
+        }
+
     def _dump_boundary(self, item: BoundaryRect) -> dict:
         return {
             "x": item.rect().x(),
@@ -573,9 +596,13 @@ class Visualizer(QtCore.QObject):
             ],
         }
 
+    def _dump_members(self) -> dict:
+        return {k: list(sorted(v)) for k, v in self.members.items()}
+
     def dump_dict(self) -> dict:
         nodes = []
         edges = []
+        beziers = []
         boundary = None
         legend = None
         scale = None
@@ -589,6 +616,9 @@ class Visualizer(QtCore.QObject):
             elif isinstance(item, Edge):
                 edge = self._dump_edge(item)
                 edges.append(edge)
+            elif isinstance(item, BezierCurve):
+                bezier = self._dump_bezier(item)
+                beziers.append(bezier)
             elif isinstance(item, BoundaryRect):
                 boundary = self._dump_boundary(item)
             elif isinstance(item, Legend):
@@ -601,10 +631,11 @@ class Visualizer(QtCore.QObject):
             "graph": self._dump_graph(),
             "tree": None,
             "weights": dict(self.weights),
-            "members": dict(self.members),
+            "members": self._dump_members(),
             "layout": {
                 "nodes": nodes,
                 "edges": edges,
+                "beziers": beziers,
                 "boundary": boundary,
                 "legend": legend,
                 "scale": scale,
@@ -620,6 +651,9 @@ class Visualizer(QtCore.QObject):
 
     def _load_weights(self, data: dict[str, dict[str, int]]):
         self.weights = defaultdict(dict, data)
+
+    def _load_members(self, data: dict[str, list[str]]):
+        self.members = defaultdict(set, {k: set(v) for k, v in data.items()})
 
     def _load_node_layout(self, data: dict):
         id = data["name"]
@@ -648,6 +682,29 @@ class Visualizer(QtCore.QObject):
         pos = data["label"]
         item.label.set_center_pos(pos["x"], pos["y"])
 
+    def _load_bezier_layout(self, data: dict):
+        id_a = data["node_a"]
+        id_b = data["node_b"]
+        c_a_x = data["c_a_x"]
+        c_a_y = data["c_a_y"]
+        c_b_x = data["c_b_x"]
+        c_b_y = data["c_b_y"]
+        bezier_id = tuple(sorted([id_a, id_b]))
+        if id_a not in self.items:
+            return
+        if id_b not in self.items:
+            return
+        if bezier_id not in self.beziers:
+            return
+        bezier = self.beziers[bezier_id]
+        node_a = self.items[id_a]
+        node_b = self.items[id_b]
+        control_a = QtCore.QPoint(c_a_x, c_a_y)
+        control_b = QtCore.QPoint(c_b_x, c_b_y)
+        bezier.set_control_point_for_node(node_a, control_a)
+        bezier.set_control_point_for_node(node_b, control_b)
+        bezier.adjust_position()
+
     def _load_boundary(self, data: dict):
         self.scene.set_boundary_rect(data["x"], data["y"], data["w"], data["h"])
 
@@ -672,7 +729,9 @@ class Visualizer(QtCore.QObject):
         self.settings.load(data["settings"])
         self._load_graph(data["graph"])
         self._load_weights(data["weights"])
+        self._load_members(data["members"])
         self.visualize_network()
+        self.visualize_haploweb()
         self._load_boundary(data["layout"]["boundary"])
         self._load_legend(data["layout"]["legend"])
         self._load_scale(data["layout"]["scale"])
@@ -680,6 +739,8 @@ class Visualizer(QtCore.QObject):
             self._load_node_layout(node)
         for edge in data["layout"]["edges"]:
             self._load_edge_layout(edge)
+        for bezier in data["layout"]["beziers"]:
+            self._load_bezier_layout(bezier)
 
     def dump_yaml(self, path: str):
         with open(path, "w") as file:

@@ -589,39 +589,71 @@ class DemoLoader:
         radius_for_weight = self.settings.node_sizes.radius_for_weight
 
         node1 = visualizer.create_node(
-            0, 150, 7, "Node1", {"X": 4, "Y": 3}, radius_for_weight
+            0, 150, 7, "Node1", {"X": 4, "Y": 3}, radius_for_weight, {"m"}
         )
         scene.addItem(node1)
 
-        node2 = visualizer.create_node(200, 0, 4, "Node2", {"X": 4}, radius_for_weight)
+        node2 = visualizer.create_node(
+            200, 0, 4, "Node2", {"X": 4}, radius_for_weight, {"n"}
+        )
         visualizer.add_child_edge(node1, node2, 2)
 
-        node3 = visualizer.create_node(0, 0, 2, "Node3", {"X": 2}, radius_for_weight)
+        node3 = visualizer.create_node(
+            0, 0, 2, "Node3", {"X": 2}, radius_for_weight, {"m"}
+        )
         visualizer.add_child_edge(node2, node3, 1)
 
-        node4 = visualizer.create_node(400, 0, 3, "Node4", {"X": 3}, radius_for_weight)
+        node4 = visualizer.create_node(
+            400, 0, 3, "Node4", {"X": 3}, radius_for_weight, {"n"}
+        )
         visualizer.add_child_edge(node2, node4, 1)
 
-        node5 = visualizer.create_node(0, 400, 6, "Node5", {"Z": 4}, radius_for_weight)
+        node5 = visualizer.create_node(
+            0, 400, 6, "Node5", {"Z": 4}, radius_for_weight, {}
+        )
         visualizer.add_child_edge(node1, node5, 3)
 
         node6 = visualizer.create_node(
-            200, 250, 1, "Node6", {"Y": 1}, radius_for_weight
+            200,
+            250,
+            1,
+            "Node6",
+            {"Y": 1},
+            radius_for_weight,
+            {"q"},
         )
         visualizer.add_child_edge(node1, node6, 1)
 
         node7 = visualizer.create_node(
-            400, 250, 3, "Node7", {"Y": 1}, radius_for_weight
+            400,
+            250,
+            3,
+            "Node7",
+            {"Y": 1},
+            radius_for_weight,
+            {"p", "r"},
         )
         visualizer.add_child_edge(node6, node7, 3)
 
         node8 = visualizer.create_node(
-            200, 400, 1, "Node8", {"Y": 1}, radius_for_weight
+            200,
+            400,
+            2,
+            "Node8",
+            {"Y": 1},
+            radius_for_weight,
+            {"q", "p"},
         )
         visualizer.add_child_edge(node6, node8, 1)
 
         node9 = visualizer.create_node(
-            400, 400, 1, "Node9", {"Y": 1}, radius_for_weight
+            400,
+            400,
+            1,
+            "Node9",
+            {"Y": 1},
+            radius_for_weight,
+            {"r"},
         )
         visualizer.add_child_edge(node7, node9, 1)
 
