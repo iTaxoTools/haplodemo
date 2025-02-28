@@ -117,7 +117,7 @@ class Settings(PropertyObject):
     show_scale = Property(bool, False)
 
     layout = Property(LayoutType, LayoutType.ModifiedSpring)
-    layout_scale = Property(float, 3)
+    layout_scale = Property(float, 10)
     edge_length = Property(float, 100)
 
     pen_width_nodes = Property(float, 1)

@@ -63,7 +63,7 @@ class Visualizer(QtCore.QObject):
             QtCore.QModelIndex
         )
         self.partition: dict[str, str] = defaultdict(str)
-        self.graph: HaploGraph = None
+        self.graph: nx.Graph = nx.Graph()
         self.tree: HaploTreeNode = None
 
         self._member_select_guard = Guard()
@@ -89,7 +89,7 @@ class Visualizer(QtCore.QObject):
         self.items = {}
         self.members = defaultdict(set)
         self.partition = defaultdict(str)
-        self.graph = None
+        self.graph = nx.Graph()
         self.tree = None
 
     def update_members_setting(self):
@@ -154,21 +154,15 @@ class Visualizer(QtCore.QObject):
         size = node.get_size()
 
         if size > 0:
-            item = self.create_node(x, y, size, id, dict(node.pops), radius_for_weight)
-            radius = item.radius / self.settings.edge_length
+            item = self.create_node(
+                x, y, size, id, dict(node.pops), radius_for_weight, node.members
+            )
         else:
-            item = self.create_vertex(x, y, id)
-            radius = 0
-
-        self.members[id] = node.members
-        self.graph.add_node(id, radius=radius)
+            item = self.create_vertex(x, y, id, node.members)
 
         if parent_id:
             parent_item = self.items[parent_id]
-            parent_radius = self.graph.nodes[parent_id]["radius"]
-            length = node.mutations + parent_radius + radius
             item = self.add_child_edge(parent_item, item, node.mutations)
-            self.graph.add_edge(parent_id, id, length=length)
         else:
             self.scene.addItem(item)
             self.scene.root = item
@@ -193,29 +187,21 @@ class Visualizer(QtCore.QObject):
 
             if size > 0:
                 item = self.create_node(
-                    x, y, size, id, dict(node.pops), radius_for_weight
+                    x, y, size, id, dict(node.pops), radius_for_weight, node.members
                 )
-                radius = item.radius / self.settings.edge_length
             else:
-                item = self.create_vertex(x, y, id)
-                radius = 0
+                item = self.create_vertex(x, y, id, node.members)
 
-            self.members[id] = node.members
-            self.graph.add_node(id, radius=radius)
             self.scene.addItem(item)
 
             self.scene.root = self.scene.root or item
 
         for edge in haplo_graph.edges:
-            node_a = haplo_graph.nodes[edge.node_a].id
-            node_b = haplo_graph.nodes[edge.node_b].id
-            item_a = self.items[node_a]
-            item_b = self.items[node_b]
-            radius_a = self.graph.nodes[node_a]["radius"]
-            radius_b = self.graph.nodes[node_b]["radius"]
-            length = edge.mutations + radius_a + radius_b
+            id_a = haplo_graph.nodes[edge.node_a].id
+            id_b = haplo_graph.nodes[edge.node_b].id
+            item_a = self.items[id_a]
+            item_b = self.items[id_b]
             item = self.add_sibling_edge(item_a, item_b, edge.mutations)
-            self.graph.add_edge(node_a, node_b, length=length)
 
         self.layout_nodes()
         self.update_members_setting()
@@ -224,21 +210,40 @@ class Visualizer(QtCore.QObject):
         self.scene.set_marks_from_nodes()
         self.scene.set_boundary_to_contents()
 
+    def _mod_radius_for_weight(self, radius: float) -> float:
+        radius_for_weight = self.settings.node_sizes.radius_for_weight
+        edge_length = self.settings.edge_length
+        return radius_for_weight(radius) / edge_length
+
     def layout_nodes(self):
         match self.settings.layout:
             case LayoutType.Spring:
                 graph = nx.Graph()
                 for node, data in self.graph.nodes(data=True):
-                    graph.add_node(node, **data)
+                    radius = self._mod_radius_for_weight(data["weight"])
+                    graph.add_node(node, radius=radius)
                 for u, v, data in self.graph.edges(data=True):
-                    weight = 1 / data["length"]
-                    graph.add_edge(u, v, weight=weight, **data)
+                    radius_a = graph.nodes[u]["radius"]
+                    radius_b = graph.nodes[v]["radius"]
+                    length = data["mutations"] + radius_a + radius_b
+                    weight = 1 / length
+                    graph.add_edge(u, v, weight=weight)
                 pos = nx.spring_layout(
                     graph, weight="weight", scale=self.settings.layout_scale
                 )
                 del graph
             case LayoutType.ModifiedSpring:
-                pos = modified_spring_layout(self.graph, scale=None)
+                graph = nx.Graph()
+                for node, data in self.graph.nodes(data=True):
+                    radius = self._mod_radius_for_weight(data["weight"])
+                    graph.add_node(node, radius=radius)
+                for u, v, data in self.graph.edges(data=True):
+                    radius_a = graph.nodes[u]["radius"]
+                    radius_b = graph.nodes[v]["radius"]
+                    length = data["mutations"] + radius_a + radius_b
+                    graph.add_edge(u, v, length=length)
+                pos = modified_spring_layout(graph, scale=None)
+                del graph
             case _:
                 return
 
@@ -317,7 +322,13 @@ class Visualizer(QtCore.QObject):
             if child not in visited:
                 self._find_group_for_node_dfs(graph, child, visited, group)
 
-    def create_vertex(self, x: float, y: float, id: str):
+    def create_vertex(
+        self,
+        x: float,
+        y: float,
+        id: str,
+        members: set[str] = {},
+    ):
         assert id not in self.items
         item = Vertex(x, y, 0, id)
         self.items[id] = item
@@ -334,19 +345,22 @@ class Visualizer(QtCore.QObject):
             self.settings.properties.highlight_color, item.set_highlight_color
         )
         self.binder.bind(self.settings.properties.pen_width_edges, item.set_pen_width)
+        self.graph.add_node(id, weight=0)
+        self.members[id] = members
         return item
 
     def create_node(
         self,
         x: float,
         y: float,
-        size: int,
+        weight: int,
         id: str,
         weights: dict[str, int],
         func: Callable,
+        members: set[str] = {},
     ):
         assert id not in self.items
-        item = Node(x, y, size, id, weights, func)
+        item = Node(x, y, weight, id, weights, func)
         self.items[id] = item
         item.update_colors(self.settings.divisions.get_color_map())
         self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
@@ -369,6 +383,8 @@ class Visualizer(QtCore.QObject):
         )
         self.binder.bind(self.settings.properties.pen_width_nodes, item.set_pen_width)
         self.binder.bind(self.settings.properties.font, item.set_label_font)
+        self.graph.add_node(id, weight=weight)
+        self.members[id] = members
         return item
 
     def create_edge(self, *args, **kwargs):
@@ -404,19 +420,21 @@ class Visualizer(QtCore.QObject):
         self.scene.addItem(item)
         return item
 
-    def add_child_edge(self, parent, child, segments=1):
+    def add_child_edge(self, parent: Vertex, child: Vertex, segments=1):
         edge = self.create_edge(parent, child, segments)
         parent.addChild(child, edge)
         self.scene.addItem(edge)
         self.scene.addItem(child)
+        self.graph.add_edge(parent.name, child.name, mutations=segments)
         return edge
 
-    def add_sibling_edge(self, vertex, sibling, segments=1):
+    def add_sibling_edge(self, vertex: Vertex, sibling: Vertex, segments=1):
         edge = self.create_edge(vertex, sibling, segments)
         vertex.addSibling(sibling, edge)
         self.scene.addItem(edge)
         if not sibling.scene():
             self.scene.addItem(sibling)
+        self.graph.add_edge(vertex.name, sibling.name, mutations=segments)
         return edge
 
     def handle_about_to_quit(self):
@@ -529,6 +547,7 @@ class Visualizer(QtCore.QObject):
             elif isinstance(item, Scale):
                 scale = self._dump_scale(item)
         return {
+            "version": "dev",
             "settings": self.settings.dump(),
             "graph": self.graph,
             "tree": self.tree,
