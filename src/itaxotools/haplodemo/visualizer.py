@@ -224,7 +224,8 @@ class Visualizer(QtCore.QObject):
         self.graph = graph or self.graph
         self.weights = weights or self.weights
 
-        self.set_divisions_from_weights()
+        if not self.settings.divisions.all():
+            self.set_divisions_from_weights()
 
         x, y = 0, 0
         radius_for_weight = self.settings.node_sizes.radius_for_weight

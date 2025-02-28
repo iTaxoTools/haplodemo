@@ -143,6 +143,12 @@ class DivisionListModel(QtCore.QAbstractListModel):
         self.endResetModel()
         self.divisionsChanged.emit(self.all())
 
+    def set_divisions_from_dict(self, data: dict[str, str]):
+        self.beginResetModel()
+        self._divisions = [Division(k, v) for k, v in data.items()]
+        self.endResetModel()
+        self.divisionsChanged.emit(self.all())
+
     def set_palette(self, palette):
         self.beginResetModel()
         self._default_color = palette.default
