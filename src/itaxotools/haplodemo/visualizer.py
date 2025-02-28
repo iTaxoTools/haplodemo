@@ -58,6 +58,7 @@ class Visualizer(QtCore.QObject):
         self.binder = Binder()
 
         self.items: dict[str, Vertex] = {}
+        self.weights: dict[str, dict[str, int]] = defaultdict(dict)
         self.members: dict[str, set[str]] = defaultdict(set)
         self.member_indices: dict[str, QtCore.QModelIndex] = defaultdict(
             QtCore.QModelIndex
@@ -87,6 +88,7 @@ class Visualizer(QtCore.QObject):
         self.settings.members.set_dict({})
 
         self.items = {}
+        self.weights = defaultdict(dict)
         self.members = defaultdict(set)
         self.partition = defaultdict(str)
         self.graph = nx.Graph()
@@ -113,6 +115,14 @@ class Visualizer(QtCore.QObject):
         divisions_set = set()
         for node in haplo_graph.nodes:
             divisions_set.update(node.pops.keys())
+        self.set_divisions(list(sorted(divisions_set)))
+
+    def set_divisions_from_weights(self, weights: dict[str, dict[str, int]] = None):
+        weights = weights or self.weights
+        divisions_set = {
+            key for node_weights in weights.values() for key in node_weights
+        }
+        divisions_set.discard("?")
         self.set_divisions(list(sorted(divisions_set)))
 
     def set_partitions(self, partitions: iter[tuple[str, dict[str, str]]]):
@@ -209,6 +219,35 @@ class Visualizer(QtCore.QObject):
         self.scene.style_labels()
         self.scene.set_marks_from_nodes()
         self.scene.set_boundary_to_contents()
+
+    def visualize_network(self, graph: nx.Graph = None, weights: dict = None):
+        self.graph = graph or self.graph
+        self.weights = weights or self.weights
+
+        self.set_divisions_from_weights()
+
+        x, y = 0, 0
+        radius_for_weight = self.settings.node_sizes.radius_for_weight
+
+        for id, data in self.graph.nodes(data=True):
+            size = data["weight"]
+            if size > 0:
+                item = self.create_node(
+                    x, y, size, id, self.weights[id], radius_for_weight
+                )
+            else:
+                item = self.create_vertex(x, y, id)
+            self.scene.addItem(item)
+            self.scene.root = self.scene.root or item
+
+        for u, v, data in self.graph.edges(data=True):
+            item_u = self.items[u]
+            item_v = self.items[v]
+            mutations = data["mutations"]
+            item = self.add_sibling_edge(item_u, item_v, mutations)
+
+        self.scene.style_nodes()
+        self.scene.style_labels()
 
     def _mod_radius_for_weight(self, radius: float) -> float:
         radius_for_weight = self.settings.node_sizes.radius_for_weight
@@ -331,7 +370,6 @@ class Visualizer(QtCore.QObject):
     ):
         assert id not in self.items
         item = Vertex(x, y, 0, id)
-        self.items[id] = item
         self.binder.bind(
             self.settings.properties.snapping_movement, item.set_snapping_setting
         )
@@ -347,6 +385,7 @@ class Visualizer(QtCore.QObject):
         self.binder.bind(self.settings.properties.pen_width_edges, item.set_pen_width)
         self.graph.add_node(id, weight=0)
         self.members[id] = members
+        self.items[id] = item
         return item
 
     def create_node(
@@ -361,7 +400,6 @@ class Visualizer(QtCore.QObject):
     ):
         assert id not in self.items
         item = Node(x, y, weight, id, weights, func)
-        self.items[id] = item
         item.update_colors(self.settings.divisions.get_color_map())
         self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
         self.binder.bind(
@@ -384,7 +422,9 @@ class Visualizer(QtCore.QObject):
         self.binder.bind(self.settings.properties.pen_width_nodes, item.set_pen_width)
         self.binder.bind(self.settings.properties.font, item.set_label_font)
         self.graph.add_node(id, weight=weight)
+        self.weights[id] = weights
         self.members[id] = members
+        self.items[id] = item
         return item
 
     def create_edge(self, *args, **kwargs):
@@ -524,6 +564,14 @@ class Visualizer(QtCore.QObject):
             },
         }
 
+    def _dump_graph(self) -> dict:
+        return {
+            "nodes": [[id, data["weight"]] for id, data in self.graph.nodes(data=True)],
+            "edges": [
+                [u, v, data["mutations"]] for u, v, data in self.graph.edges(data=True)
+            ],
+        }
+
     def dump_dict(self) -> dict:
         nodes = []
         edges = []
@@ -549,8 +597,9 @@ class Visualizer(QtCore.QObject):
         return {
             "version": "dev",
             "settings": self.settings.dump(),
-            "graph": self.graph,
-            "tree": self.tree,
+            "graph": self._dump_graph(),
+            "tree": None,
+            "weights": dict(self.weights),
             "members": dict(self.members),
             "layout": {
                 "nodes": nodes,
@@ -560,6 +609,16 @@ class Visualizer(QtCore.QObject):
                 "scale": scale,
             },
         }
+
+    def _load_graph(self, data: dict[str, dict]):
+        self.graph = nx.Graph()
+        for id, weight in data["nodes"]:
+            self.graph.add_node(id, weight=weight)
+        for u, v, mutations in data["edges"]:
+            self.graph.add_edge(u, v, mutations=mutations)
+
+    def _load_weights(self, data: dict[str, dict[str, int]]):
+        self.weights = defaultdict(dict, data)
 
     def _load_node_layout(self, data: dict):
         id = data["name"]
@@ -589,11 +648,7 @@ class Visualizer(QtCore.QObject):
         item.label.set_center_pos(pos["x"], pos["y"])
 
     def _load_boundary(self, data: dict):
-        boundary = self.scene.boundary
-        if not boundary:
-            return
-        rect = QtCore.QRect(data["x"], data["y"], data["w"], data["h"])
-        boundary.set_rect_and_update(rect)
+        self.scene.set_boundary_rect(data["x"], data["y"], data["w"], data["h"])
 
     def _load_legend(self, data: dict):
         legend = self.scene.legend
@@ -612,8 +667,11 @@ class Visualizer(QtCore.QObject):
             scale.labels[i].set_center_pos(pos["x"], pos["y"])
 
     def load_dict(self, data: dict):
+        self.clear()
         self.settings.load(data["settings"])
-        self.scene.style_nodes()
+        self._load_graph(data["graph"])
+        self._load_weights(data["weights"])
+        self.visualize_network()
         self._load_boundary(data["layout"]["boundary"])
         self._load_legend(data["layout"]["legend"])
         self._load_scale(data["layout"]["scale"])
