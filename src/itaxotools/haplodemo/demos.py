@@ -181,7 +181,7 @@ class DemoLoader:
                     nodex.pos().x() + 80 + 80 * y,
                     nodex.pos().y() + 40,
                     15,
-                    f"y{y}",
+                    f"x{x}-y{y}",
                     {"Y": 1},
                     radius_for_weight,
                 )
