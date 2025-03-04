@@ -161,7 +161,7 @@ class Settings(PropertyObject):
         data = {property.key: property.value for property in self.properties}
         del data["partitions"]
         del data["members"]
-        del data["partition_index"]
+        data["partition_index"] = self.partition_index.row()
         data["divisions"] = {div.key: div.color for div in self.divisions.all()}
         data["node_sizes"] = {
             property.key: property.value for property in self.node_sizes.properties
@@ -178,24 +178,20 @@ class Settings(PropertyObject):
         return data
 
     def load(self, data: dict):
+        # Assume partitions and members are already loaded from visualizer
         data = dict(data)
-        for key, value in data["node_sizes"].items():
+        for key, value in data.pop("node_sizes").items():
             self.node_sizes.properties[key].value = value
-        for key, value in data["fields"].items():
+        for key, value in data.pop("fields").items():
             self.fields.properties[key].value = value
-        for key, value in data["scale"].items():
+        for key, value in data.pop("scale").items():
             self.scale.properties[key].value = value
-        self.palette = Palette.from_label(data["palette"])
-        self.divisions.set_divisions_from_dict(data["divisions"])
-        self.layout = LayoutType(data["layout"])
-        self.font.fromString(data["font"])
+        self.partition_index = self.partitions.index(data.pop("partition_index"), 0)
+        self.properties.partition_index.update()
+        self.palette = Palette.from_label(data.pop("palette"))
+        self.divisions.set_divisions_from_dict(data.pop("divisions"))
+        self.layout = LayoutType(data.pop("layout"))
+        self.font.fromString(data.pop("font"))
         self.properties.font.update()
-        del data["node_sizes"]
-        del data["fields"]
-        del data["scale"]
-        del data["palette"]
-        del data["divisions"]
-        del data["layout"]
-        del data["font"]
         for key, value in data.items():
             self.properties[key].value = value

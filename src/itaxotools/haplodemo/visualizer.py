@@ -599,6 +599,11 @@ class Visualizer(QtCore.QObject):
     def _dump_members(self) -> dict:
         return {k: list(sorted(v)) for k, v in self.members.items()}
 
+    def _dump_partitions(self) -> dict:
+        return {
+            partition.key: partition.map for partition in self.settings.partitions.all()
+        }
+
     def dump_dict(self) -> dict:
         nodes = []
         edges = []
@@ -632,6 +637,7 @@ class Visualizer(QtCore.QObject):
             "tree": None,
             "weights": dict(self.weights),
             "members": self._dump_members(),
+            "partitions": self._dump_partitions(),
             "layout": {
                 "nodes": nodes,
                 "edges": edges,
@@ -654,6 +660,10 @@ class Visualizer(QtCore.QObject):
 
     def _load_members(self, data: dict[str, list[str]]):
         self.members = defaultdict(set, {k: set(v) for k, v in data.items()})
+        self.settings.members.set_dict(data)
+
+    def _load_partitions(self, data: dict[str, dict[str, str]]):
+        self.set_partitions(((k, v)) for k, v in data.items())
 
     def _load_node_layout(self, data: dict):
         id = data["name"]
@@ -726,10 +736,11 @@ class Visualizer(QtCore.QObject):
 
     def load_dict(self, data: dict):
         self.clear()
+        self._load_members(data["members"])
+        self._load_partitions(data["partitions"])
         self.settings.load(data["settings"])
         self._load_graph(data["graph"])
         self._load_weights(data["weights"])
-        self._load_members(data["members"])
         self.visualize_network()
         self.visualize_haploweb()
         self._load_boundary(data["layout"]["boundary"])
@@ -741,6 +752,8 @@ class Visualizer(QtCore.QObject):
             self._load_edge_layout(edge)
         for bezier in data["layout"]["beziers"]:
             self._load_bezier_layout(bezier)
+        if self.partition:
+            self.colorize_nodes()
 
     def dump_yaml(self, path: str):
         with open(path, "w") as file:
