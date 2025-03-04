@@ -384,6 +384,7 @@ class Window(QtWidgets.QWidget):
         self.zoom_control.setGeometry(gg)
 
     def quick_save(self):
+        self.dump_yaml("graph.yaml")
         self.export_svg("graph.svg")
         self.export_pdf("graph.pdf")
         self.export_png("graph.png")
