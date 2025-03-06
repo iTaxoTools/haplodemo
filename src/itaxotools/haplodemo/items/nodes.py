@@ -213,6 +213,10 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         item.siblings.append(self)
         edge.adjust_position()
 
+    def setSiblingToChild(self, item):
+        item.parent = self
+        self.children.append(item)
+
     def set_hovered(self, value):
         if self.parent and any(
             (self.isMovementRotational(), self.isMovementRecursive())

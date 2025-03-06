@@ -60,8 +60,8 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
         mid = QtWidgets.QApplication.instance().palette().mid()
         self.setBackgroundBrush(mid)
 
-        self.settings = settings
-        self.root = None
+        self.settings: Settings = settings
+        self.root: Vertex = None
 
         self.boundary = None
         self.legend = None

@@ -596,6 +596,19 @@ class Visualizer(QtCore.QObject):
             ],
         }
 
+    def _dump_tree(self) -> dict:
+        nodes = [item for item in self.items.values() if isinstance(item, Vertex)]
+        return {
+            node.name: [child.name for child in node.children]
+            for node in nodes
+            if node.children
+        }
+
+    def _dump_root(self) -> str | None:
+        if self.scene.root is not None:
+            return self.scene.root.name
+        return None
+
     def _dump_members(self) -> dict:
         return {k: list(sorted(v)) for k, v in self.members.items()}
 
@@ -634,7 +647,8 @@ class Visualizer(QtCore.QObject):
             "version": "dev",
             "settings": self.settings.dump(),
             "graph": self._dump_graph(),
-            "tree": None,
+            "tree": self._dump_tree(),
+            "root": self._dump_root(),
             "weights": dict(self.weights),
             "members": self._dump_members(),
             "partitions": self._dump_partitions(),
@@ -654,6 +668,18 @@ class Visualizer(QtCore.QObject):
             self.graph.add_node(id, weight=weight)
         for u, v, mutations in data["edges"]:
             self.graph.add_edge(u, v, mutations=mutations)
+
+    def _load_root(self, root: str | None):
+        if root is None:
+            return
+        self.scene.root = self.items[root]
+
+    def _load_tree(self, data: dict[str, list[str]]):
+        for parent, children in data.items():
+            parent_item = self.items[parent]
+            for child in children:
+                child_item = self.items[child]
+                parent_item.setSiblingToChild(child_item)
 
     def _load_weights(self, data: dict[str, dict[str, int]]):
         self.weights = defaultdict(dict, data)
@@ -743,6 +769,8 @@ class Visualizer(QtCore.QObject):
         self._load_weights(data["weights"])
         self.visualize_network()
         self.visualize_haploweb()
+        self._load_root(data["root"])
+        self._load_tree(data["tree"])
         self._load_boundary(data["layout"]["boundary"])
         self._load_legend(data["layout"]["legend"])
         self._load_scale(data["layout"]["scale"])
