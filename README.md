@@ -60,4 +60,8 @@ To get started on instantiating the scene, view and controls, look at [window.py
 
 For some examples of data visualization, look at [demos.py](https://github.com/iTaxoTools/haplodemo/blob/v0.2.0/src/itaxotools/haplodemo/demos.py).
 
-The network can be given in tree or graph format using the `HaploTreeNode` and `HaploGraph` types. Alternatively, populate the scene manually with nodes and edges.
+For a comprehensive example of a network in YAML format, look at [members_graph.yaml](https://github.com/iTaxoTools/haplodemo/blob/v0.2.0/src/itaxotools/haplodemo/tests/members_graph.py).
+
+The network can be given in tree or graph format using the `HaploTreeNode` and `HaploGraph` types.
+It is also possible to load a network from a properly formatted YAML file, or directly from a Python dictionary.
+Alternatively, populate the scene manually with nodes and edges.

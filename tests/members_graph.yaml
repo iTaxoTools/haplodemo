@@ -1,0 +1,264 @@
+graph:
+  edges:
+  - - a
+    - b
+    - 1
+  - - a
+    - x
+    - 2
+  - - a
+    - f
+    - 3
+  - - x
+    - c
+    - 2
+  - - c
+    - d
+    - 1
+  - - c
+    - e
+    - 2
+  nodes:
+  - - a
+    - 6
+  - - b
+    - 3
+  - - x
+    - 0
+  - - c
+    - 3
+  - - d
+    - 2
+  - - e
+    - 1
+  - - f
+    - 1
+layout:
+  beziers:
+  - c_a_x: 993
+    c_a_y: -313
+    c_b_x: 980
+    c_b_y: -267
+    node_a: d
+    node_b: e
+  - c_a_x: 794
+    c_a_y: -336
+    c_b_x: 861
+    c_b_y: -396
+    node_a: c
+    node_b: d
+  - c_a_x: 558
+    c_a_y: -139
+    c_b_x: 462
+    c_b_y: -72
+    node_a: a
+    node_b: b
+  boundary:
+    h: 825.4941376522188
+    w: 1515.560617898671
+    x: -389.52278054401785
+    y: -564.6898480080683
+  edges:
+  - label:
+      x: -49
+      y: 30
+    node_a: c
+    node_b: e
+    style: 3
+  - label:
+      x: 0
+      y: 0
+    node_a: c
+    node_b: d
+    style: 1
+  - label:
+      x: 0
+      y: 0
+    node_a: x
+    node_b: c
+    style: 2
+  - label:
+      x: 0
+      y: 0
+    node_a: a
+    node_b: f
+    style: 7
+  - label:
+      x: 0
+      y: 0
+    node_a: a
+    node_b: x
+    style: 2
+  - label:
+      x: 0
+      y: 0
+    node_a: a
+    node_b: b
+    style: 1
+  legend:
+    x: -286.04363015468994
+    y: -485.5606178986706
+  nodes:
+  - name: x
+    x: 599.5446539183887
+    y: -286.2465634894799
+  - label:
+      x: 0
+      y: 0
+    name: f
+    x: 59.5316833490441
+    y: -286.24656348947997
+  - label:
+      x: 0
+      y: 0
+    name: e
+    x: 937.9383733907282
+    y: -164.10619702349038
+  - label:
+      x: 0
+      y: 0
+    name: d
+    x: 912.9819471710138
+    y: -407.07899898454593
+  - label:
+      x: 0
+      y: 0
+    name: c
+    x: 779.5588483698226
+    y: -286.24656348947985
+  - label:
+      x: 0
+      y: 0
+    name: b
+    x: 359.5525248087513
+    y: -26.22688263501152
+  - label:
+      x: 0
+      y: 0
+    name: a
+    x: 359.5525248087512
+    y: -286.2465634894799
+  scale:
+    marks:
+      1:
+        x: 0
+        y: 0
+      3:
+        x: -5
+        y: 0
+      6:
+        x: -5
+        y: 0
+    x: 707.8817735177594
+    y: 140.01236784298368
+members:
+  a:
+  - r
+  - s
+  - t
+  - x
+  - y
+  - z
+  b:
+  - s
+  - x
+  - y
+  c:
+  - k
+  - l
+  - m
+  d:
+  - m
+  - n
+  e:
+  - n
+  f:
+  - o
+  x: []
+partitions:
+  Few:
+    k: E
+    l: E
+    m: E
+    n: E
+    o: A
+    r: A
+    s: A
+    t: A
+    x: A
+    y: A
+    z: A
+  Many:
+    k: D
+    l: D
+    m: E
+    n: E
+    o: C
+    r: B
+    s: B
+    t: C
+    x: A
+    y: A
+    z: A
+root: a
+settings:
+  divisions:
+    A: '#ea5545'
+    B: '#f46a9b'
+    C: '#ef9b20'
+    D: '#27aeef'
+    E: '#bdcf32'
+  edge_label_template: (WEIGHT)
+  edge_length: 40
+  fields:
+    show_groups: true
+    show_isolated: true
+  font: Times New Roman,-1,36,5,400,0,0,0,0,0,0,0,0,0,0,1,Regular
+  highlight_color: '#a5d657'
+  label_movement: true
+  layout: 1
+  layout_scale: 10
+  node_label_template: NAME/WEIGHT
+  node_sizes:
+    area_factor: 0
+    base_radius: 40
+    has_area_factor: false
+    has_base_radius: true
+    has_linear_factor: true
+    has_logarithmic_factor: false
+    linear_factor: 0.5
+    logarithmic_base: 10
+    logarithmic_factor: 0
+  palette: RetroMetro
+  partition_index: 1
+  pen_width_edges: 3.0
+  pen_width_nodes: 2.1
+  recursive_movement: true
+  rotate_scene: false
+  rotational_movement: true
+  scale:
+    marks:
+    - 1
+    - 3
+    - 6
+  show_legend: true
+  show_scale: true
+  snapping_movement: true
+tree:
+  a:
+  - b
+  - x
+  - f
+  c:
+  - d
+  - e
+  x:
+  - c
+version: dev
+weights:
+  a: {}
+  b: {}
+  c: {}
+  d: {}
+  e: {}
+  f: {}

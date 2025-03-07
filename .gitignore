@@ -29,3 +29,4 @@ mprofile_*.dat
 *.yaml
 
 !images/*.*
+!tests/*.*

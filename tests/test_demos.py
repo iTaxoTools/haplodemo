@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pytest import mark
 
 from itaxotools.haplodemo.window import Window
@@ -19,3 +21,9 @@ def test_demos(qapp, demo):
     window = Window()
     demo = getattr(window.demos, demo)
     demo()
+
+
+def test_yaml(qapp):
+    here = Path(__file__).parent
+    window = Window()
+    window.load_yaml(str(here / "members_graph.yaml"))
