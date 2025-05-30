@@ -325,20 +325,24 @@ class Visualizer(QtCore.QObject):
 
         groups: list[str] = self._find_groups_from_edges(edges)
 
+        visible = self.settings.fields.show_groups
+
         for (x, y), v in edges.items():
             if v > 0:
-                bezier = self.create_bezier(self.items[x], self.items[y])
+                bezier = self.create_bezier(self.items[x], self.items[y], visible)
                 bezier.bump(0.3)
 
         for group in groups:
-            self.create_rect_box([self.items[x] for x in group])
+            self.create_rect_box([self.items[x] for x in group], visible)
 
         grouped_nodes = {name for group in groups for name in group}
         isolated_nodes = set(self.members.keys()) - grouped_nodes
 
+        visible = self.settings.fields.show_isolated
+
         for name in isolated_nodes:
             if self.members[name]:
-                self.create_rect_box([self.items[name]])
+                self.create_rect_box([self.items[name]], visible)
 
     def _find_groups_from_edges(self, edges: dict[tuple[str, str], int]):
         graph = defaultdict(set)
@@ -453,16 +457,18 @@ class Visualizer(QtCore.QObject):
         self.binder.bind(self.settings.properties.font, item.set_label_font)
         return item
 
-    def create_rect_box(self, vertices):
+    def create_rect_box(self, vertices: list[Vertex], visible: bool = True):
         item = RectBox(vertices)
         for vertex in vertices:
             vertex.boxes.append(item)
         self.scene.addItem(item)
         item.adjust_position()
+        item.setVisible(visible)
         return item
 
-    def create_bezier(self, node1: Vertex, node2: Vertex):
+    def create_bezier(self, node1: Vertex, node2: Vertex, visible: bool = True):
         item = BezierCurve(node1, node2)
+        item.setVisible(visible)
         self.binder.bind(
             self.settings.properties.highlight_color, item.set_highlight_color
         )
@@ -760,7 +766,7 @@ class Visualizer(QtCore.QObject):
         for i, pos in enumerate(data["marks"].values()):
             scale.labels[i].set_center_pos(pos["x"], pos["y"])
 
-    def load_dict(self, data: dict):
+    def load_dict(self, data: dict) -> tuple[bool, bool]:
         self.clear()
         self._load_members(data["members"])
         self._load_partitions(data["partitions"])
@@ -782,11 +788,14 @@ class Visualizer(QtCore.QObject):
             self._load_bezier_layout(bezier)
         if self.partition:
             self.colorize_nodes()
+        has_tree = bool(data["tree"])
+        has_web = bool(data["layout"]["beziers"])
+        return has_tree, has_web
 
     def dump_yaml(self, path: str):
         with open(path, "w") as file:
             yaml.dump(self.dump_dict(), file)
 
-    def load_yaml(self, path: str):
+    def load_yaml(self, path: str) -> tuple[bool, bool]:
         with open(path, "r") as file:
-            self.load_dict(yaml.safe_load(file))
+            return self.load_dict(yaml.safe_load(file))
