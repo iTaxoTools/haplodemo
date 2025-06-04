@@ -151,6 +151,7 @@ class DivisionListModel(QtCore.QAbstractListModel):
 
     def set_palette(self, palette):
         self.beginResetModel()
+        self._palette = palette
         self._default_color = palette.default
         for index, division in enumerate(self._divisions):
             division.color = palette[index]
