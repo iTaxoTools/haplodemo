@@ -22,6 +22,7 @@ from PySide6 import QtCore, QtWidgets
 
 from collections import Counter, defaultdict
 from itertools import combinations
+from pathlib import Path
 from typing import Callable
 
 import networkx as nx
@@ -534,7 +535,11 @@ class Visualizer(QtCore.QObject):
             if not name:
                 return
 
-            item = self.items[name]
+            item = self.items.get(name, None)
+
+            if item is None:
+                return
+
             item.setSelected(True)
 
     def _dump_vertex_layout(self, item: Node) -> dict:
@@ -789,6 +794,7 @@ class Visualizer(QtCore.QObject):
         self._load_boundary(data["layout"]["boundary"])
         self._load_legend(data["layout"]["legend"])
         self._load_scale(data["layout"]["scale"])
+        self.update_members_setting()
         for node in data["layout"]["nodes"]:
             self._load_node_layout(node)
         for edge in data["layout"]["edges"]:
@@ -805,6 +811,6 @@ class Visualizer(QtCore.QObject):
         with open(path, "w") as file:
             yaml.dump(self.dump_dict(), file)
 
-    def load_yaml(self, path: str) -> tuple[bool, bool]:
+    def load_yaml(self, path: Path | str) -> tuple[bool, bool]:
         with open(path, "r") as file:
             return self.load_dict(yaml.safe_load(file))

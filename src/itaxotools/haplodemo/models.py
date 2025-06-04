@@ -219,6 +219,8 @@ class MemberTreeModel(QtCore.QAbstractItemModel):
         parent_item = child_item.parent
         if parent_item == self.root_item:
             return QtCore.QModelIndex()
+        if parent_item is None:
+            return QtCore.QModelIndex()
         return self.createIndex(parent_item.index, 0, parent_item)
 
     @override
