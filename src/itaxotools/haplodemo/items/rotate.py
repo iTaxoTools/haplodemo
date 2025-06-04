@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
 # Haplodemo - Visualize, edit and export haplotype networks
-# Copyright (C) 2023  Patmanidis Stefanos
+# Copyright (C) 2023-2025 Patmanidis Stefanos
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
