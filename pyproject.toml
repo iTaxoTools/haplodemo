@@ -53,6 +53,7 @@ namespaces = true
 where = ["src"]
 
 [tool.setuptools_scm]
+version_file = "src/itaxotools/haplodemo/_version.py"
 
 [tool.ruff]
 ignore-init-module-imports = true
