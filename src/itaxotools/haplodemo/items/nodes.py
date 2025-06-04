@@ -36,6 +36,7 @@ class Vertex(HighlightableItem, QtWidgets.QGraphicsEllipseItem):
         super().__init__(-r, -r, r * 2, r * 2)
 
         self.name = name
+        self.index = None
         self.parent = None
         self.boxes: list[RectBox] = []
         self.children: list[Vertex] = []

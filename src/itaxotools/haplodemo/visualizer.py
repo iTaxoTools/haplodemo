@@ -69,6 +69,7 @@ class Visualizer(QtCore.QObject):
         self.tree: HaploTreeNode = None
 
         self._member_select_guard = Guard()
+        self._node_index_count = 0
 
         self.scene.selectionChanged.connect(self.handle_selection_changed)
         self.settings.properties.partition_index.notify.connect(
@@ -95,6 +96,8 @@ class Visualizer(QtCore.QObject):
         self.partition = defaultdict(str)
         self.graph = nx.Graph()
         self.tree = None
+
+        self._node_index_count = 0
 
     def update_members_setting(self):
         self.settings.members.set_dict(self.members)
@@ -386,6 +389,7 @@ class Visualizer(QtCore.QObject):
     ):
         assert id not in self.items
         item = Vertex(x, y, 0, id)
+        item.index = self.get_next_node_index()
         self.binder.bind(
             self.settings.properties.snapping_movement, item.set_snapping_setting
         )
@@ -416,6 +420,7 @@ class Visualizer(QtCore.QObject):
     ):
         assert id not in self.items
         item = Node(x, y, weight, id, weights, func)
+        item.index = self.get_next_node_index()
         item.update_colors(self.settings.divisions.get_color_map())
         self.binder.bind(self.settings.divisions.colorMapChanged, item.update_colors)
         self.binder.bind(
@@ -442,6 +447,10 @@ class Visualizer(QtCore.QObject):
         self.members[id] = members
         self.items[id] = item
         return item
+
+    def get_next_node_index(self):
+        self._node_index_count += 1
+        return self._node_index_count
 
     def create_edge(self, *args, **kwargs):
         item = Edge(*args, **kwargs)

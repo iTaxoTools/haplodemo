@@ -447,7 +447,7 @@ class LabelFormatDialog(BoundOptionsDialogWithHistory):
 
     def draw_contents(self):
         label_info = QtWidgets.QLabel(
-            'Set all labels from templates, where "NAME" and "WEIGHT" are replaced by the corresponding values.'
+            'Set all labels from templates, where "NAME", "INDEX" and "WEIGHT" are replaced by the corresponding values.'
         )
         label_info.setWordWrap(True)
 

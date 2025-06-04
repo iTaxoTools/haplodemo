@@ -393,16 +393,20 @@ class GraphicsScene(QtWidgets.QGraphicsScene):
             box.adjust_position()
 
     def style_labels(self):
-        node_label_format = self.settings.node_label_template.replace(
-            "NAME", "{name}"
-        ).replace("WEIGHT", "{weight}")
+        node_label_format = (
+            self.settings.node_label_template.replace("NAME", "{name}")
+            .replace("INDEX", "{index}")
+            .replace("WEIGHT", "{weight}")
+        )
         edge_label_format = self.settings.edge_label_template.replace(
             "WEIGHT", "{weight}"
         )
         nodes = (item for item in self.items() if isinstance(item, Node))
         edges = (item for item in self.items() if isinstance(item, Edge))
         for node in nodes:
-            text = node_label_format.format(name=node.name, weight=node.weight)
+            text = node_label_format.format(
+                name=node.name, index=node.index, weight=node.weight
+            )
             node.label.setText(text)
         for edge in edges:
             text = edge_label_format.format(weight=edge.weight)
