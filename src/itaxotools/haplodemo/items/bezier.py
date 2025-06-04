@@ -209,7 +209,7 @@ class BezierCurve(HighlightableItem, QtWidgets.QGraphicsPathItem):
             return self.locked_c2
         raise ValueError("node not in bezier")
 
-    def set_control_point_for_node(self, node: Vertex, point: QtCore.QPoint):
+    def set_control_point_for_node(self, node: Vertex, point: QtCore.QPointF):
         if node == self.node1:
             self.c1 = point
             return

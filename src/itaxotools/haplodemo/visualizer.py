@@ -755,8 +755,8 @@ class Visualizer(QtCore.QObject):
         bezier = self.beziers[bezier_id]
         node_a = self.items[id_a]
         node_b = self.items[id_b]
-        control_a = QtCore.QPoint(c_a_x, c_a_y)
-        control_b = QtCore.QPoint(c_b_x, c_b_y)
+        control_a = QtCore.QPointF(c_a_x, c_a_y)
+        control_b = QtCore.QPointF(c_b_x, c_b_y)
         bezier.set_control_point_for_node(node_a, control_a)
         bezier.set_control_point_for_node(node_b, control_b)
         bezier.adjust_position()
