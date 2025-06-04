@@ -25,7 +25,7 @@ jobs:
       - name: Build distributions
         run: pipx run build
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_DISTRIBUTIONS }}
           path: dist/*
@@ -60,7 +60,7 @@ jobs:
       - name: Make executable
         uses: iTaxoTools/TaxIGui/.github/actions/make-executable@main
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_EXECUTABLE }}
           path: dist/*.exe
@@ -99,7 +99,7 @@ jobs:
       - name: Build bundle
         uses: iTaxoTools/TaxIGui/.github/actions/make-bundle@main
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: ${{ env.ARTIFACT_BUNDLE }}
           path: dist/*.zip
@@ -122,7 +122,7 @@ jobs:
 
     steps:
       - name: Download all the dists
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.ARTIFACT_DISTRIBUTIONS }}
           path: dist
@@ -148,7 +148,7 @@ jobs:
 
     steps:
       - name: Download all the dists
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.ARTIFACT_DISTRIBUTIONS }}
           path: dist
@@ -174,19 +174,19 @@ jobs:
 
     steps:
       - name: Download all the dists
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.ARTIFACT_DISTRIBUTIONS }}
           path: dist
 
       - name: Download Windows executable
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.ARTIFACT_EXECUTABLE }}
           path: dist
 
       - name: Download macOS bundle
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ env.ARTIFACT_BUNDLE }}
           path: dist
