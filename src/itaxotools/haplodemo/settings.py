@@ -159,6 +159,7 @@ class Settings(PropertyObject):
 
     def dump(self) -> dict:
         data = {property.key: property.value for property in self.properties}
+        del data["rotate_scene"]
         del data["partitions"]
         del data["members"]
         data["partition_index"] = self.partition_index.row()

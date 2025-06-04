@@ -31,6 +31,7 @@ import yaml
 from itaxotools.common.bindings import Binder
 from itaxotools.common.utility import Guard
 
+from .__version__ import get_version
 from .items.bezier import BezierCurve
 from .items.boundary import BoundaryRect
 from .items.boxes import RectBox
@@ -664,7 +665,7 @@ class Visualizer(QtCore.QObject):
             elif isinstance(item, Scale):
                 scale = self._dump_scale(item)
         return {
-            "version": "dev",
+            "version": get_version(),
             "settings": self.settings.dump(),
             "graph": self._dump_graph(),
             "tree": self._dump_tree(),
